@@ -9,10 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-timer-hook": "^4.0.5"
+    "react-full-screen": "^1.1.1",
+    "react-timer-hook": "^4.0.5",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

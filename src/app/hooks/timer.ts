@@ -1,4 +1,4 @@
-import { useTimer } from "react-timer-hook";
+import { useStopwatch, useTimer } from "react-timer-hook";
 
 interface Props {
   expiryTimestamp: number;
@@ -13,10 +13,13 @@ type TimerActionsMap = {
 export type TimerActions = keyof TimerActionsMap;
 
 export default function useTimerHook({ expiryTimestamp }: Props) {
+  const overtime  = useStopwatch({ autoStart: false });
   const { seconds, minutes, hours, isRunning, pause, restart } = useTimer({
     autoStart: false,
     expiryTimestamp: new Date(expiryTimestamp),
-    onExpire: () => console.warn("onExpire called"),
+    onExpire: () => {
+      overtime.start();
+    },
   });
 
   const timerActionsMap: TimerActionsMap = {
@@ -46,5 +49,6 @@ export default function useTimerHook({ expiryTimestamp }: Props) {
     isRunning,
     handleLocalTimer,
     restart,
+    overtime
   };
 }
