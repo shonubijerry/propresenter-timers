@@ -21,13 +21,13 @@ export default function Watch({
   if (mode === 'fullscreen' && !fullscreen) return
 
   const textSize = fullscreen
-    ? 'h-screen w-screen flex items-center justify-center font-bold text-[20vw] tracking-wider'
+    ? 'font-bold text-[20vw] tracking-wider'
     : 'text-2xl'
   return (
     <>
       {overtime.isRunning ? (
         <h2 className={`px-3 py-1 ${textSize} text-red-600`}>
-          {formatTime(overtime.hours, overtime.minutes, overtime.seconds)}
+          -{formatTime(overtime.hours, overtime.minutes, overtime.seconds)}
         </h2>
       ) : (
         <h2 className={`px-3 py-1  ${textSize} text-green-600`}>

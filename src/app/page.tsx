@@ -10,6 +10,7 @@ import { Header } from './components/ui/Header'
 import EmptyTimer from './components/EmptyTimer'
 import Watch from './components/Watch'
 import { FullScreen, useFullScreenHandle } from 'react-full-screen'
+import WatchLayoutWithProps from './components/WatchLayout'
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -139,14 +140,20 @@ export default function Home() {
         }}
         className='bg-white'
       >
-        <Watch
+        <WatchLayoutWithProps
           fullscreen={fullScreen}
-          mode='fullscreen'
-          hours={hours}
-          minutes={minutes}
-          seconds={seconds}
-          overtime={overtime}
-        />
+          title={`${currentTimer?.id.name} - ${formatSecondsToTime(currentTimer?.countdown?.duration ?? 0)}`}
+          onExit={handle.exit}
+        >
+          <Watch
+            fullscreen={fullScreen}
+            mode='fullscreen'
+            hours={hours}
+            minutes={minutes}
+            seconds={seconds}
+            overtime={overtime}
+          />
+        </WatchLayoutWithProps>
       </FullScreen>
     </main>
   )
