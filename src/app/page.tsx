@@ -54,11 +54,17 @@ export default function Home() {
       const fetched = await fetchTimers()
 
       setTimers(fetched)
-      const runningTimer = fetched.find((d) => d.state === 'running')
+      const runningTimer = fetched.find((d) => ['running', 'overrunning'].includes(d.state))
 
-      if (runningTimer) {
+      if (runningTimer && runningTimer.state === 'running') {
         setCurrentTimer(runningTimer)
         handleLocalTimer('start', runningTimer.remainingSeconds)
+      } else
+
+      if (runningTimer && runningTimer.state === 'overrunning') {
+        setCurrentTimer(runningTimer)
+        const timestamp = new Date().valueOf();
+        overtime.reset(new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000), true)
       }
     }
 
