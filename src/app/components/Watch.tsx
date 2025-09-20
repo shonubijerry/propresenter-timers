@@ -20,7 +20,9 @@ export default function Watch({
 }: Props) {
   if (mode === 'fullscreen' && !fullscreen) return
 
-  const textSize = fullscreen ? 'text-2xl' : 'text-2xl'
+  const textSize = fullscreen
+    ? 'h-screen w-screen flex items-center justify-center font-bold text-[20vw] tracking-wider'
+    : 'text-2xl'
   return (
     <>
       {overtime.isRunning ? (

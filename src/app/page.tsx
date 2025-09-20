@@ -137,6 +137,7 @@ export default function Home() {
         onChange={(state) => {
           if (!state) setFullScreen(state)
         }}
+        className='bg-white'
       >
         <Watch
           fullscreen={fullScreen}

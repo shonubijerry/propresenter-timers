@@ -7,7 +7,7 @@ import Button from './ui/Button'
 interface CreateTimerModalProps {
   open: boolean
   onClose: () => void
-  onCreated: (timer: Timer) => void // callback to refresh timers after creation
+  onCreated: (timer: Timer) => void
 }
 
 export default function CreateTimerModal({
@@ -16,10 +16,10 @@ export default function CreateTimerModal({
   onCreated,
 }: CreateTimerModalProps) {
   const [name, setName] = useState('')
-  const [duration, setDuration] = useState(5) // default 5 minutes
+  const [duration, setDuration] = useState(5)
   const [loading, setLoading] = useState(false)
 
-  if (!open) return null // don’t render if closed
+  if (!open) return null
 
   const handleSubmit = async () => {
     if (!name || duration <= 0) return
@@ -42,26 +42,46 @@ export default function CreateTimerModal({
     onCreated(await resp.json())
   }
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
   return (
-    <div className='fixed inset-0 bg-black/80 flex items-center justify-center z-50'>
-      <div className='bg-black rounded-2xl shadow-lg p-6 w-full max-w-md'>
-        <h2 className='text-xl font-bold mb-4'>Create New Timer</h2>
+    <div
+      onClick={handleBackdropClick}
+      className='fixed inset-0 bg-black/30 flex items-center justify-center z-50'
+    >
+      <div className='bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200'>
+        <h2 className='text-xl font-bold mb-4 text-gray-900'>
+          Create New Timer
+        </h2>
         <div className='space-y-4'>
-          <input
-            type='text'
-            placeholder='Timer Name'
-            className='w-full p-2 border rounded'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            type='number'
-            min={1}
-            placeholder='Duration (minutes)'
-            className='w-full p-2 border rounded'
-            value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
-          />
+          <div className='sm:col-span-4'>
+            <label className='block mb-2 font-medium text-gray-600'>
+              Timer Name
+            </label>
+            <input
+              type='text'
+              className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              name='name'
+            />
+          </div>
+          <div className='sm:col-span-4'>
+            <label className='block mb-2 font-medium text-gray-600'>
+              Duration (minutes)
+            </label>
+            <input
+              type='number'
+              min={1}
+              className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+              value={duration}
+              onChange={(e) => setDuration(Number(e.target.value))}
+            />
+          </div>
         </div>
         <div className='mt-6 flex justify-start gap-2'>
           <Button

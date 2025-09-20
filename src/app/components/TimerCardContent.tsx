@@ -12,7 +12,6 @@ import startSvg from '../../../public/start.svg'
 import stopSvg from '../../../public/stop.svg'
 import fullScreenSvg from '../../../public/fullscreen.svg'
 import Image from 'next/image'
-import { FullScreen, useFullScreenHandle } from 'react-full-screen'
 
 interface TimerCardProps {
   timer: Timer
