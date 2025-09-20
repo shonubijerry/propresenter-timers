@@ -11,9 +11,12 @@ import EmptyTimer from './components/EmptyTimer'
 import Watch from './components/Watch'
 import { FullScreen, useFullScreenHandle } from 'react-full-screen'
 import WatchLayoutWithProps from './components/WatchLayout'
+import EditTimerModal from './components/EditTimerModal'
 
 export default function Home() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
+  const [isEditTimerModalOpen, setIsEditTimerModalOpen] = useState(false)
+  const [timerToEdit, setTimerToEdit] = useState<Timer | null>(null)
   const [fullScreen, setFullScreen] = useState(false)
   const [timers, setTimers] = useState<Timer[]>([])
   const [currentTimer, setCurrentTimer] = useState<Timer | null>()
@@ -54,17 +57,20 @@ export default function Home() {
       const fetched = await fetchTimers()
 
       setTimers(fetched)
-      const runningTimer = fetched.find((d) => ['running', 'overrunning'].includes(d.state))
+      const runningTimer = fetched.find((d) =>
+        ['running', 'overrunning'].includes(d.state)
+      )
 
       if (runningTimer && runningTimer.state === 'running') {
         setCurrentTimer(runningTimer)
         handleLocalTimer('start', runningTimer.remainingSeconds)
-      } else
-
-      if (runningTimer && runningTimer.state === 'overrunning') {
+      } else if (runningTimer && runningTimer.state === 'overrunning') {
         setCurrentTimer(runningTimer)
-        const timestamp = new Date().valueOf();
-        overtime.reset(new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000), true)
+        const timestamp = new Date().valueOf()
+        overtime.reset(
+          new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
+          true
+        )
       }
     }
 
@@ -104,10 +110,10 @@ export default function Home() {
 
   return (
     <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70'>
-      <Header setIsModalOpen={setIsModalOpen} />
+      <Header setIsModalOpen={setIsCreateTimerModalOpen} />
       <div className='max-w-6xl mx-auto px-6 py-8'>
         {timers.length === 0 ? (
-          <EmptyTimer setIsModalOpen={setIsModalOpen} />
+          <EmptyTimer setIsModalOpen={setIsCreateTimerModalOpen} />
         ) : (
           /* Timer Grid */
           <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
@@ -127,6 +133,10 @@ export default function Home() {
                   setFullScreen(true)
                   handle.enter()
                 }}
+                onEdit={() => {
+                  setTimerToEdit(timer)
+                  setIsEditTimerModalOpen(true)
+                }}
               />
             ))}
           </div>
@@ -134,9 +144,19 @@ export default function Home() {
       </div>
 
       <CreateTimerModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        open={isCreateTimerModalOpen}
+        onClose={() => setIsCreateTimerModalOpen(false)}
         onCreated={updateTimers}
+      />
+
+      <EditTimerModal
+        timer={timerToEdit}
+        open={isEditTimerModalOpen}
+        onClose={() => {
+          setTimerToEdit(null)
+          setIsEditTimerModalOpen(false)
+        }}
+        onUpdated={updateTimers}
       />
 
       <FullScreen

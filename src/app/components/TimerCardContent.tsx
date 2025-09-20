@@ -11,7 +11,10 @@ import deleteSvg from '../../../public/delete.svg'
 import startSvg from '../../../public/start.svg'
 import stopSvg from '../../../public/stop.svg'
 import fullScreenSvg from '../../../public/fullscreen.svg'
+import editSvg from '../../../public/edit.svg'
 import Image from 'next/image'
+import EditTimerModal from './EditTimerModal'
+import { useState } from 'react'
 
 interface TimerCardProps {
   timer: Timer
@@ -24,6 +27,7 @@ interface TimerCardProps {
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
   omOpenFullScreen: (timer: Timer) => void
+  onEdit: (timer: Timer) => void
 }
 
 export function TimerCard({
@@ -37,6 +41,7 @@ export function TimerCard({
   onOperation,
   onDelete,
   omOpenFullScreen,
+  onEdit,
 }: TimerCardProps) {
   return (
     <div
@@ -121,6 +126,13 @@ export function TimerCard({
               disabled={(isRunning || overtime.isRunning) && !isActive}
             >
               <Image className='w-4 h-4' src={resetSvg} alt='Reset' />
+            </Button>
+            <Button
+              variant='primary'
+              onClick={() => onEdit(timer)}
+              disabled={(isRunning || overtime.isRunning) && isActive}
+            >
+              <Image className='w-4 h-4' src={editSvg} alt='Edit' />
             </Button>
             <Button variant='error' onClick={() => onDelete(timer.id.uuid)}>
               <Image className='w-4 h-4' src={deleteSvg} alt='Delete' />
