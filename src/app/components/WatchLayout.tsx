@@ -6,7 +6,7 @@ export default function WatchLayoutWithProps({
   title = 'Event Timer',
   description = '',
 }: {
-  fullscreen: boolean
+  fullscreen?: boolean
   children: React.ReactNode
   onExit: () => void
   icon?: string

@@ -1,4 +1,5 @@
 import { useStopwatch, useTimer } from "react-timer-hook";
+import { useStopwatchResultType } from "react-timer-hook/dist/types/src/useStopwatch";
 
 interface Props {
   expiryTimestamp: number;
@@ -11,6 +12,8 @@ type TimerActionsMap = {
 };
 
 export type TimerActions = keyof TimerActionsMap;
+
+export type ReactHookTimerType = useStopwatchResultType
 
 export default function useTimerHook({ expiryTimestamp }: Props) {
   const overtime  = useStopwatch({ autoStart: false });

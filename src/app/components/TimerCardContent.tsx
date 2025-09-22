@@ -13,8 +13,6 @@ import stopSvg from '../../../public/stop.svg'
 import fullScreenSvg from '../../../public/fullscreen.svg'
 import editSvg from '../../../public/edit.svg'
 import Image from 'next/image'
-import EditTimerModal from './EditTimerModal'
-import { useState } from 'react'
 
 interface TimerCardProps {
   timer: Timer
@@ -26,7 +24,7 @@ interface TimerCardProps {
   overtime: ReturnType<typeof useStopwatch>
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
-  omOpenFullScreen: (timer: Timer) => void
+  onOpenFullScreen: (timer: Timer) => void
   onEdit: (timer: Timer) => void
 }
 
@@ -40,7 +38,7 @@ export function TimerCard({
   overtime,
   onOperation,
   onDelete,
-  omOpenFullScreen,
+  onOpenFullScreen,
   onEdit,
 }: TimerCardProps) {
   return (
@@ -90,7 +88,7 @@ export function TimerCard({
               </div>
               <button
                 className='cursor-pointer bg-slate-400 hover:bg-slate-500 text-white rounded-r-xl font-medium text-sm transition-colors duration-200 flex-1 min-w-0 flex items-center justify-center'
-                onClick={() => omOpenFullScreen(timer)}
+                onClick={() => onOpenFullScreen(timer)}
               >
                 <Image
                   className='w-8 h-8'
