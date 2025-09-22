@@ -176,8 +176,10 @@ export default function Home({
       ) : (
         <WatchLayoutWithProps
           fullscreen={true}
-          title={`${currentTimer?.id.name} - ${formatSecondsToTime(currentTimer?.countdown?.duration ?? 0)}`}
+          title={formatSecondsToTime(currentTimer?.countdown?.duration ?? 0)}
+          description={currentTimer?.id.name}
           onExit={handle.exit}
+          timeTracker={localTimer.overtime.isRunning ? 'Time Up' : 'Time Left'}
         >
           <Watch
             fullscreen={true}

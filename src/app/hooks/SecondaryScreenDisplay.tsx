@@ -57,7 +57,10 @@ export default function useSecondScreenDisplay() {
         console.log(screenDetails)
 
         const secondaryScreen = screenDetails.screens.find(
-          (screen) => screen.isExtended && screen.availLeft > 0
+          (screen) =>
+            screen.isExtended &&
+            // screen.availLeft > 0 &&
+            screen.label !== screenDetails.currentScreen.label
         )
 
         if (secondaryScreen) {
@@ -69,11 +72,6 @@ export default function useSecondScreenDisplay() {
             popup=true
           `
 
-          // const newWindow = window.open(
-          //   'about:blank',
-          //   'screenWindow',
-          //   windowFeatures
-          // )
           if (!fsWindow || fsWindow.closed) {
             fsWindow = window.open(
               'about:blank',
@@ -91,8 +89,7 @@ export default function useSecondScreenDisplay() {
             fsWindow.document.body.innerHTML =
               '<div id="root-second-screen"></div>'
 
-            const node =
-              fsWindow.document.getElementById('root-second-screen')
+            const node = fsWindow.document.getElementById('root-second-screen')
             if (node) {
               createRoot(node).render(componentToDisplay)
             }
