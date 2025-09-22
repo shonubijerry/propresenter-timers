@@ -46,7 +46,7 @@ export default function WatchLayoutWithProps({
 
         {/* Logo (right) */}
         <div className='flex justify-end w-40 h-20'>
-          <Image src={logoSvg} alt='Stop' />
+          <Image src={logoSvg} alt='Logo' />
         </div>
       </div>
 

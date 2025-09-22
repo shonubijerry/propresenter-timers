@@ -1,5 +1,7 @@
 import { Dispatch, SetStateAction } from 'react'
 import Button from './Button'
+import Image from 'next/image'
+import logoSvg from '../../../../public/logo.svg'
 
 export function Header({
   setIsModalOpen,
@@ -10,12 +12,10 @@ export function Header({
     <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
       <div className='max-w-6xl mx-auto px-6 py-6'>
         <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold text-slate-900 tracking-tight'>
-              AGC ProPresenter Timer
-            </h1>
-            <p className='text-slate-600 mt-1'>
-              Manage your presentation timers with ease
+          <div className='flex items-center gap-3'>
+            <Image className='w-30 h-15 text-center flex-1' src={logoSvg} alt='Logo' />
+            <p className='text-2xl font-bold flex text-centre text-slate-600 mt-1'>
+              Propresenter Timer Control
             </p>
           </div>
           <Button
