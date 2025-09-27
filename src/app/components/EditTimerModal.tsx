@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Timer } from '../interfaces/time'
 import Button from './ui/Button'
+import { editTimerApi } from '../hooks/proPresenterApi'
 
 interface CreateTimerModalProps {
   timer: Timer | null
@@ -27,21 +28,18 @@ export default function EditTimerModal({
     if (!name || duration <= 0) return
     setLoading(true)
 
-    const resp = await fetch(`/api/timers/${timer?.id.uuid}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        allows_overrun: true,
-        countdown: { duration: duration * 60 },
-        name,
-      }),
-    })
-
-    setLoading(false)
-    setName('')
-    setDuration(5)
-    onClose()
-    onUpdated(await resp.json())
+    await editTimerApi(duration, name, timer?.id.uuid)
+      .then((resp) => {
+        setLoading(false)
+        setName('')
+        setDuration(5)
+        onClose()
+        onUpdated(resp)
+      })
+      .catch((e) => {
+        console.log(e)
+        setLoading(false)
+      })
   }
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {
@@ -56,9 +54,7 @@ export default function EditTimerModal({
       className='fixed inset-0 bg-black/30 flex items-center justify-center z-50'
     >
       <div className='bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200'>
-        <h2 className='text-xl font-bold mb-4 text-gray-900'>
-          Edit New Timer
-        </h2>
+        <h2 className='text-xl font-bold mb-4 text-gray-900'>Edit New Timer</h2>
         <div className='space-y-4'>
           <div className='sm:col-span-4'>
             <label className='block mb-2 font-medium text-gray-600'>

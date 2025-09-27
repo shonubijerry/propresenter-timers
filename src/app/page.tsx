@@ -1,6 +1,6 @@
 'use client'
 
-import { formatSecondsToTime } from '@/lib/formatter'
+import { convertTimeToSeconds, formatSecondsToTime } from '@/lib/formatter'
 import { use, useEffect, useState } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
@@ -13,6 +13,7 @@ import WatchLayoutWithProps from './components/WatchLayout'
 import EditTimerModal from './components/EditTimerModal'
 import { useShared } from './providers'
 import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
+import { deleteTimerApi, fetchTimersApi, setTimerOperationApi } from './hooks/proPresenterApi'
 
 export default function Home({
   searchParams,
@@ -26,11 +27,12 @@ export default function Home({
   const { currentTimer, setCurrentTimer, localTimer, handle } = useShared()
   const { openNewWindow } = useSecondScreenDisplay()
   const params = use(searchParams)
-  const [fsWindow, setFsWindow] = useState<Window | null>(null)
+  const [fsWindow, setFsWindow] = useState<Window | null | undefined>(null)
 
   const updateTimers = (timer: Timer) => {
+    const rest = timers.filter(t => t.id.uuid !== timer.id.uuid)
     setTimers([
-      ...timers,
+      ...rest,
       {
         ...timer,
         state: 'stopped',
@@ -41,10 +43,7 @@ export default function Home({
   }
 
   const fetchTimers = async () => {
-    const res = await fetch('/api/timers', {
-      cache: 'no-store',
-    })
-    const data = (await res.json()) as Timer[]
+    const data = await fetchTimersApi()
 
     setTimers(data)
     return data
@@ -81,7 +80,7 @@ export default function Home({
   }, [])
 
   const handleDelete = async (uuid: string) => {
-    await fetch(`/api/timers/${uuid}`, { method: 'DELETE' })
+    await deleteTimerApi(uuid)
     setTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
 
     if (currentTimer?.id.uuid === uuid) {
@@ -105,7 +104,7 @@ export default function Home({
       setCurrentTimer(null)
     }
 
-    await fetch(`/api/timers/${timer.id.uuid}/${action}`)
+    await setTimerOperationApi(timer.id.uuid)
     localTimer.handleLocalTimer(action, timer.remainingSeconds)
     await fetchTimers()
   }

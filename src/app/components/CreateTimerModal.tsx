@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Timer } from '../interfaces/time'
 import Button from './ui/Button'
+import { createTimerApi } from '../hooks/proPresenterApi'
 
 interface CreateTimerModalProps {
   open: boolean
@@ -25,21 +26,18 @@ export default function CreateTimerModal({
     if (!name || duration <= 0) return
     setLoading(true)
 
-    const resp = await fetch('/api/timers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        allows_overrun: true,
-        countdown: { duration: duration * 60 },
-        name,
-      }),
-    })
-
-    setLoading(false)
-    setName('')
-    setDuration(5)
-    onClose()
-    onCreated(await resp.json())
+    await createTimerApi(duration, name)
+      .then((resp) => {
+        setLoading(false)
+        setName('')
+        setDuration(5)
+        onClose()
+        onCreated(resp)
+      })
+      .catch((e) => {
+        console.log(e)
+        setLoading(false)
+      })
   }
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {

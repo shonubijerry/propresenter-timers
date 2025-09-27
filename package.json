@@ -2,14 +2,23 @@
   "name": "propresenter-timers",
   "version": "0.1.0",
   "private": true,
+  "description": "Pro Presenter timer app",
+  "author": {
+    "name": "Oluwakorede Shonubi"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev:next": "next dev -p 3000",
+    "dev:electron": "electron .",
+    "dev": "npm run build:electron && NODE_ENV=development electron .",
+    "build:next": "next build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run build:next && npm run build:electron",
+    "dist": "npm run build && electron-builder",
     "lint": "eslint"
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.2",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -20,15 +29,53 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/electron": "^1.4.38",
+    "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^38.1.2",
+    "electron-builder": "^26.0.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.1"
+  },
+  "main": "electron/dist/main.js",
+  "build": {
+    "appId": "com.amazingrace.timer",
+    "productName": "AmazingGraceTimer",
+    "asar": true,
+    "files": [
+      ".env",
+      "electron/dist/**/*",
+      ".next/**",
+      "node_modules/**",
+      "public/**",
+      "package.json",
+      "next.config.js"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "identity": null
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    },
+    "directories": {
+      "buildResources": "assets"
+    }
   }
 }

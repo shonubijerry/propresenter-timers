@@ -13,7 +13,7 @@ declare global {
 type Prop = {
   componentToDisplay: React.ReactNode
   fsWindow?: Window | null
-  setFsWindow: Dispatch<SetStateAction<Window | null>>
+  setFsWindow: Dispatch<SetStateAction<Window | null | undefined>>
 }
 
 // Type definitions for Window Management API
@@ -73,7 +73,8 @@ export default function useSecondScreenDisplay() {
           `
 
           if (!fsWindow || fsWindow.closed) {
-            fsWindow = window.open(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fsWindow = (window as any).open(
               'about:blank',
               'screenWindow',
               windowFeatures
