@@ -12,8 +12,9 @@
     "dev": "npm run build:electron && NODE_ENV=development electron .",
     "build:next": "next build",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "build": "npm run build:next && npm run build:electron",
+    "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "npm run build && electron-builder",
+    "clean": "rimraf dist out .next",
     "lint": "eslint"
   },
   "dependencies": {
@@ -48,7 +49,7 @@
   "build": {
     "appId": "com.amazingrace.timer",
     "productName": "AmazingGraceTimer",
-    "asar": true,
+    "asar": false,
     "files": [
       ".env",
       "electron/dist/**/*",

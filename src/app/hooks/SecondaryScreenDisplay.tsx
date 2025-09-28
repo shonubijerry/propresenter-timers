@@ -67,15 +67,20 @@ export default function useSecondScreenDisplay() {
           const windowFeatures = `
             left=${secondaryScreen.availLeft},
             top=${secondaryScreen.availTop},
-            width=${secondaryScreen.availWidth},
-            height=${secondaryScreen.availHeight},
-            popup=true
+            width=${secondaryScreen.width},
+            height=${secondaryScreen.height},
+            menubar=no,
+            toolbar=no,
+            location=no,
+            status=no,
+            resizable=yes,
+            scrollbars=no
           `
 
           if (!fsWindow || fsWindow.closed) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fsWindow = (window as any).open(
-              'about:blank',
+              '',
               'screenWindow',
               windowFeatures
             )

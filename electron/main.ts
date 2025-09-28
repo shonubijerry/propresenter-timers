@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { spawn, ChildProcess } from 'child_process'
+import { execSync } from 'child_process'
 
 import 'dotenv/config'
 
@@ -15,7 +16,7 @@ let logStream: fs.WriteStream | null = null
 function initializeLogging() {
   try {
     const logPath = path.join(app.getPath('userData'), 'app.log')
-    logStream = fs.createWriteStream(logPath, { flags: 'a' })
+    logStream = fs.createWriteStream(logPath, { flags: 'w' })
   } catch (error) {
     console.error('Failed to initialize logging:', error)
   }
@@ -27,7 +28,6 @@ function log(message: string) {
   if (logStream) {
     logStream.write(line)
   }
-  console.log(message)
 }
 
 function createWindow(url: string) {
@@ -38,9 +38,8 @@ function createWindow(url: string) {
   }
 
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
     show: false, // Don't show until ready
+    fullscreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -66,20 +65,94 @@ function createWindow(url: string) {
   mainWindow.loadURL(url).catch((error) => {
     log(`Failed to load URL: ${error.message}`)
   })
+}
 
-  // Uncomment for debugging
-  // if (isDev) {
-  //   mainWindow.webContents.openDevTools({ mode: 'detach' })
-  // }
+// Find the Node.js executable
+function findNodeExecutable(): string {
+  const isWindows = process.platform === 'win32'
+
+  try {
+    // Try to find Node.js in PATH
+    const whichCommand = isWindows ? 'where' : 'which'
+    const nodeCommand = isWindows ? 'node.exe' : 'node'
+    const nodePath = execSync(`${whichCommand} ${nodeCommand}`, {
+      encoding: 'utf8',
+      timeout: 5000,
+    })
+      .trim()
+      .split('\n')[0] // Take first result on Windows
+
+    if (nodePath && fs.existsSync(nodePath)) {
+      log(`Found Node.js in PATH: ${nodePath}`)
+      return nodePath
+    }
+  } catch (error) {
+    log(`Could not find Node.js in PATH: ${error}`)
+  }
+
+  // Fallback to common locations
+  const commonPaths = isWindows
+    ? [
+        'C:\\Program Files\\nodejs\\node.exe',
+        'C:\\Program Files (x86)\\nodejs\\node.exe',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs\\nodejs\\node.exe'),
+        path.join(process.env.PROGRAMFILES || '', 'nodejs\\node.exe'),
+      ]
+    : [
+        '/usr/local/bin/node',
+        '/usr/bin/node',
+        '/opt/homebrew/bin/node', // Apple Silicon Homebrew
+        '/home/linuxbrew/.linuxbrew/bin/node', // Linux Homebrew
+      ]
+
+  for (const nodePath of commonPaths) {
+    if (fs.existsSync(nodePath)) {
+      log(`Found Node.js at: ${nodePath}`)
+      return nodePath
+    }
+  }
+
+  // Last resort - assume 'node' is in PATH
+  log('Could not find Node.js executable, using "node" command')
+  return 'node'
+}
+
+// Find the Next.js executable
+function findNextExecutable(
+  projectRoot: string,
+  isDev: boolean
+): {
+  command: string
+  args: string[]
+} {
+  const nodeExe = findNodeExecutable()
+  const nextCommand = isDev ? 'dev' : 'start'
+
+  const nextBin = path.join(
+    projectRoot,
+    'node_modules',
+    'next',
+    'dist',
+    'bin',
+    'next'
+  )
+  if (fs.existsSync(nextBin)) {
+    log(`Using Next.js binary: ${nextBin}`)
+    return {
+      command: nodeExe,
+      args: [nextBin, nextCommand, '-p', String(NEXT_PORT)],
+    }
+  }
+
+  return {
+    command: 'npx',
+    args: ['next', nextCommand, '-p', String(NEXT_PORT)],
+  }
 }
 
 function spawnNext(isDev: boolean): Promise<ChildProcess> {
   return new Promise((resolve, reject) => {
     try {
-      const args = isDev
-        ? ['next', 'dev', '-p', String(NEXT_PORT)]
-        : ['next', 'start', '-p', String(NEXT_PORT)]
-
       // Determine working directory
       const cwd = path.join(__dirname, '..', '..')
 
@@ -88,11 +161,27 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
         throw new Error(`Working directory does not exist: ${cwd}`)
       }
 
-      log(`Spawning Next.js in ${isDev ? 'development' : 'production'} mode`)
-      log(`Working directory: ${cwd}`)
-      log(`Command: npx ${args.join(' ')}`)
+      // Verify package.json exists
+      const packageJsonPath = path.join(cwd, 'package.json')
+      if (!fs.existsSync(packageJsonPath)) {
+        throw new Error(`package.json not found in: ${cwd}`)
+      }
 
-      const proc = spawn('npx', args, {
+      // Verify node_modules exists
+      const nodeModulesPath = path.join(cwd, 'node_modules')
+      if (!fs.existsSync(nodeModulesPath)) {
+        throw new Error(
+          `node_modules not found in: ${cwd}. Please run 'npm install' first.`
+        )
+      }
+
+      const { command, args } = findNextExecutable(cwd, isDev)
+
+      log(
+        `Spawning Next.js in ${isDev ? 'development' : 'production'} mode\nWorking directory: ${cwd}`
+      )
+
+      const proc = spawn(command, args, {
         cwd,
         env: {
           ...process.env,
@@ -100,14 +189,25 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
           PORT: String(NEXT_PORT),
         },
         stdio: ['pipe', 'pipe', 'pipe'], // Capture output for better error handling
+        shell: process.platform === 'win32', // Use shell on Windows for better compatibility
       })
+
+      let serverReady = false
 
       // Handle process output
       proc.stdout?.on('data', (data) => {
         const output = data.toString().trim()
         log(`[Next.js stdout]: ${output}`)
 
-        if (output.includes('Starting...') || output.includes('Ready on')) {
+        // Look for various ready indicators
+        if (
+          !serverReady &&
+          (output.includes('Ready on') ||
+            output.includes('Local:') ||
+            output.includes('started server on') ||
+            output.includes(`http://localhost:${NEXT_PORT}`))
+        ) {
+          serverReady = true
           createWindow(`http://localhost:${NEXT_PORT}`)
         }
       })
@@ -124,16 +224,32 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
 
       proc.on('error', (error) => {
         log(`Next.js process error: ${error.message}`)
+
+        // Provide helpful error messages
+        if (error.message.includes('ENOENT')) {
+          log(
+            'Could not find the command. Make sure Node.js and Next.js are properly installed.'
+          )
+        }
+
         reject(error)
       })
 
-      proc.on('close', (code) => {
-        log(`Next.js process exited with code: ${code}`)
+      proc.on('close', (code, signal) => {
+        log(`Next.js process exited with code: ${code}, signal: ${signal}`)
         if (code !== 0 && code !== null) {
           // Process exited with error
           nextProcess = null
         }
       })
+
+      // Fallback: If server doesn't start within 30 seconds, create window anyway
+      setTimeout(() => {
+        if (!serverReady) {
+          log('Server ready timeout - creating window anyway')
+          createWindow(`http://localhost:${NEXT_PORT}`)
+        }
+      }, 30000)
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
@@ -143,34 +259,60 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
   })
 }
 
-// Determine if running in development mode
-function isDevelopment(): boolean {
-  return process.env.NODE_ENV === 'development' || !app.isPackaged
-}
-
 app.whenReady().then(async () => {
   initializeLogging()
 
-  const isDev = isDevelopment()
-  log(`Starting application in ${isDev ? 'development' : 'production'} mode`)
-  log(`App is packaged: ${app.isPackaged}`)
-  log(`Resources path: ${process.resourcesPath}`)
-  log(`__dirname: ${__dirname}`)
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+  const config = {
+    isDev,
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    dirname: __dirname,
+    resourcesPath: process.resourcesPath,
+    architecture: process.arch,
+  }
+
+  log(`Starting application\n${JSON.stringify(config, null, 2)}`)
 
   try {
     // Start Next.js server
     nextProcess = await spawnNext(isDev)
-    log('Waiting for Next.js server to be ready...')
-
-    // Wait for the server to be ready
-    log(`Next.js server is ready on port ${NEXT_PORT}`)
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error'
     log(`Failed to start application: ${errorMessage}`)
 
     // Show error dialog or create a fallback window
-    createWindow(`data:text/html,<h1>Failed to start Next.js server</h1><p>${errorMessage}</p>`)
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Application Error</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+            .error { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #d32f2f; }
+            pre { background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; }
+          </style>
+        </head>
+        <body>
+          <div class="error">
+            <h1>Failed to start Next.js server</h1>
+            <p><strong>Error:</strong> ${errorMessage}</p>
+            <p><strong>Suggestions:</strong></p>
+            <ul>
+              <li>Make sure Node.js is installed and in your PATH</li>
+              <li>Verify that Next.js dependencies are installed (run <code>npm install</code>)</li>
+              <li>Check that port ${NEXT_PORT} is not already in use</li>
+              <li>Look at the application logs for more details</li>
+            </ul>
+          </div>
+        </body>
+      </html>
+    `
+    createWindow(
+      `data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`
+    )
   }
 
   // Handle app activation (macOS)
@@ -196,13 +338,12 @@ app.on('before-quit', () => {
 app.on('quit', () => {
   // Clean up Next.js process
   if (nextProcess && !nextProcess.killed) {
-    log('Terminating Next.js process...')
+    // Try graceful shutdown first
     nextProcess.kill('SIGTERM')
 
     // Force kill after 5 seconds if it doesn't exit gracefully
     setTimeout(() => {
       if (nextProcess && !nextProcess.killed) {
-        log('Force killing Next.js process...')
         nextProcess.kill('SIGKILL')
       }
     }, 5000)
@@ -218,8 +359,7 @@ app.on('quit', () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  log(`Uncaught exception: ${error.message}`)
-  log(error.stack || '')
+  log(`Uncaught exception: ${error.message}\n${error.stack}`)
 })
 
 process.on('unhandledRejection', (reason, promise) => {

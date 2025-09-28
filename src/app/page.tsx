@@ -1,7 +1,7 @@
 'use client'
 
-import { convertTimeToSeconds, formatSecondsToTime } from '@/lib/formatter'
-import { use, useEffect, useState } from 'react'
+import { formatSecondsToTime } from '@/lib/formatter'
+import { useEffect, useState } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
 import CreateTimerModal from './components/CreateTimerModal'
@@ -13,24 +13,32 @@ import WatchLayoutWithProps from './components/WatchLayout'
 import EditTimerModal from './components/EditTimerModal'
 import { useShared } from './providers'
 import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
-import { deleteTimerApi, fetchTimersApi, setTimerOperationApi } from './hooks/proPresenterApi'
+import {
+  deleteTimerApi,
+  fetchTimersApi,
+  setTimerOperationApi,
+} from './hooks/proPresenterApi'
 
-export default function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ showTime?: string }>
-}) {
+export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
   const [isEditTimerModalOpen, setIsEditTimerModalOpen] = useState(false)
   const [timerToEdit, setTimerToEdit] = useState<Timer | null>(null)
   const [timers, setTimers] = useState<Timer[]>([])
+  const [showTime, setShowTime] = useState(false)
   const { currentTimer, setCurrentTimer, localTimer, handle } = useShared()
   const { openNewWindow } = useSecondScreenDisplay()
-  const params = use(searchParams)
   const [fsWindow, setFsWindow] = useState<Window | null | undefined>(null)
 
+  // Handle URL search params on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      setShowTime(urlParams.get('showTime') === 'true')
+    }
+  }, [])
+
   const updateTimers = (timer: Timer) => {
-    const rest = timers.filter(t => t.id.uuid !== timer.id.uuid)
+    const rest = timers.filter((t) => t.id.uuid !== timer.id.uuid)
     setTimers([
       ...rest,
       {
@@ -104,14 +112,14 @@ export default function Home({
       setCurrentTimer(null)
     }
 
-    await setTimerOperationApi(timer.id.uuid)
+    await setTimerOperationApi(action, timer.id.uuid)
     localTimer.handleLocalTimer(action, timer.remainingSeconds)
     await fetchTimers()
   }
 
   return (
     <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70'>
-      {!Boolean(params.showTime) ? (
+      {!showTime ? (
         <>
           <Header setIsModalOpen={setIsCreateTimerModalOpen} />
           <div className='max-w-6xl mx-auto px-6 py-8'>
@@ -138,7 +146,7 @@ export default function Home({
                         setFsWindow,
                         componentToDisplay: (
                           <iframe
-                            src='http://localhost:3000?showTime=true'
+                            src='/?showTime=true'
                             width='100%'
                             height='100%'
                             allow='window-management'
