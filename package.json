@@ -97,7 +97,7 @@
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
       "menuCategory": false,
-      "include": "build/installer.nsh"
+      "include": "build.win.nsh"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
