@@ -9,12 +9,13 @@
   "scripts": {
     "dev:next": "next dev -p 3000",
     "dev:electron": "electron .",
-    "dev": "npm run build:electron && NODE_ENV=development electron .",
+    "dev:parallel": "concurrently \"npm run dev:next\" \"NODE_ENV=production electron .\"",
+    "dev": "npm run build:next && npm run build:electron && npm run dev:parallel",
     "build:next": "next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "npm run build && electron-builder",
-    "clean": "rimraf dist out .next",
+    "clean": "rimraf dist out .next release",
     "lint": "eslint"
   },
   "dependencies": {
@@ -34,6 +35,7 @@
     "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
     "eslint": "^9",
@@ -46,37 +48,62 @@
     "wait-on": "^9.0.1"
   },
   "main": "electron/dist/main.js",
+  "homepage": "./",
   "build": {
     "appId": "com.amazingrace.timer",
-    "productName": "AmazingGraceTimer",
+    "productName": "AGC Timer Control",
     "asar": false,
+    "compression": "maximum",
     "files": [
       ".env",
+      "out/**/*",
       "electron/dist/**/*",
-      ".next/**",
-      "node_modules/**",
-      "public/**",
-      "package.json",
-      "next.config.js"
+      "package.json"
     ],
     "mac": {
-      "target": [
-        "dmg"
-      ],
+      "target": "dmg",
+      "icon": "assets/icon.icns",
       "identity": null
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
     },
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": ["x64", "ia32"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
     },
-    "linux": {
-      "target": [
-        "AppImage"
-      ]
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "AGC Timer Control",
+      "uninstallDisplayName": "AGC Timer Control",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": false,
+      "include": "build/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "directories": {
-      "buildResources": "assets"
+      "output": "release"
     }
   }
 }

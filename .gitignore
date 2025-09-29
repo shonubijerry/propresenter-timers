@@ -18,7 +18,7 @@
 /out/
 
 # production
-/build
+!build/installer.nsh
 
 # misc
 .DS_Store
@@ -40,3 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 dist
+release
