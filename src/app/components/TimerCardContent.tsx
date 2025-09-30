@@ -3,16 +3,14 @@
 import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
 import { TimerActions } from '../hooks/timer'
-import Button from './ui/Button'
 import { useStopwatch } from 'react-timer-hook'
 import Watch from './Watch'
-import resetSvg from '../../../public/reset.svg'
-import deleteSvg from '../../../public/delete.svg'
-import startSvg from '../../../public/start.svg'
-import stopSvg from '../../../public/stop.svg'
 import fullScreenSvg from '../../../public/fullscreen.svg'
-import editSvg from '../../../public/edit.svg'
 import Image from 'next/image'
+import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
+import { LuTimerReset } from 'react-icons/lu'
+import { AiOutlineEdit } from 'react-icons/ai'
+import { MdOutlineDelete } from 'react-icons/md'
 
 interface TimerCardProps {
   timer: Timer
@@ -101,40 +99,51 @@ export function TimerCard({
 
           {/* Action Buttons */}
           <div className='flex gap-2 flex-wrap'>
-            <Button
-              className='flex-1 min-w-0'
-              variant='success'
-              onClick={() => onOperation(timer, 'start')}
+            <button
               disabled={isRunning || overtime.isRunning}
-            >
-              <Image className='w-4 h-4' src={startSvg} alt='Start' />
-            </Button>
-            <Button
               className='flex-1 min-w-0'
-              variant='warning'
-              onClick={() => onOperation(timer, 'stop')}
-              disabled={(isRunning || overtime.isRunning) && !isActive}
             >
-              <Image className='w-4 h-4' src={stopSvg} alt='Stop' />
-            </Button>
-            <Button
+              <IoPlayOutline
+                size={30}
+                onClick={() => onOperation(timer, 'start')}
+                className='cursor-pointer text-green-600 duration-200 hover:text-green-700'
+              />
+            </button>
+            <button
+              disabled={(isRunning || overtime.isRunning) && !isActive}
               className='flex-1 min-w-0'
-              variant='primary'
-              onClick={() => onOperation(timer, 'reset')}
-              disabled={(isRunning || overtime.isRunning) && !isActive}
             >
-              <Image className='w-4 h-4' src={resetSvg} alt='Reset' />
-            </Button>
-            <Button
-              variant='primary'
-              onClick={() => onEdit(timer)}
-              disabled={(isRunning || overtime.isRunning) && isActive}
+              <IoStopOutline
+                size={30}
+                onClick={() => onOperation(timer, 'stop')}
+                className='cursor-pointer text-amber-600 duration-200 hover:text-amber-700'
+              />
+            </button>
+            <button disabled={(isRunning || overtime.isRunning) && !isActive}
+              className='flex-1 min-w-0'
             >
-              <Image className='w-4 h-4' src={editSvg} alt='Edit' />
-            </Button>
-            <Button variant='error' onClick={() => onDelete(timer.id.uuid)}>
-              <Image className='w-4 h-4' src={deleteSvg} alt='Delete' />
-            </Button>
+              <LuTimerReset
+                size={30}
+                onClick={() => onOperation(timer, 'reset')}
+                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700'
+              />
+            </button>
+            <button disabled={(isRunning || overtime.isRunning) && isActive}
+              className='flex-1 min-w-0'
+            >
+              <AiOutlineEdit
+                size={30}
+                onClick={() => onEdit(timer)}
+                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700'
+              />
+            </button>
+            <button>
+              <MdOutlineDelete
+                size={30}
+                onClick={() => onDelete(timer.id.uuid)}
+                className='cursor-pointer text-red-600 duration-200 hover:text-red-700'
+              />
+            </button>
           </div>
         </div>
       ) : (

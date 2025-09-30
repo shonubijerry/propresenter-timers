@@ -1,8 +1,6 @@
 import { convertTimeToSeconds } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
 
-const BASE_URL = process.env.NEXT_PUBLIC_PROPRESENTER_BASE_URL
-
 const fetchJson = async <T>(
   url: string,
   options?: RequestInit,
@@ -24,15 +22,15 @@ const fetchJson = async <T>(
 }
 
 // --- Timers ---
-export const fetchTimersApi = async (): Promise<Timer[]> => {
+export const fetchTimersApi = async (baseUrl: string): Promise<Timer[]> => {
   const [allTimers, currentTimers] = await Promise.all([
     fetchJson<Timer[]>(
-      `${BASE_URL}/v1/timers?chunked=false`,
+      `${baseUrl}/v1/timers?chunked=false`,
       undefined,
       'Failed to fetch timers'
     ),
     fetchJson<Timer[]>(
-      `${BASE_URL}/v1/timers/current?chunked=false`,
+      `${baseUrl}/v1/timers/current?chunked=false`,
       undefined,
       'Failed to fetch current timers'
     ),
@@ -48,11 +46,12 @@ export const fetchTimersApi = async (): Promise<Timer[]> => {
 }
 
 export const createTimerApi = (
+  baseUrl: string | null,
   duration: number,
   name: string
 ): Promise<Timer> =>
   fetchJson<Timer>(
-    `${BASE_URL}/v1/timers`,
+    `${baseUrl}/v1/timers`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,6 +65,7 @@ export const createTimerApi = (
   )
 
 export const editTimerApi = (
+  baseUrl: string | null,
   duration: number,
   name: string,
   id?: string
@@ -73,7 +73,7 @@ export const editTimerApi = (
   if (!id) throw new Error('Id not set for update')
 
   return fetchJson<Timer>(
-    `${BASE_URL}/v1/timer/${id}`,
+    `${baseUrl}/v1/timer/${id}`,
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -87,24 +87,28 @@ export const editTimerApi = (
   )
 }
 
-export const deleteTimerApi = async (id?: string): Promise<void> => {
+export const deleteTimerApi = async (
+  baseUrl: string,
+  id?: string
+): Promise<void> => {
   if (!id) throw new Error('Id not set for delete')
 
   await fetchJson<void>(
-    `${BASE_URL}/v1/timer/${id}`,
+    `${baseUrl}/v1/timer/${id}`,
     { method: 'DELETE', headers: { 'Content-Type': 'application/json' } },
     'Failed to delete timer'
   )
 }
 
 export const setTimerOperationApi = async (
+  baseUrl: string | null,
   operation: string,
   id?: string
 ): Promise<void> => {
   if (!id) throw new Error('Id not set for operation')
 
   await fetchJson<void>(
-    `${BASE_URL}/v1/timer/${id}/${operation}`,
+    `${baseUrl}/v1/timer/${id}/${operation}`,
     { method: 'GET', headers: { 'Content-Type': 'application/json' } },
     `Failed to perform operation: ${operation}`
   )

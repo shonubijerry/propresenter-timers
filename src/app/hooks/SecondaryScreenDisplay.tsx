@@ -69,12 +69,7 @@ export default function useSecondScreenDisplay() {
             top=${secondaryScreen.availTop},
             width=${secondaryScreen.width},
             height=${secondaryScreen.height},
-            menubar=no,
-            toolbar=no,
-            location=no,
-            status=no,
-            resizable=yes,
-            scrollbars=no
+            popup=true,
           `
 
           if (!fsWindow || fsWindow.closed) {

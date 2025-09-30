@@ -8,8 +8,8 @@ import {
   Dispatch,
   SetStateAction,
 } from 'react'
-import useTimerHook, { TimerActions, ReactHookTimerType } from './hooks/timer'
-import { Timer } from './interfaces/time'
+import useTimerHook, { TimerActions, ReactHookTimerType } from '../hooks/timer'
+import { Timer } from '../interfaces/time'
 import { FullScreenHandle, useFullScreenHandle } from 'react-full-screen'
 
 type SharedState = {

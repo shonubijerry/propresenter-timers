@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Timer } from '../interfaces/time'
 import Button from './ui/Button'
 import { editTimerApi } from '../hooks/proPresenterApi'
+import { useSettings } from '../providers/settings'
 
 interface CreateTimerModalProps {
   timer: Timer | null
@@ -21,6 +22,7 @@ export default function EditTimerModal({
   const [name, setName] = useState(timer?.id.name)
   const [duration, setDuration] = useState(timer?.countdown?.duration ?? 5)
   const [loading, setLoading] = useState(false)
+  const { proPresenterUrl } = useSettings()
 
   if (!open) return null
 
@@ -28,7 +30,7 @@ export default function EditTimerModal({
     if (!name || duration <= 0) return
     setLoading(true)
 
-    await editTimerApi(duration, name, timer?.id.uuid)
+    await editTimerApi(proPresenterUrl, duration, name, timer?.id.uuid)
       .then((resp) => {
         setLoading(false)
         setName('')
