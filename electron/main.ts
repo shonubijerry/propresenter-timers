@@ -1,251 +1,121 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import path from 'path'
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+import * as path from 'path'
 import fs from 'fs'
-import { spawn, ChildProcess } from 'child_process'
-import { execSync } from 'child_process'
+import url from 'url'
+import http from 'http'
 
 import 'dotenv/config'
+import { Logger } from './lib/logger'
 
-import { logger } from './lib/logger'
+let server: http.Server | null = null
+let serverPort: number
 
-const NEXT_PORT = parseInt(process.env.NEXT_PORT || '3000')
-let nextProcess: ChildProcess | null = null
-let mainWindow: BrowserWindow | null = null
-
-function createWindow(url: string) {
-  // Prevent multiple windows
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.focus()
-    return
-  }
-
-  mainWindow = new BrowserWindow({
-    show: false, // Don't show until ready
-    fullscreen: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: true,
-    },
-  })
-
-  logger.log('Creating window...')
-  logger.log(`Loading URL: ${url}`)
-
-  // Show window when ready to prevent visual flash
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show()
-    logger.log('Window ready and shown')
-  })
-
-  // Handle window closed
-  mainWindow.on('closed', () => {
-    mainWindow = null
-  })
-
-  mainWindow.loadURL(url).catch((error) => {
-    logger.log(`Failed to load URL: ${error.message}`)
-  })
+// MIME type mapping
+const mimeTypes: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.wav': 'audio/wav',
+  '.mp4': 'video/mp4',
+  '.woff': 'application/font-woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'application/font-ttf',
+  '.eot': 'application/vnd.ms-fontobject',
+  '.otf': 'application/font-otf',
+  '.wasm': 'application/wasm',
+  '.ico': 'image/x-icon',
 }
 
-// Find the Node.js executable
-function findNodeExecutable(): string {
-  const isWindows = process.platform === 'win32'
-
-  try {
-    // Try to find Node.js in PATH
-    const whichCommand = isWindows ? 'where' : 'which'
-    const nodeCommand = isWindows ? 'node.exe' : 'node'
-    const nodePath = execSync(`${whichCommand} ${nodeCommand}`, {
-      encoding: 'utf8',
-      timeout: 5000,
-    })
-      .trim()
-      .split('\n')[0] // Take first result on Windows
-
-    if (nodePath && fs.existsSync(nodePath)) {
-      logger.log(`Found Node.js in PATH: ${nodePath}`)
-      return nodePath
-    }
-  } catch (error) {
-    logger.log(`Could not find Node.js in PATH: ${error}`)
-  }
-
-  // Fallback to common locations
-  const commonPaths = isWindows
-    ? [
-        'C:\\Program Files\\nodejs\\node.exe',
-        'C:\\Program Files (x86)\\nodejs\\node.exe',
-        path.join(process.env.LOCALAPPDATA || '', 'Programs\\nodejs\\node.exe'),
-        path.join(process.env.PROGRAMFILES || '', 'nodejs\\node.exe'),
-      ]
-    : [
-        '/usr/local/bin/node',
-        '/usr/bin/node',
-        '/opt/homebrew/bin/node', // Apple Silicon Homebrew
-        '/home/linuxbrew/.linuxbrew/bin/node', // Linux Homebrew
-      ]
-
-  for (const nodePath of commonPaths) {
-    if (fs.existsSync(nodePath)) {
-      logger.log(`Found Node.js at: ${nodePath}`)
-      return nodePath
-    }
-  }
-
-  // Last resort - assume 'node' is in PATH
-  logger.log('Could not find Node.js executable, using "node" command')
-  return 'node'
-}
-
-// Find the Next.js executable
-function findNextExecutable(
-  projectRoot: string,
-  isDev: boolean
-): {
-  command: string
-  args: string[]
-} {
-  const nodeExe = findNodeExecutable()
-  const nextCommand = isDev ? 'dev' : 'start'
-
-  const nextBin = path.join(
-    projectRoot,
-    'node_modules',
-    'next',
-    'dist',
-    'bin',
-    'next'
-  )
-  if (fs.existsSync(nextBin)) {
-    logger.log(`Using Next.js binary: ${nextBin}`)
-    return {
-      command: nodeExe,
-      args: [nextBin, nextCommand, '-p', String(NEXT_PORT)],
-    }
-  }
-
-  return {
-    command: 'npx',
-    args: ['next', nextCommand, '-p', String(NEXT_PORT)],
-  }
-}
-
-function spawnNext(isDev: boolean): Promise<ChildProcess> {
+function startLocalServer(): Promise<number> {
   return new Promise((resolve, reject) => {
-    try {
-      // Determine working directory
-      const cwd = path.join(__dirname, '..', '..')
+    server = http.createServer((request, response) => {
+      const parsedUrl = url.parse(request.url || '')
+      let pathname = parsedUrl.pathname || '/'
 
-      // Verify the working directory exists
-      if (!fs.existsSync(cwd)) {
-        throw new Error(`Working directory does not exist: ${cwd}`)
+      // Default to index.html for root
+      if (pathname === '/') {
+        pathname = '/index.html'
       }
 
-      // Verify package.json exists
-      const packageJsonPath = path.join(cwd, 'package.json')
-      if (!fs.existsSync(packageJsonPath)) {
-        throw new Error(`package.json not found in: ${cwd}`)
+      // Determine the correct path for static files
+      const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+      let staticPath: string
+
+      if (isDev) {
+        // Development: files are in dist folder relative to __dirname
+        staticPath = path.join(__dirname, '..', 'dist', pathname)
+      } else {
+        // Production: files are in the app.asar or resources path
+        staticPath = path.join(process.resourcesPath, 'app', 'out', pathname)
+
+        // Fallback paths to try
+        const fallbackPaths = [
+          path.join(__dirname, 'dist', pathname),
+          path.join(__dirname, '..', 'dist', pathname),
+          path.join(process.cwd(), 'dist', pathname),
+        ]
+
+        // Check if main path exists, if not try fallbacks
+        if (!fs.existsSync(staticPath)) {
+          for (const fallbackPath of fallbackPaths) {
+            if (fs.existsSync(fallbackPath)) {
+              staticPath = fallbackPath
+              break
+            }
+          }
+        }
       }
 
-      // Verify node_modules exists
-      const nodeModulesPath = path.join(cwd, 'node_modules')
-      if (!fs.existsSync(nodeModulesPath)) {
-        throw new Error(
-          `node_modules not found in: ${cwd}. Please run 'npm install' first.`
-        )
+      fs.readFile(staticPath, (err, data) => {
+        if (err) {
+          logger.log(`File not found: ${staticPath}`)
+          response.writeHead(404, { 'Content-Type': 'text/plain' })
+          response.end('File not found')
+          return
+        }
+
+        const ext = path.extname(staticPath).toLowerCase()
+        const contentType = mimeTypes[ext] || 'application/octet-stream'
+
+        response.writeHead(200, {
+          'Content-Type': contentType,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        })
+        response.end(data)
+      })
+    })
+
+    // Listen on random available port
+    server.listen(0, 'localhost', (err?: Error) => {
+      if (err) {
+        reject(err)
+        return
       }
 
-      const { command, args } = findNextExecutable(cwd, isDev)
-
-      logger.log(
-        `Spawning Next.js in ${isDev ? 'development' : 'production'} mode\nWorking directory: ${cwd}`
-      )
-
-      const proc = spawn(command, args, {
-        cwd,
-        env: {
-          ...process.env,
-          NODE_ENV: isDev ? 'development' : 'production',
-          PORT: String(NEXT_PORT),
-        },
-        stdio: ['pipe', 'pipe', 'pipe'], // Capture output for better error handling
-        shell: process.platform === 'win32', // Use shell on Windows for better compatibility
-      })
-
-      let serverReady = false
-
-      // Handle process output
-      proc.stdout?.on('data', (data) => {
-        const output = data.toString().trim()
-        logger.log(`[Next.js stdout]: ${output}`)
-
-        // Look for various ready indicators
-        if (
-          !serverReady &&
-          (output.includes('Ready on') ||
-            output.includes('Local:') ||
-            output.includes('started server on') ||
-            output.includes(`http://localhost:${NEXT_PORT}`))
-        ) {
-          serverReady = true
-          createWindow(`http://localhost:${NEXT_PORT}`)
-        }
-      })
-
-      proc.stderr?.on('data', (data) => {
-        const output = data.toString().trim()
-        logger.log(`[Next.js stderr]: ${output}`)
-      })
-
-      proc.on('spawn', () => {
-        logger.log('Next.js process spawned successfully')
-        resolve(proc)
-      })
-
-      proc.on('error', (error) => {
-        logger.log(`Next.js process error: ${error.message}`)
-
-        // Provide helpful error messages
-        if (error.message.includes('ENOENT')) {
-          logger.log(
-            'Could not find the command. Make sure Node.js and Next.js are properly installed.'
-          )
-        }
-
-        reject(error)
-      })
-
-      proc.on('close', (code, signal) => {
-        logger.log(
-          `Next.js process exited with code: ${code}, signal: ${signal}`
-        )
-        if (code !== 0 && code !== null) {
-          // Process exited with error
-          nextProcess = null
-        }
-      })
-
-      // Fallback: If server doesn't start within 30 seconds, create window anyway
-      setTimeout(() => {
-        if (!serverReady) {
-          logger.log('Server ready timeout - creating window anyway')
-          createWindow(`http://localhost:${NEXT_PORT}`)
-        }
-      }, 30000)
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      logger.log(`Error spawning Next.js: ${errorMessage}`)
-      reject(error)
-    }
+      const address = server?.address()
+      if (address && typeof address === 'object') {
+        serverPort = address.port
+        logger.log(`Local server started on port ${serverPort}`)
+        resolve(serverPort)
+      } else {
+        reject(new Error('Failed to get server address'))
+      }
+    })
   })
 }
 
-app.whenReady().then(async () => {
-  logger.initialize(app.getPath('userData'))
+let mainWindow: BrowserWindow | null = null
+const logger = new Logger(app.getPath('userData'))
 
+function createWindow(): void {
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
   const config = {
     isDev,
@@ -258,92 +128,151 @@ app.whenReady().then(async () => {
 
   logger.log(`Starting application\n${JSON.stringify(config, null, 2)}`)
 
-  try {
-    // Start Next.js server
-    nextProcess = await spawnNext(isDev)
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-    logger.log(`Failed to start application: ${errorMessage}`)
+  // Create the browser window
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    // fullscreen: true,
+    // simpleFullscreen: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false, // Set to false to allow local server access
+      // webSecurity: false, // Allow local file access
+      // allowRunningInsecureContent: true,
+    },
+    icon: path.join(__dirname, 'assets/icon.png'), // Optional: add your app icon
+    show: false, // Don't show until ready
+  })
 
-    // Show error dialog or create a fallback window
-    const errorHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Application Error</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-            .error { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            h1 { color: #d32f2f; }
-            pre { background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; }
-          </style>
-        </head>
-        <body>
-          <div class="error">
-            <h1>Failed to start Next.js server</h1>
-            <p><strong>Error:</strong> ${errorMessage}</p>
-            <p><strong>Suggestions:</strong></p>
-            <ul>
-              <li>Make sure Node.js is installed and in your PATH</li>
-              <li>Verify that Next.js dependencies are installed (run <code>npm install</code>)</li>
-              <li>Check that port ${NEXT_PORT} is not already in use</li>
-              <li>Look at the application logs for more details</li>
-            </ul>
-          </div>
-        </body>
-      </html>
-    `
-    createWindow(
-      `data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`
-    )
+  // Load the app
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:3000')
+    mainWindow.webContents.openDevTools()
+  } else {
+    // Use local server for production to ensure assets load correctly
+    startLocalServer()
+      .then((port) => {
+        logger.log(`Loading app from local server on port ${port}`)
+        mainWindow?.loadURL(`http://localhost:${port}`)
+      })
+      .catch((err) => {
+        logger.log(`Failed to start local server: ${err}`)
+        // Fallback to direct file loading
+        const fallbackPath = path.join(
+          process.resourcesPath,
+          'app',
+          'out/index.html'
+        )
+        logger.log(`Fallback: loading file directly from ${fallbackPath}`)
+        mainWindow?.loadFile(fallbackPath)
+      })
   }
 
-  // Handle app activation (macOS)
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow(`http://localhost:${NEXT_PORT}`)
-    }
+  // Show window when ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show()
   })
+
+  // Handle window closed
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    app.quit()
+  })
+
+  // Debug: Log when navigation fails
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (event, errorCode, errorDescription, validatedURL) => {
+      logger.log(
+        `Failed to load: ${errorCode} - ${errorDescription} - ${validatedURL}`
+      )
+    }
+  )
+
+  // Debug: Log when page finishes loading
+  mainWindow.webContents.on('did-finish-load', () => {
+    logger.log('Page finished loading')
+  })
+}
+
+// App event listeners
+app.whenReady().then(() => {
+  try {
+    createWindow()
+  } catch (error) {
+    logger.log(
+      `Error loading - ${JSON.stringify(error)} - ${(error as Error).message}`
+    )
+  }
 })
 
-// Handle all windows closed
 app.on('window-all-closed', () => {
+  // Close the server when all windows are closed
+  if (server) {
+    server.close()
+    logger.log('Local server closed')
+  }
+
+  if (logger) {
+    logger.close()
+  }
+
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// Handle app quit
-app.on('before-quit', () => {
-  logger.log('Application is quitting...')
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+  }
 })
 
-app.on('quit', () => {
-  // Clean up Next.js process
-  if (nextProcess && !nextProcess.killed) {
-    // Try graceful shutdown first
-    nextProcess.kill('SIGTERM')
-
-    // Force kill after 5 seconds if it doesn't exit gracefully
-    setTimeout(() => {
-      if (nextProcess && !nextProcess.killed) {
-        nextProcess.kill('SIGKILL')
-      }
-    }, 5000)
+app.on('before-quit', () => {
+  // Ensure server is closed before quitting
+  if (server) {
+    server.close()
+    logger.log('Server closed before quit')
   }
 
-  // Close log stream
-  logger.close()
-
-  logger.log('Application quit complete')
+  if (logger) {
+    logger.close()
+  }
 })
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.log(`Uncaught exception: ${error.message}\n${error.stack}`)
-})
+// Optional: Create custom menu
+const template: MenuItemConstructorOptions[] = [
+  {
+    label: 'File',
+    submenu: [
+      {
+        label: 'Quit',
+        accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+        click: () => app.quit(),
+      },
+      {
+        label: 'Settings',
+        accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+        click: () => app.quit(),
+      },
+    ],
+  },
+  {
+    label: 'View',
+    submenu: [
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+    ],
+  },
+]
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.log(`Unhandled rejection at: ${promise}, reason: ${reason}`)
-})
+const menu = Menu.buildFromTemplate(template)
+Menu.setApplicationMenu(menu)

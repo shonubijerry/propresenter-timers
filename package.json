@@ -9,7 +9,7 @@
   "scripts": {
     "dev:next": "next dev -p 3000",
     "dev:electron": "electron .",
-    "dev": "npm run build:electron && NODE_ENV=development electron .",
+    "dev": "concurrently \"npm run build:electron\" \"npm run dev:next\" \"NODE_ENV=development electron .\"",
     "build:next": "next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
@@ -36,6 +36,7 @@
     "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "electron": "^38.1.2",
     "electron-builder": "^26.0.12",
     "eslint": "^9",
@@ -55,12 +56,9 @@
     "compression": "maximum",
     "files": [
       ".env",
+      "out/**/*",
       "electron/dist/**/*",
-      ".next/**",
-      "node_modules/**",
-      "public/**",
-      "package.json",
-      "next.config.js"
+      "package.json"
     ],
     "mac": {
       "target": "dmg",

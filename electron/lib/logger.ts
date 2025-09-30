@@ -12,7 +12,7 @@ export class Logger {
    * @param appDataPath The directory where the log file should be created.
    * @param logFileName The name of the log file (defaults to 'app.log').
    */
-  public initialize(appDataPath: string, logFileName: string = 'app.log'): void {
+  constructor(appDataPath: string, logFileName: string = 'app.log') {
     if (this.logStream) {
       console.warn('Logger already initialized. Closing previous stream.');
       this.close();
@@ -59,5 +59,3 @@ export class Logger {
     }
   }
 }
-
-export const logger = new Logger();
