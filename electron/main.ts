@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { spawn, ChildProcess } from 'child_process'
@@ -6,29 +6,11 @@ import { execSync } from 'child_process'
 
 import 'dotenv/config'
 
+import { logger } from './lib/logger'
+
 const NEXT_PORT = parseInt(process.env.NEXT_PORT || '3000')
 let nextProcess: ChildProcess | null = null
 let mainWindow: BrowserWindow | null = null
-
-// Initialize logging
-let logStream: fs.WriteStream | null = null
-
-function initializeLogging() {
-  try {
-    const logPath = path.join(app.getPath('userData'), 'app.log')
-    logStream = fs.createWriteStream(logPath, { flags: 'w' })
-  } catch (error) {
-    console.error('Failed to initialize logging:', error)
-  }
-}
-
-function log(message: string) {
-  const line = `[${new Date().toISOString()}] ${message}\n`
-
-  if (logStream) {
-    logStream.write(line)
-  }
-}
 
 function createWindow(url: string) {
   // Prevent multiple windows
@@ -48,13 +30,13 @@ function createWindow(url: string) {
     },
   })
 
-  log('Creating window...')
-  log(`Loading URL: ${url}`)
+  logger.log('Creating window...')
+  logger.log(`Loading URL: ${url}`)
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
-    log('Window ready and shown')
+    logger.log('Window ready and shown')
   })
 
   // Handle window closed
@@ -63,7 +45,7 @@ function createWindow(url: string) {
   })
 
   mainWindow.loadURL(url).catch((error) => {
-    log(`Failed to load URL: ${error.message}`)
+    logger.log(`Failed to load URL: ${error.message}`)
   })
 }
 
@@ -83,11 +65,11 @@ function findNodeExecutable(): string {
       .split('\n')[0] // Take first result on Windows
 
     if (nodePath && fs.existsSync(nodePath)) {
-      log(`Found Node.js in PATH: ${nodePath}`)
+      logger.log(`Found Node.js in PATH: ${nodePath}`)
       return nodePath
     }
   } catch (error) {
-    log(`Could not find Node.js in PATH: ${error}`)
+    logger.log(`Could not find Node.js in PATH: ${error}`)
   }
 
   // Fallback to common locations
@@ -107,13 +89,13 @@ function findNodeExecutable(): string {
 
   for (const nodePath of commonPaths) {
     if (fs.existsSync(nodePath)) {
-      log(`Found Node.js at: ${nodePath}`)
+      logger.log(`Found Node.js at: ${nodePath}`)
       return nodePath
     }
   }
 
   // Last resort - assume 'node' is in PATH
-  log('Could not find Node.js executable, using "node" command')
+  logger.log('Could not find Node.js executable, using "node" command')
   return 'node'
 }
 
@@ -137,7 +119,7 @@ function findNextExecutable(
     'next'
   )
   if (fs.existsSync(nextBin)) {
-    log(`Using Next.js binary: ${nextBin}`)
+    logger.log(`Using Next.js binary: ${nextBin}`)
     return {
       command: nodeExe,
       args: [nextBin, nextCommand, '-p', String(NEXT_PORT)],
@@ -177,7 +159,7 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
 
       const { command, args } = findNextExecutable(cwd, isDev)
 
-      log(
+      logger.log(
         `Spawning Next.js in ${isDev ? 'development' : 'production'} mode\nWorking directory: ${cwd}`
       )
 
@@ -197,7 +179,7 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
       // Handle process output
       proc.stdout?.on('data', (data) => {
         const output = data.toString().trim()
-        log(`[Next.js stdout]: ${output}`)
+        logger.log(`[Next.js stdout]: ${output}`)
 
         // Look for various ready indicators
         if (
@@ -214,20 +196,20 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
 
       proc.stderr?.on('data', (data) => {
         const output = data.toString().trim()
-        log(`[Next.js stderr]: ${output}`)
+        logger.log(`[Next.js stderr]: ${output}`)
       })
 
       proc.on('spawn', () => {
-        log('Next.js process spawned successfully')
+        logger.log('Next.js process spawned successfully')
         resolve(proc)
       })
 
       proc.on('error', (error) => {
-        log(`Next.js process error: ${error.message}`)
+        logger.log(`Next.js process error: ${error.message}`)
 
         // Provide helpful error messages
         if (error.message.includes('ENOENT')) {
-          log(
+          logger.log(
             'Could not find the command. Make sure Node.js and Next.js are properly installed.'
           )
         }
@@ -236,7 +218,9 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
       })
 
       proc.on('close', (code, signal) => {
-        log(`Next.js process exited with code: ${code}, signal: ${signal}`)
+        logger.log(
+          `Next.js process exited with code: ${code}, signal: ${signal}`
+        )
         if (code !== 0 && code !== null) {
           // Process exited with error
           nextProcess = null
@@ -246,21 +230,21 @@ function spawnNext(isDev: boolean): Promise<ChildProcess> {
       // Fallback: If server doesn't start within 30 seconds, create window anyway
       setTimeout(() => {
         if (!serverReady) {
-          log('Server ready timeout - creating window anyway')
+          logger.log('Server ready timeout - creating window anyway')
           createWindow(`http://localhost:${NEXT_PORT}`)
         }
       }, 30000)
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
-      log(`Error spawning Next.js: ${errorMessage}`)
+      logger.log(`Error spawning Next.js: ${errorMessage}`)
       reject(error)
     }
   })
 }
 
 app.whenReady().then(async () => {
-  initializeLogging()
+  logger.initialize(app.getPath('userData'))
 
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
   const config = {
@@ -272,7 +256,7 @@ app.whenReady().then(async () => {
     architecture: process.arch,
   }
 
-  log(`Starting application\n${JSON.stringify(config, null, 2)}`)
+  logger.log(`Starting application\n${JSON.stringify(config, null, 2)}`)
 
   try {
     // Start Next.js server
@@ -280,7 +264,7 @@ app.whenReady().then(async () => {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error'
-    log(`Failed to start application: ${errorMessage}`)
+    logger.log(`Failed to start application: ${errorMessage}`)
 
     // Show error dialog or create a fallback window
     const errorHtml = `
@@ -332,7 +316,7 @@ app.on('window-all-closed', () => {
 
 // Handle app quit
 app.on('before-quit', () => {
-  log('Application is quitting...')
+  logger.log('Application is quitting...')
 })
 
 app.on('quit', () => {
@@ -350,18 +334,16 @@ app.on('quit', () => {
   }
 
   // Close log stream
-  if (logStream) {
-    logStream.end()
-  }
+  logger.close()
 
-  log('Application quit complete')
+  logger.log('Application quit complete')
 })
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  log(`Uncaught exception: ${error.message}\n${error.stack}`)
+  logger.log(`Uncaught exception: ${error.message}\n${error.stack}`)
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-  log(`Unhandled rejection at: ${promise}, reason: ${reason}`)
+  logger.log(`Unhandled rejection at: ${promise}, reason: ${reason}`)
 })
