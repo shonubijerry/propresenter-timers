@@ -1,117 +1,12 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, Menu } from 'electron'
 import * as path from 'path'
-import fs from 'fs'
-import url from 'url'
-import http from 'http'
 
 import 'dotenv/config'
 import { Logger } from './lib/logger'
+import { LocalServer } from './lib/server'
+import { menuTemplate } from './lib/menu_template'
 
-let server: http.Server | null = null
-let serverPort: number
-
-// MIME type mapping
-const mimeTypes: Record<string, string> = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.wav': 'audio/wav',
-  '.mp4': 'video/mp4',
-  '.woff': 'application/font-woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'application/font-ttf',
-  '.eot': 'application/vnd.ms-fontobject',
-  '.otf': 'application/font-otf',
-  '.wasm': 'application/wasm',
-  '.ico': 'image/x-icon',
-}
-
-function startLocalServer(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    server = http.createServer((request, response) => {
-      const parsedUrl = url.parse(request.url || '')
-      let pathname = parsedUrl.pathname || '/'
-
-      // Default to index.html for root
-      if (pathname === '/') {
-        pathname = '/index.html'
-      }
-
-      // Determine the correct path for static files
-      const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
-      let staticPath: string
-
-      if (isDev) {
-        // Development: files are in dist folder relative to __dirname
-        staticPath = path.join(__dirname, '..', 'dist', pathname)
-      } else {
-        // Production: files are in the app.asar or resources path
-        staticPath = path.join(process.resourcesPath, 'app', 'out', pathname)
-
-        // Fallback paths to try
-        const fallbackPaths = [
-          path.join(__dirname, 'dist', pathname),
-          path.join(__dirname, '..', 'dist', pathname),
-          path.join(process.cwd(), 'dist', pathname),
-        ]
-
-        // Check if main path exists, if not try fallbacks
-        if (!fs.existsSync(staticPath)) {
-          for (const fallbackPath of fallbackPaths) {
-            if (fs.existsSync(fallbackPath)) {
-              staticPath = fallbackPath
-              break
-            }
-          }
-        }
-      }
-
-      fs.readFile(staticPath, (err, data) => {
-        if (err) {
-          logger.log(`File not found: ${staticPath}`)
-          response.writeHead(404, { 'Content-Type': 'text/plain' })
-          response.end('File not found')
-          return
-        }
-
-        const ext = path.extname(staticPath).toLowerCase()
-        const contentType = mimeTypes[ext] || 'application/octet-stream'
-
-        response.writeHead(200, {
-          'Content-Type': contentType,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        })
-        response.end(data)
-      })
-    })
-
-    // Listen on random available port
-    server.listen(0, 'localhost', (err?: Error) => {
-      if (err) {
-        reject(err)
-        return
-      }
-
-      const address = server?.address()
-      if (address && typeof address === 'object') {
-        serverPort = address.port
-        logger.log(`Local server started on port ${serverPort}`)
-        resolve(serverPort)
-      } else {
-        reject(new Error('Failed to get server address'))
-      }
-    })
-  })
-}
-
+let localServer: LocalServer | null = null
 let mainWindow: BrowserWindow | null = null
 const logger = new Logger(app.getPath('userData'))
 
@@ -151,7 +46,10 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools()
   } else {
     // Use local server for production to ensure assets load correctly
-    startLocalServer()
+    localServer = new LocalServer(logger)
+
+    localServer
+      .start()
       .then((port) => {
         logger.log(`Loading app from local server on port ${port}`)
         mainWindow?.loadURL(`http://localhost:${port}`)
@@ -209,9 +107,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   // Close the server when all windows are closed
-  if (server) {
-    server.close()
-    logger.log('Local server closed')
+  if (localServer) {
+    localServer.close()
   }
 
   if (logger) {
@@ -231,9 +128,8 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   // Ensure server is closed before quitting
-  if (server) {
-    server.close()
-    logger.log('Server closed before quit')
+  if (localServer) {
+    localServer.close()
   }
 
   if (logger) {
@@ -241,38 +137,5 @@ app.on('before-quit', () => {
   }
 })
 
-// Optional: Create custom menu
-const template: MenuItemConstructorOptions[] = [
-  {
-    label: 'File',
-    submenu: [
-      {
-        label: 'Quit',
-        accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-        click: () => app.quit(),
-      },
-      {
-        label: 'Settings',
-        accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-        click: () => app.quit(),
-      },
-    ],
-  },
-  {
-    label: 'View',
-    submenu: [
-      { role: 'reload' },
-      { role: 'forceReload' },
-      { role: 'toggleDevTools' },
-      { type: 'separator' },
-      { role: 'resetZoom' },
-      { role: 'zoomIn' },
-      { role: 'zoomOut' },
-      { type: 'separator' },
-      { role: 'togglefullscreen' },
-    ],
-  },
-]
-
-const menu = Menu.buildFromTemplate(template)
+const menu = Menu.buildFromTemplate(menuTemplate(app))
 Menu.setApplicationMenu(menu)
