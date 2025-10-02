@@ -1,11 +1,11 @@
-import path from 'path';
-import fs from 'fs';
+import path from 'path'
+import fs from 'fs'
 
 /**
  * A simple class for file-based logging.
  */
 export class Logger {
-  private logStream: fs.WriteStream | null = null;
+  private logStream: fs.WriteStream | null = null
 
   /**
    * Initializes the logging system, creating a write stream to the specified path.
@@ -14,19 +14,19 @@ export class Logger {
    */
   constructor(appDataPath: string, logFileName: string = 'app.log') {
     if (this.logStream) {
-      console.warn('Logger already initialized. Closing previous stream.');
-      this.close();
+      console.warn('Logger already initialized. Closing previous stream.')
+      this.close()
     }
 
     try {
-      const logPath = path.join(appDataPath, logFileName);
-      this.logStream = fs.createWriteStream(logPath, { flags: 'w' });
-      this.log('Logger initialized successfully.');
+      const logPath = path.join(appDataPath, logFileName)
+      this.logStream = fs.createWriteStream(logPath, { flags: 'w' })
+      this.log('Logger initialized successfully.')
     } catch (error) {
       // It's usually better to log to console if file logging fails
       // to ensure the error is seen.
-      console.error('Failed to initialize logging:', error);
-      this.logStream = null; // Ensure the stream is null if creation fails
+      console.error('Failed to initialize logging:', error)
+      this.logStream = null // Ensure the stream is null if creation fails
     }
   }
 
@@ -36,15 +36,12 @@ export class Logger {
    * @param message The message to log.
    */
   public log(message: string): void {
-    const line = `[${new Date().toISOString()}] ${message}\n`;
-
-    // Also log to console for immediate feedback during development/testing
-    // or as a fallback if the stream is null.
-    // console.log(line.trim());
-
+    const line = `[${new Date().toISOString()}] ${message}\n`
     if (this.logStream) {
-      this.logStream.write(line);
+      this.logStream.write(line)
     }
+
+    console.log('[Logger] =>', line)
   }
 
   /**
@@ -53,9 +50,9 @@ export class Logger {
    */
   public close(): void {
     if (this.logStream) {
-      this.log('Logger closing stream...');
-      this.logStream.end();
-      this.logStream = null;
+      this.log('Logger closing stream...')
+      this.logStream.end()
+      this.logStream = null
     }
   }
 }

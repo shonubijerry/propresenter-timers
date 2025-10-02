@@ -12,11 +12,6 @@ export const menuTemplate = (
           accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
           click: () => app.quit(),
         },
-        {
-          label: 'Settings',
-          accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
-          click: () => app.quit(),
-        },
       ],
     },
     {

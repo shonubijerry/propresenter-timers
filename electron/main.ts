@@ -1,10 +1,11 @@
-import { app, BrowserWindow, Menu } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain } from 'electron'
 import * as path from 'path'
 
 import 'dotenv/config'
 import { Logger } from './lib/logger'
 import { LocalServer } from './lib/server'
 import { menuTemplate } from './lib/menu_template'
+import { loadSettings, saveSettings } from './lib/settings'
 
 let localServer: LocalServer | null = null
 let mainWindow: BrowserWindow | null = null
@@ -34,7 +35,8 @@ function createWindow(): void {
       contextIsolation: true,
       sandbox: false, // Set to false to allow local server access
       // webSecurity: false, // Allow local file access
-      // allowRunningInsecureContent: true,
+      allowRunningInsecureContent: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
     icon: path.join(__dirname, 'assets/icon.png'), // Optional: add your app icon
     show: false, // Don't show until ready
@@ -94,9 +96,29 @@ function createWindow(): void {
   })
 }
 
+function setupIpcHandlers(): void {
+  ipcMain.handle('get-settings', async () => {
+    return await loadSettings(app, logger)
+  })
+
+  ipcMain.handle('save-settings', async (_event, settings) => {
+    try {
+      await saveSettings(app, logger, settings)
+      // Optionally notify all windows about the update
+      BrowserWindow.getAllWindows().forEach((window) => {
+        window.webContents.send('settings-updated', settings)
+      })
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+}
+
 // App event listeners
 app.whenReady().then(() => {
   try {
+    setupIpcHandlers()
     createWindow()
   } catch (error) {
     logger.log(

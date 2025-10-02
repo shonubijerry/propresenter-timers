@@ -2,7 +2,7 @@ import { Dispatch, SetStateAction } from 'react'
 import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
 import { DiAptana } from 'react-icons/di'
-import { TbLayoutGridAdd } from "react-icons/tb";
+import { TbLayoutGridAdd } from 'react-icons/tb'
 
 export function Header({
   setIsModalOpen,
@@ -17,6 +17,7 @@ export function Header({
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-3'>
             <Image
+              priority={true}
               className='w-30 h-15 text-center flex-1'
               src={logoSvg}
               alt='Logo'
