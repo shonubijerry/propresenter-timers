@@ -180,8 +180,6 @@ export default function Home() {
   }, [fsWindow, openNewWindow])
 
   if (isLoading) {
-    console.log(currentTimer, localTimer);
-
     return
   }
 

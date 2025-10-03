@@ -63,22 +63,21 @@ export default function useSecondScreenDisplay() {
             screen.label !== screenDetails.currentScreen.label
         )
 
+        console.log(secondaryScreen)
+
         if (secondaryScreen) {
           const windowFeatures = `
             left=${secondaryScreen.availLeft},
             top=${secondaryScreen.availTop},
-            width=${secondaryScreen.width},
-            height=${secondaryScreen.height},
+            width=${secondaryScreen.availWidth},
+            height=${secondaryScreen.availHeight},
             popup=true,
+            fullscreen=yes
           `
 
           if (!fsWindow || fsWindow.closed) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            fsWindow = (window as any).open(
-              '',
-              'screenWindow',
-              windowFeatures
-            )
+            fsWindow = (window as any).open('', 'screenWindow', windowFeatures)
             setFsWindow(fsWindow)
           } else {
             fsWindow.focus()

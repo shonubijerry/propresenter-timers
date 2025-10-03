@@ -28,13 +28,10 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    fullscreen: true,
-    // simpleFullscreen: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false, // Set to false to allow local server access
-      // webSecurity: false, // Allow local file access
+      sandbox: false,
       allowRunningInsecureContent: true,
       preload: path.join(__dirname, 'preload.js'),
     },

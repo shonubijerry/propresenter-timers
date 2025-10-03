@@ -51,7 +51,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        console.log('Loading settings from Electron...')
         const loadedSettings =
           process.env.NODE_ENV === 'development'
             ? { address: 'http://127.0.0.1', port: 58380 }
