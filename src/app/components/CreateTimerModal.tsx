@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Timer } from '../interfaces/time'
 import Button from './ui/Button'
 import { createTimerApi } from '../hooks/proPresenterApi'
@@ -12,37 +12,47 @@ interface CreateTimerModalProps {
   onCreated: (timer: Timer) => void
 }
 
+interface TimerFormData {
+  name: string
+  duration: number
+}
+
 export default function CreateTimerModal({
   open,
   onClose,
   onCreated,
 }: CreateTimerModalProps) {
-  const [name, setName] = useState('')
-  const [duration, setDuration] = useState(5)
-  const [loading, setLoading] = useState(false)
-  const {proPresenterUrl} = useSettings()
+  const { proPresenterUrl } = useSettings()
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TimerFormData>({
+    defaultValues: {
+      name: '',
+      duration: 5,
+    },
+  })
 
   if (!open) return null
 
-  const handleSubmit = async () => {
-    if (!name || duration <= 0) return
-    setLoading(true)
-
-    await createTimerApi(proPresenterUrl, duration, name)
-      .then((resp) => {
-        setLoading(false)
-        setName('')
-        setDuration(5)
-        onClose()
-        onCreated(resp)
-      })
-      .catch((e) => {
-        console.log(e)
-        setLoading(false)
-      })
+  const onSubmit = async (data: TimerFormData) => {
+    try {
+      const resp = await createTimerApi(
+        proPresenterUrl,
+        data.duration,
+        data.name
+      )
+      reset()
+      onClose()
+      onCreated(resp)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose()
     }
@@ -57,7 +67,7 @@ export default function CreateTimerModal({
         <h2 className='text-xl font-bold mb-4 text-gray-900'>
           Create New Timer
         </h2>
-        <div className='space-y-4'>
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
           <div className='sm:col-span-4'>
             <label className='block mb-2 font-medium text-gray-600'>
               Timer Name
@@ -65,10 +75,13 @@ export default function CreateTimerModal({
             <input
               type='text'
               className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              name='name'
+              {...register('name', {
+                required: 'Timer name is required',
+              })}
             />
+            {errors.name && (
+              <p className='text-red-500 text-sm mt-1'>{errors.name.message}</p>
+            )}
           </div>
           <div className='sm:col-span-4'>
             <label className='block mb-2 font-medium text-gray-600'>
@@ -78,24 +91,40 @@ export default function CreateTimerModal({
               type='number'
               min={1}
               className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
+              {...register('duration', {
+                required: 'Duration is required',
+                min: {
+                  value: 1,
+                  message: 'Duration must be at least 1 minute',
+                },
+                valueAsNumber: true,
+              })}
             />
+            {errors.duration && (
+              <p className='text-red-500 text-sm mt-1'>
+                {errors.duration.message}
+              </p>
+            )}
           </div>
-        </div>
-        <div className='mt-6 flex justify-start gap-2'>
-          <Button
-            className='mb-6'
-            variant='primary'
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create'}
-          </Button>
-          <Button variant='secondary' onClick={onClose} className='mb-6'>
-            Cancel
-          </Button>
-        </div>
+          <div className='mt-6 flex justify-start gap-2'>
+            <Button
+              className='mb-6'
+              variant='primary'
+              type='submit'
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creating...' : 'Create'}
+            </Button>
+            <Button
+              variant='secondary'
+              onClick={onClose}
+              className='mb-6'
+              type='button'
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )

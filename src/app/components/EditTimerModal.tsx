@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
 import { Timer } from '../interfaces/time'
 import Button from './ui/Button'
 import { editTimerApi } from '../hooks/proPresenterApi'
@@ -13,38 +14,62 @@ interface CreateTimerModalProps {
   onUpdated: (timer: Timer) => void
 }
 
+interface TimerFormData {
+  name: string
+  duration: number
+}
+
 export default function EditTimerModal({
   timer,
   open,
   onClose,
   onUpdated,
 }: CreateTimerModalProps) {
-  const [name, setName] = useState(timer?.id.name)
-  const [duration, setDuration] = useState(timer?.countdown?.duration ?? 5)
-  const [loading, setLoading] = useState(false)
   const { proPresenterUrl } = useSettings()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TimerFormData>({
+    defaultValues: {
+      name: timer?.id.name ?? '',
+      duration: timer?.countdown?.duration ?? 5,
+    },
+  })
+
+  // Reset form when timer changes
+  useEffect(() => {
+    if (timer) {
+      reset({
+        name: timer.id.name,
+        duration: timer.countdown?.duration
+          ? timer.countdown?.duration / 60
+          : 5,
+      })
+    }
+  }, [timer, reset])
 
   if (!open) return null
 
-  const handleSubmit = async () => {
-    if (!name || duration <= 0) return
-    setLoading(true)
-
-    await editTimerApi(proPresenterUrl, duration, name, timer?.id.uuid)
-      .then((resp) => {
-        setLoading(false)
-        setName('')
-        setDuration(5)
-        onClose()
-        onUpdated(resp)
-      })
-      .catch((e) => {
-        console.log(e)
-        setLoading(false)
-      })
+  const onSubmit = async (data: TimerFormData) => {
+    try {
+      const resp = await editTimerApi(
+        proPresenterUrl,
+        data.duration,
+        data.name,
+        timer?.id.uuid
+      )
+      reset()
+      onClose()
+      onUpdated(resp)
+    } catch (e) {
+      console.log(e)
+    }
   }
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose()
     }
@@ -56,8 +81,8 @@ export default function EditTimerModal({
       className='fixed inset-0 bg-black/30 flex items-center justify-center z-50'
     >
       <div className='bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200'>
-        <h2 className='text-xl font-bold mb-4 text-gray-900'>Edit New Timer</h2>
-        <div className='space-y-4'>
+        <h2 className='text-xl font-bold mb-4 text-gray-900'>Edit Timer</h2>
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
           <div className='sm:col-span-4'>
             <label className='block mb-2 font-medium text-gray-600'>
               Timer Name
@@ -65,10 +90,13 @@ export default function EditTimerModal({
             <input
               type='text'
               className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              name='name'
+              {...register('name', {
+                required: 'Timer name is required',
+              })}
             />
+            {errors.name && (
+              <p className='text-red-500 text-sm mt-1'>{errors.name.message}</p>
+            )}
           </div>
           <div className='sm:col-span-4'>
             <label className='block mb-2 font-medium text-gray-600'>
@@ -76,26 +104,41 @@ export default function EditTimerModal({
             </label>
             <input
               type='number'
-              min={1}
               className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
+              {...register('duration', {
+                required: 'Duration is required',
+                min: {
+                  value: 1,
+                  message: 'Duration must be at least 1 minute',
+                },
+                valueAsNumber: true,
+              })}
             />
+            {errors.duration && (
+              <p className='text-red-500 text-sm mt-1'>
+                {errors.duration.message}
+              </p>
+            )}
           </div>
-        </div>
-        <div className='mt-6 flex justify-start gap-2'>
-          <Button
-            className='mb-6'
-            variant='primary'
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? 'Updating...' : 'Update'}
-          </Button>
-          <Button variant='secondary' onClick={onClose} className='mb-6'>
-            Cancel
-          </Button>
-        </div>
+          <div className='mt-6 flex justify-start gap-2'>
+            <Button
+              className='mb-6'
+              variant='primary'
+              type='submit'
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Updating...' : 'Update'}
+            </Button>
+            <Button
+              variant='secondary'
+              onClick={onClose}
+              className='mb-6'
+              type='button'
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )

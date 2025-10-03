@@ -80,7 +80,9 @@ export const editTimerApi = (
       body: JSON.stringify({
         allows_overrun: true,
         countdown: { duration: duration * 60 },
-        name,
+        id: {
+          name,
+        },
       }),
     },
     'Failed to update timer'
