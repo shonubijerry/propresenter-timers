@@ -31,7 +31,7 @@ export default function Home() {
   const { currentTimer, setCurrentTimer, localTimer, handle } = useShared()
   const { openNewWindow } = useSecondScreenDisplay()
   const [fsWindow, setFsWindow] = useState<Window | null | undefined>(null)
-  const { openSettingsDialog, proPresenterUrl } = useSettings()
+  const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
 
   // Handle URL search params on client side
   useEffect(() => {
@@ -178,6 +178,12 @@ export default function Home() {
       ),
     })
   }, [fsWindow, openNewWindow])
+
+  if (isLoading) {
+    console.log(currentTimer, localTimer);
+
+    return
+  }
 
   return (
     <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70'>

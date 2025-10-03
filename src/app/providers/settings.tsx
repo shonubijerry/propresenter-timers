@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, {
   createContext,
   useContext,
@@ -7,6 +8,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react'
+import logoSvg from '../../../public/logo.svg'
 
 export interface AppSettings {
   address: string
@@ -48,25 +50,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Retry logic to wait for electron API
-      let attempts = 0
-      const maxAttempts = 50 // 5 seconds max
-
-      while (attempts < maxAttempts && !window.electron) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-        attempts++
-      }
-
-      if (!window.electron) {
-        console.warn('Electron API not available - running in browser mode')
-        setIsLoading(false)
-        return
-      }
-
       try {
         console.log('Loading settings from Electron...')
-        const loadedSettings = await window.electron.getSettings()
-        console.log('Loaded settings:', loadedSettings)
+        const loadedSettings =
+          process.env.NODE_ENV === 'development'
+            ? { address: 'http://127.0.0.1', port: 58380 }
+            : await window.electron?.getSettings()
 
         setSettings(loadedSettings)
 
@@ -75,7 +64,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
 
         // Listen for settings updates from Electron
-        const cleanup = window.electron.onSettingsUpdate((updatedSettings) => {
+        const cleanup = window.electron?.onSettingsUpdate((updatedSettings) => {
           console.log('Settings updated from Electron:', updatedSettings)
           setSettings(updatedSettings)
           if (updatedSettings?.address && updatedSettings?.port) {
@@ -126,6 +115,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return (
       <div
         style={{
+          background: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -134,7 +124,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           color: '#666',
         }}
       >
-        Loading settings...
+        <div className='flex items-center gap-3'>
+          <Image
+            priority={true}
+            className='w-30 h-15 text-center flex-1'
+            src={logoSvg}
+            alt='Logo'
+          />
+          <p className='text-2xl font-bold flex text-centre text-slate-600 mt-1'>
+            AGC Timer Control
+          </p>
+        </div>
       </div>
     )
   }
