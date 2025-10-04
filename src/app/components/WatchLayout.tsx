@@ -56,7 +56,7 @@ export default function WatchLayoutWithProps({
       <div className='flex flex-1 flex-col items-center justify-center p-5 text-center'>
         <Watch
           fullscreen={true}
-          isInjuryTime={localTimer.totalSeconds < duration * 0.99}
+          isInjuryTime={isInjuryTime}
           mode='fullscreen'
           hours={localTimer.hours}
           minutes={localTimer.minutes}

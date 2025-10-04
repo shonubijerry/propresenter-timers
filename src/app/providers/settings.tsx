@@ -34,6 +34,8 @@ export const useSettings = () => {
   return context
 }
 
+const defaultSettings = { address: 'http://127.0.0.1', port: 58380 }
+
 // Settings Provider
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
@@ -53,8 +55,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         const loadedSettings =
           process.env.NODE_ENV === 'development'
-            ? { address: 'http://127.0.0.1', port: 58380 }
-            : await window.electron?.getSettings()
+            ? defaultSettings
+            : ((await window.electron?.getSettings()) ?? defaultSettings)
 
         setSettings(loadedSettings)
 

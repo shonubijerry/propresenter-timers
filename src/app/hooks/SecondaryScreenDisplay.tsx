@@ -54,8 +54,6 @@ export default function useSecondScreenDisplay() {
       if ('getScreenDetails' in window) {
         const screenDetails: ScreenDetails = await window.getScreenDetails!()
 
-        console.log(screenDetails)
-
         const secondaryScreen = screenDetails.screens.find(
           (screen) =>
             screen.isExtended &&

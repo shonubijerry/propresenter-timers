@@ -250,7 +250,7 @@ export default function Home() {
           timeTracker={localTimer.overtime.isRunning ? 'Time Up' : 'Time Left'}
           isInjuryTime={
             localTimer.totalSeconds <
-            (currentTimer?.countdown?.duration ?? 0) * 0.99
+            (currentTimer?.countdown?.duration ?? 0) * 0.2
           }
         >
         </WatchLayoutWithProps>
