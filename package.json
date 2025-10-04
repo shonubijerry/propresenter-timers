@@ -10,11 +10,11 @@
     "dev:next": "next dev -p 3000",
     "dev:electron": "electron .",
     "dev": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
-    "build:next": "next build",
+    "build:next": "rimraf out .next && next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "npm run build && electron-builder",
-    "clean": "rimraf dist out .next",
+    "clean": "rimraf dist",
     "lint": "eslint"
   },
   "dependencies": {
