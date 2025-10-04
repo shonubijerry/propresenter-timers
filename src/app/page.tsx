@@ -42,18 +42,15 @@ export default function Home() {
   }, [])
 
   const updateTimers = useCallback((timer: Timer) => {
-    setTimers((prevTimers) => {
-      const rest = prevTimers.filter((t) => t.id.uuid !== timer.id.uuid)
-      return [
-        ...rest,
-        {
-          ...timer,
-          state: 'stopped',
-          remainingSeconds: timer.countdown?.duration ?? 0,
-          time: formatSecondsToTime(timer.countdown?.duration ?? 0),
-        },
-      ]
-    })
+    setTimers((prevTimers) =>
+      prevTimers.map((p) => {
+        if (p.id.uuid === timer.id.uuid) {
+          return timer
+        }
+
+        return p
+      })
+    )
   }, [])
 
   const fetchTimers = useCallback(async () => {
@@ -142,6 +139,7 @@ export default function Home() {
 
         if (action === 'reset') {
           setCurrentTimer(null)
+          fsWindow?.close()
         }
 
         await setTimerOperationApi(proPresenterUrl, action, timer.id.uuid)
@@ -151,6 +149,7 @@ export default function Home() {
         console.error('Failed to perform timer operation:', error)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
   )
 
@@ -160,7 +159,8 @@ export default function Home() {
       await fetchTimers()
       setCurrentTimer(null)
       localTimer.overtime.reset(undefined, false)
-      localTimer.restart(new Date(), false)
+      localTimer.handleLocalTimer('reset')
+      fsWindow?.close()
     } catch (e) {
       console.log(e)
     }
@@ -252,8 +252,7 @@ export default function Home() {
             localTimer.totalSeconds <
             (currentTimer?.countdown?.duration ?? 0) * 0.2
           }
-        >
-        </WatchLayoutWithProps>
+        ></WatchLayoutWithProps>
       )}
     </main>
   )

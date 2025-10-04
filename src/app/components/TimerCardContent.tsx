@@ -94,40 +94,36 @@ export function TimerCard({
           <div className='flex gap-2 flex-wrap'>
             <button
               disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              className='flex-1 min-w-0'
+              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-green-600 hover:text-green-800 disabled:hover:-translate-y-0'
             >
               <IoPlayOutline
                 size={30}
                 onClick={() => onOperation(timer, 'start')}
-                className='cursor-pointer text-green-600 duration-200 hover:text-green-800 hover:-translate-y-1'
               />
             </button>
             <button
               disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && !isActive}
-              className='flex-1 min-w-0'
+              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-amber-600 hover:text-amber-800 disabled:hover:-translate-y-0'
             >
               <IoStopOutline
                 size={30}
                 onClick={() => onOperation(timer, 'stop')}
-                className='cursor-pointer text-amber-600 duration-200 hover:text-amber-800 hover:-translate-y-1'
               />
             </button>
             <button disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && !isActive}
-              className='flex-1 min-w-0'
+              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0'
             >
               <LuTimerReset
                 size={30}
                 onClick={() => onOperation(timer, 'reset')}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-800 hover:-translate-y-1'
               />
             </button>
             <button disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && isActive}
-              className='flex-1 min-w-0'
+              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0'
             >
               <AiOutlineEdit
                 size={30}
                 onClick={() => onEdit(timer)}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-800 hover:-translate-y-1'
               />
             </button>
             <button>

@@ -61,8 +61,6 @@ export default function useSecondScreenDisplay() {
             screen.label !== screenDetails.currentScreen.label
         )
 
-        console.log(secondaryScreen)
-
         if (secondaryScreen) {
           const windowFeatures = `
             left=${secondaryScreen.availLeft},
