@@ -1,61 +1,78 @@
 import Image from 'next/image'
 import logoSvg from '../../../public/logo.svg'
+import { useTime } from 'react-timer-hook'
+import { formatSecondsToTime, formatTime } from '@/lib/formatter'
+import Watch from './Watch'
+import { LocalTime } from '../providers/timer'
 
 export default function WatchLayoutWithProps({
+  isInjuryTime,
+  localTimer,
+  duration,
   fullscreen,
-  children,
-  onExit,
-  icon = '🔙',
-  title = 'Event Timer',
   timeTracker = 'Time Left',
   description = '',
 }: {
+  isInjuryTime: boolean
+  localTimer: LocalTime
+  duration: number
   fullscreen?: boolean
-  children: React.ReactNode
-  onExit: () => void
-  icon?: string
-  title?: string
   timeTracker?: string
   description?: string
 }) {
+  const { seconds, minutes, hours, ampm } = useTime({ format: '12-hour' })
+
   if (!fullscreen) return
 
-  const timeupStyle = timeTracker === 'Time Up' ? 'text-red-600 animate-[blink_2s_infinite]' : ''
+  const timeupStyle =
+    timeTracker === 'Time Up'
+      ? 'text-red-600 animate-[blink_2s_infinite]'
+      : isInjuryTime
+        ? 'animate-[blink_6s_infinite]'
+        : ''
 
   return (
     <div className='h-screen w-screen bg-white flex flex-col'>
-      {/* Exit button at top left */}
       <div className='absolute top-4 left-0 w-full flex items-center justify-between px-5'>
-        {/* Exit button (left) */}
-        <div
-          className='flex items-center gap-3 cursor-pointer'
-          onClick={onExit}
-        >
-          <div className='w-10 h-10 flex items-center justify-center text-white text-2xl font-bold'>
-            {icon}
-          </div>
-          <div className='text-xl font-semibold text-gray-800 text-center flex-1'>
-            {title}
-          </div>
+        {/* Logo (left) */}
+        <div className='flex items-center gap-3 cursor-pointer w-30 h-15'>
+          <Image src={logoSvg} alt='Logo' />
         </div>
 
-        {/* Title (center) */}
-        <div className={`text-6xl font-bold text-gray-800 text-center flex-1 ${timeupStyle}`}>
+        {/* Time tracker label (center) */}
+        <div
+          className={`text-6xl font-bold text-gray-800 text-center flex-1 ${timeupStyle}`}
+        >
           {timeTracker}
         </div>
 
-        {/* Logo (right) */}
-        <div className='flex justify-end w-40 h-20'>
-          <Image src={logoSvg} alt='Logo' />
+        {/* Time (right) */}
+        <div className='flex justify-end text-2xl font-semibold text-gray-800 text-top'>
+          {formatTime(hours, minutes, seconds)} {ampm?.toUpperCase()}
         </div>
       </div>
 
       {/* Centered content */}
       <div className='flex flex-1 flex-col items-center justify-center p-5 text-center'>
-        {children}
+        <Watch
+          fullscreen={true}
+          isInjuryTime={localTimer.totalSeconds < duration * 0.99}
+          mode='fullscreen'
+          hours={localTimer.hours}
+          minutes={localTimer.minutes}
+          seconds={localTimer.seconds}
+          overtime={localTimer.overtime}
+        />
 
         <div className='text-6xl font-bold text-gray-600 mt-5 max-w-2xl leading-relaxed'>
           {description}
+        </div>
+
+        <div className='text-2xl font-bold text-gray-600 mt-0'>
+          <span className='text-slate-500'>Duration:</span>
+          <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
+            {formatSecondsToTime(duration)}
+          </span>
         </div>
       </div>
     </div>

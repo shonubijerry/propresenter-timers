@@ -130,9 +130,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             src={logoSvg}
             alt='Logo'
           />
-          <p className='text-2xl font-bold flex text-centre text-slate-600 mt-1'>
-            AGC Timer Control
-          </p>
         </div>
       </div>
     )

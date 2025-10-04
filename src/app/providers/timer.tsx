@@ -12,10 +12,8 @@ import useTimerHook, { TimerActions, ReactHookTimerType } from '../hooks/timer'
 import { Timer } from '../interfaces/time'
 import { FullScreenHandle, useFullScreenHandle } from 'react-full-screen'
 
-type SharedState = {
-  currentTimer?: Timer | null
-  setCurrentTimer: Dispatch<SetStateAction<Timer | null | undefined>>
-  localTimer: {
+export type LocalTime = {
+    totalSeconds: number
     seconds: number
     minutes: number
     hours: number
@@ -24,6 +22,11 @@ type SharedState = {
     restart: (newExpiryTimestamp: Date, newAutoStart?: boolean) => void
     overtime: ReactHookTimerType
   }
+
+type SharedState = {
+  currentTimer?: Timer | null
+  setCurrentTimer: Dispatch<SetStateAction<Timer | null | undefined>>
+  localTimer: LocalTime
   handle: FullScreenHandle
 }
 

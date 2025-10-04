@@ -8,7 +8,6 @@ import CreateTimerModal from './components/CreateTimerModal'
 import { TimerCard } from './components/TimerCardContent'
 import { Header } from './components/ui/Header'
 import EmptyTimer from './components/EmptyTimer'
-import Watch from './components/Watch'
 import WatchLayoutWithProps from './components/WatchLayout'
 import EditTimerModal from './components/EditTimerModal'
 import { useShared } from './providers/timer'
@@ -16,6 +15,7 @@ import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
 import {
   deleteTimerApi,
   fetchTimersApi,
+  setAllTimersOperationApi,
   setTimerOperationApi,
 } from './hooks/proPresenterApi'
 import SettingsDialog from './components/SettingsDialog'
@@ -28,7 +28,7 @@ export default function Home() {
   const [timers, setTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const { currentTimer, setCurrentTimer, localTimer, handle } = useShared()
+  const { currentTimer, setCurrentTimer, localTimer } = useShared()
   const { openNewWindow } = useSecondScreenDisplay()
   const [fsWindow, setFsWindow] = useState<Window | null | undefined>(null)
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
@@ -154,6 +154,18 @@ export default function Home() {
     [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
   )
 
+  const resetAllTimers = async (action: TimerActions) => {
+    try {
+      await setAllTimersOperationApi(proPresenterUrl, action)
+      await fetchTimers()
+      setCurrentTimer(null)
+      localTimer.overtime.reset(undefined, false)
+      localTimer.restart(new Date(), false)
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
   const handleEdit = useCallback((timer: Timer) => {
     setTimerToEdit(timer)
     setIsEditTimerModalOpen(true)
@@ -190,6 +202,7 @@ export default function Home() {
           <Header
             setIsModalOpen={setIsCreateTimerModalOpen}
             openSettings={openSettingsDialog}
+            resetAllTimers={resetAllTimers}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
             {timers.length === 0 ? (
@@ -202,11 +215,7 @@ export default function Home() {
                     key={timer.id.uuid}
                     timer={timer}
                     isActive={currentTimer?.id?.uuid === timer.id.uuid}
-                    isRunning={localTimer.isRunning}
-                    hours={localTimer.hours}
-                    minutes={localTimer.minutes}
-                    seconds={localTimer.seconds}
-                    overtime={localTimer.overtime}
+                    localTimer={localTimer}
                     onOperation={handleOperation}
                     onDelete={handleDelete}
                     onOpenFullScreen={handleOpenFullScreen}
@@ -234,20 +243,16 @@ export default function Home() {
         </>
       ) : (
         <WatchLayoutWithProps
+          localTimer={localTimer}
           fullscreen={true}
-          title={formatSecondsToTime(currentTimer?.countdown?.duration ?? 0)}
+          duration={currentTimer?.countdown?.duration ?? 0}
           description={currentTimer?.id.name}
-          onExit={handle.exit}
           timeTracker={localTimer.overtime.isRunning ? 'Time Up' : 'Time Left'}
+          isInjuryTime={
+            localTimer.totalSeconds <
+            (currentTimer?.countdown?.duration ?? 0) * 0.99
+          }
         >
-          <Watch
-            fullscreen={true}
-            mode='fullscreen'
-            hours={localTimer.hours}
-            minutes={localTimer.minutes}
-            seconds={localTimer.seconds}
-            overtime={localTimer.overtime}
-          />
         </WatchLayoutWithProps>
       )}
     </main>

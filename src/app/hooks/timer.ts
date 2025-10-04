@@ -17,7 +17,7 @@ export type ReactHookTimerType = useStopwatchResultType
 
 export default function useTimerHook({ expiryTimestamp }: Props) {
   const overtime  = useStopwatch({ autoStart: false });
-  const { seconds, minutes, hours, isRunning, pause, restart } = useTimer({
+  const { seconds, minutes, hours, isRunning, pause, restart, totalSeconds } = useTimer({
     autoStart: false,
     expiryTimestamp: new Date(expiryTimestamp),
     onExpire: () => {
@@ -46,6 +46,7 @@ export default function useTimerHook({ expiryTimestamp }: Props) {
   };
 
   return {
+    totalSeconds,
     seconds,
     minutes,
     hours,

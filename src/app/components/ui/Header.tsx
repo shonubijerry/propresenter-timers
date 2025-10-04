@@ -3,14 +3,20 @@ import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
 import { DiAptana } from 'react-icons/di'
 import { TbLayoutGridAdd } from 'react-icons/tb'
+import { LuTimerReset } from 'react-icons/lu'
+import { TimerActions } from '@/app/hooks/timer'
 
 export function Header({
   setIsModalOpen,
   openSettings,
+  resetAllTimers
 }: {
   setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
+  resetAllTimers: (action: TimerActions) => Promise<void>
 }) {
+
+
   return (
     <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
       <div className='max-w-6xl mx-auto px-6 py-6'>
@@ -30,6 +36,11 @@ export function Header({
             <TbLayoutGridAdd
               size={40}
               onClick={() => setIsModalOpen(true)}
+              className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700'
+            />
+            <LuTimerReset
+              size={40}
+              onClick={() => resetAllTimers('reset')}
               className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700'
             />
             <DiAptana
