@@ -69,7 +69,10 @@ export function TimerCard({
               <div className='flex-3 bg-gradient-to-br from-slate-100 to-slate-300/50 rounded-l-xl p-2 border border-slate-200/50'>
                 <Watch
                   mode='normal'
-                  isInjuryTime={localTimer.totalSeconds < ((timer?.countdown?.duration ?? 0) * 0.2)}
+                  isInjuryTime={
+                    localTimer.totalSeconds <
+                    (timer?.countdown?.duration ?? 0) * 0.2
+                  }
                   hours={localTimer.hours}
                   minutes={localTimer.minutes}
                   seconds={localTimer.seconds}
@@ -91,46 +94,58 @@ export function TimerCard({
           )}
 
           {/* Action Buttons */}
-          <div className='flex gap-2 flex-wrap'>
+          <div className='flex gap-8 flex-wrap'>
             <button
               disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-green-600 hover:text-green-800 disabled:hover:-translate-y-0'
+              className='cursor-pointer duration-200 disabled:text-slate-400 text-green-600 hover:text-green-800 disabled:hover:-translate-y-0 has-tooltip'
             >
+              <span className='tooltip tooltip-top'>Start</span>
               <IoPlayOutline
                 size={30}
                 onClick={() => onOperation(timer, 'start')}
               />
             </button>
             <button
-              disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && !isActive}
-              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-amber-600 hover:text-amber-800 disabled:hover:-translate-y-0'
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                !isActive
+              }
+              className='cursor-pointer duration-200 disabled:text-slate-400 text-amber-600 hover:text-amber-800 disabled:hover:-translate-y-0 has-tooltip'
             >
+              <span className='tooltip tooltip-top'>Stop</span>
               <IoStopOutline
                 size={30}
                 onClick={() => onOperation(timer, 'stop')}
               />
             </button>
-            <button disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && !isActive}
-              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0'
+            <button
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                !isActive
+              }
+              className='cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0 has-tooltip'
             >
+              <span className='tooltip tooltip-top'>Reset</span>
               <LuTimerReset
                 size={30}
                 onClick={() => onOperation(timer, 'reset')}
               />
             </button>
-            <button disabled={(localTimer.isRunning || localTimer.overtime.isRunning) && isActive}
-              className='flex-1 min-w-0 cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0'
+            <button
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                isActive
+              }
+              className='cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0 has-tooltip'
             >
-              <AiOutlineEdit
-                size={30}
-                onClick={() => onEdit(timer)}
-              />
+              <span className='tooltip tooltip-top'>Edit</span>
+              <AiOutlineEdit size={30} onClick={() => onEdit(timer)} />
             </button>
-            <button>
+            <button className='cursor-pointer text-red-600 duration-200 hover:text-red-800 has-tooltip'>
+              <span className='tooltip tooltip-top'>Delete</span>
               <MdOutlineDelete
                 size={30}
                 onClick={() => onDelete(timer.id.uuid)}
-                className='cursor-pointer text-red-600 duration-200 hover:text-red-800 hover:-translate-y-1'
               />
             </button>
           </div>
