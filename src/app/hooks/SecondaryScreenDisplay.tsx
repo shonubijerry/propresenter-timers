@@ -1,43 +1,15 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-
-type Prop = {
-  componentToDisplay: React.ReactNode
-}
+import { useShared } from '../providers/timer'
 
 export default function useSecondScreenDisplay() {
-  const [fullscreenWindow, setFullscreenWindow] = useState<
-    Electron.BrowserWindowProxy | null | undefined
-  >(null)
-  const [componentToDisplay, setComponentToDisplay] = useState<
-    React.ReactNode | undefined
-  >(null)
+  const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
+  const { fullscreenWindow, setFullscreenWindow } = useShared()
 
-  // 👇 Watch for fullscreenWindow changes here
   useEffect(() => {
-    if (!fullscreenWindow) return
-
-    // Render your React component into the new window
-    displayComponent()
-
-    // Cleanup when the window is closed
-    const handleUnload = () => {
-      setFullscreenWindow(null)
-    }
-    fullscreenWindow.addEventListener('beforeunload', handleUnload)
-
-    return () => {
-      fullscreenWindow.removeEventListener('beforeunload', handleUnload)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fullscreenWindow])
-
-  const displayComponent = () => {
-    if (!fullscreenWindow) {
-      return
-    }
+    if (!fullscreenWindow || !componentToDisplay) return
 
     fullscreenWindow.document.body.style.margin = '0'
     fullscreenWindow.document.body.innerHTML =
@@ -47,12 +19,11 @@ export default function useSecondScreenDisplay() {
     if (node) {
       createRoot(node).render(componentToDisplay)
     }
-  }
+  }, [fullscreenWindow, componentToDisplay])
 
-  const openNewWindow = async ({ componentToDisplay }: Prop) => {
+  const openNewWindow = async (componentToDisplay: React.ReactNode) => {
+    setComponentToDisplay(componentToDisplay)
     try {
-      setComponentToDisplay(componentToDisplay)
-
       if ('getScreenDetails' in window) {
         const screenDetails: ScreenDetails = await window.getScreenDetails!()
 
@@ -80,8 +51,7 @@ export default function useSecondScreenDisplay() {
             fullscreenWindow.focus()
           }
 
-          // Render your React component into the new window's body
-          displayComponent()
+          console.log('oya display', fullscreenWindow)
         } else {
           alert('No extended display found or permission denied.')
         }
@@ -97,7 +67,5 @@ export default function useSecondScreenDisplay() {
 
   return {
     openNewWindow,
-    fullscreenWindow,
-    setFullscreenWindow,
   }
 }

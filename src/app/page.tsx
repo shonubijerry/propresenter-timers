@@ -10,7 +10,6 @@ import EmptyTimer from './components/EmptyTimer'
 import WatchLayoutWithProps from './components/WatchLayout'
 import EditTimerModal from './components/EditTimerModal'
 import { useShared } from './providers/timer'
-import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
 import {
   deleteTimerApi,
   fetchTimersApi,
@@ -19,6 +18,7 @@ import {
 } from './hooks/proPresenterApi'
 import SettingsDialog from './components/SettingsDialog'
 import { useSettings } from './providers/settings'
+import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -27,8 +27,14 @@ export default function Home() {
   const [timers, setTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const { currentTimer, setCurrentTimer, localTimer } = useShared()
-  const { openNewWindow, fullscreenWindow } = useSecondScreenDisplay()
+  const {
+    currentTimer,
+    setCurrentTimer,
+    localTimer,
+    fullscreenWindow,
+  } = useShared()
+  const { openNewWindow } = useSecondScreenDisplay()
+
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
 
   // Handle URL search params on client side
@@ -173,16 +179,14 @@ export default function Home() {
   }, [])
 
   const handleOpenFullScreen = useCallback(async () => {
-    await openNewWindow({
-      componentToDisplay: (
-        <iframe
-          src='/?showTime=true'
-          width='100%'
-          height='100%'
-          allow='window-management'
-        ></iframe>
-      ),
-    })
+    await openNewWindow(
+      <iframe
+        src='/?showTime=true'
+        width='100%'
+        height='100%'
+        allow='window-management'
+      ></iframe>
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
