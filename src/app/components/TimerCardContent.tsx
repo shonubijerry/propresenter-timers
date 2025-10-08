@@ -10,6 +10,7 @@ import { AiOutlineEdit } from 'react-icons/ai'
 import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
+import IconButton from './ui/IconButton'
 
 interface TimerCardProps {
   timer: Timer
@@ -79,71 +80,67 @@ export function TimerCard({
                   fullscreen={false}
                 />
               </div>
-              <button
-                className='cursor-pointer bg-slate-500 hover:bg-slate-700 rounded-r-xl transition-colors duration-200 flex-1 min-w-0 flex items-center justify-items-center has-tooltip'
+              <IconButton
+                className='cursor-pointer bg-slate-500 hover:bg-slate-700 rounded-r-xl rounded-l-none transition-colors duration-200 flex-1 min-w-0 flex items-center justify-items-center has-tooltip'
+                variant='ghost'
+                icon={<BiFullscreen size={40} />}
+                tooltip='Open fullscreen'
+                tooltipPosition='top'
                 onClick={() => onOpenFullScreen(timer)}
-              >
-                <span className='tooltip tooltip-top'>Open fullscreen</span>
-                <BiFullscreen size={40} />
-              </button>
+              />
             </div>
           )}
 
           {/* Action Buttons */}
           <div className='flex gap-8 flex-wrap'>
-            <button
+            <IconButton
               disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              className='cursor-pointer duration-200 disabled:text-slate-400 text-green-600 hover:text-green-800 disabled:hover:-translate-y-0 has-tooltip'
-            >
-              <span className='tooltip tooltip-top'>Start</span>
-              <IoPlayOutline
-                size={30}
-                onClick={() => onOperation(timer, 'start')}
-              />
-            </button>
-            <button
+              variant='success'
+              icon={<IoPlayOutline size={30} />}
+              tooltip='Start'
+              tooltipPosition='top'
+              onClick={() => onOperation(timer, 'start')}
+            />
+            <IconButton
               disabled={
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              className='cursor-pointer duration-200 disabled:text-slate-400 text-amber-600 hover:text-amber-800 disabled:hover:-translate-y-0 has-tooltip'
-            >
-              <span className='tooltip tooltip-top'>Stop</span>
-              <IoStopOutline
-                size={30}
-                onClick={() => onOperation(timer, 'stop')}
-              />
-            </button>
-            <button
+              variant='warning'
+              icon={<IoStopOutline size={30} />}
+              tooltip='Stop'
+              tooltipPosition='top'
+              onClick={() => onOperation(timer, 'stop')}
+            />
+            <IconButton
               disabled={
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              className='cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0 has-tooltip'
-            >
-              <span className='tooltip tooltip-top'>Reset</span>
-              <LuTimerReset
-                size={30}
-                onClick={() => onOperation(timer, 'reset')}
-              />
-            </button>
-            <button
+              variant='primary'
+              icon={<LuTimerReset size={30} />}
+              tooltip='Reset'
+              tooltipPosition='top'
+              onClick={() => onOperation(timer, 'reset')}
+            />
+            <IconButton
               disabled={
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 isActive
               }
-              className='cursor-pointer duration-200 disabled:text-slate-400 text-blue-600 hover:text-blue-800 disabled:hover:-translate-y-0 has-tooltip'
-            >
-              <span className='tooltip tooltip-top'>Edit</span>
-              <AiOutlineEdit size={30} onClick={() => onEdit(timer)} />
-            </button>
-            <button className='cursor-pointer text-red-600 duration-200 hover:text-red-800 has-tooltip'>
-              <span className='tooltip tooltip-top'>Delete</span>
-              <MdOutlineDelete
-                size={30}
-                onClick={() => onDelete(timer.id.uuid)}
-              />
-            </button>
+              variant='primary'
+              icon={<AiOutlineEdit size={30} />}
+              tooltip='Edit'
+              tooltipPosition='top'
+              onClick={() => onEdit(timer)}
+            />
+            <IconButton
+              variant='error'
+              icon={<MdOutlineDelete size={30} />}
+              tooltip='Delete'
+              tooltipPosition='top'
+              onClick={() => onDelete(timer.id.uuid)}
+            />
           </div>
         </div>
       ) : (

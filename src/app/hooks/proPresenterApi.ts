@@ -90,7 +90,7 @@ export const editTimerApi = (
 }
 
 export const deleteTimerApi = async (
-  baseUrl: string,
+  baseUrl: string | null,
   id?: string
 ): Promise<void> => {
   if (!id) throw new Error('Id not set for delete')

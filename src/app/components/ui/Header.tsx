@@ -6,6 +6,7 @@ import { TbLayoutGridAdd } from 'react-icons/tb'
 import { LuTimerReset } from 'react-icons/lu'
 import { TimerActions } from '@/app/hooks/timer'
 import { AiOutlineFullscreenExit } from 'react-icons/ai'
+import IconButton from './IconButton'
 
 export function Header({
   setIsModalOpen,
@@ -34,38 +35,34 @@ export function Header({
             </p>
           </div>
           <div className='flex items-center gap-2 sm:gap-4 flex-shrink-0'>
-            <button className='has-tooltip'>
-              <TbLayoutGridAdd
-                size={28}
-                onClick={() => setIsModalOpen(true)}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700 sm:w-10 sm:h-10'
-              />
-              <span className='tooltip tooltip-bottom hidden sm:inline'>Create Timer</span>
-            </button>
-            <button className='has-tooltip'>
-              <AiOutlineFullscreenExit
-                size={28}
-                onClick={onExitFullscreen}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700 sm:w-10 sm:h-10'
-              />
-              <span className='tooltip tooltip-bottom hidden sm:inline'>Close External Screen</span>
-            </button>
-            <button className='has-tooltip'>
-              <LuTimerReset
-                size={28}
-                onClick={() => resetAllTimers('reset')}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700 sm:w-10 sm:h-10'
-              />
-              <span className='tooltip tooltip-bottom hidden sm:inline'>Reset all timers</span>
-            </button>
-            <button className='has-tooltip'>
-              <DiAptana
-                size={28}
-                onClick={openSettings}
-                className='cursor-pointer text-blue-600 duration-200 hover:text-blue-700 sm:w-10 sm:h-10'
-              />
-              <span className='tooltip tooltip-bottom hidden sm:inline'>Settings</span>
-            </button>
+            <IconButton
+              variant='primary'
+              icon={<TbLayoutGridAdd size={40} />}
+              tooltip='Create Timer'
+              tooltipPosition='bottom'
+              onClick={() => setIsModalOpen(true)}
+            />
+            <IconButton
+              variant='primary'
+              icon={<AiOutlineFullscreenExit size={40} />}
+              tooltip='Close External Screen'
+              tooltipPosition='bottom'
+              onClick={onExitFullscreen}
+            />
+            <IconButton
+              variant='primary'
+              icon={<LuTimerReset size={40} />}
+              tooltip='Reset all timers'
+              tooltipPosition='bottom'
+              onClick={() => resetAllTimers('reset')}
+            />
+            <IconButton
+              variant='primary'
+              icon={<DiAptana size={40} />}
+              tooltip='Settings'
+              tooltipPosition='bottom'
+              onClick={openSettings}
+            />
           </div>
         </div>
       </div>

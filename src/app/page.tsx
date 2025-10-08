@@ -112,17 +112,18 @@ export default function Home() {
   const handleDelete = useCallback(
     async (uuid: string) => {
       try {
-        await deleteTimerApi(uuid)
+        await deleteTimerApi(proPresenterUrl, uuid)
         setTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
 
         if (currentTimer?.id.uuid === uuid) {
           setCurrentTimer(null)
-          localTimer.handleLocalTimer('stop')
+          localTimer.handleLocalTimer('reset')
         }
       } catch (error) {
         console.error('Failed to delete timer:', error)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentTimer?.id.uuid, setCurrentTimer, localTimer]
   )
 
