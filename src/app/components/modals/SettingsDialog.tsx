@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { AppSettings, useSettings } from '../providers/settings'
+import { AppSettings, useSettings } from '../../providers/settings'
 import { useForm } from 'react-hook-form'
-import Button from './ui/Button'
-import Alert from './ui/Alert'
+import Button from '../ui/Button'
+import Alert from '../ui/Alert'
 
 export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
@@ -22,6 +22,16 @@ export default function SettingsDialog() {
   useEffect(() => {
     reset(settings)
   }, [settings, isDialogOpen, reset])
+
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeSettingsDialog()
+      }
+    }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [])
 
   const onSubmit = (data: AppSettings) => {
     updateSettings(data)
@@ -66,9 +76,10 @@ export default function SettingsDialog() {
               {...register('address', {
                 required: 'Propresenter url is required',
                 pattern: {
-                  value: /^http:\/\/(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
-                  message: 'URL must start with http:// followed by IP address'
-                }
+                  value:
+                    /^http:\/\/(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
+                  message: 'URL must start with http:// followed by IP address',
+                },
               })}
               className='w-full p-2 border rounded-lg'
             />

@@ -1,4 +1,4 @@
-import Button from './ui/IconButton'
+import Button from './ui/Button'
 
 export default function EmptyTimer({
   openSettings,

@@ -1,10 +1,11 @@
 'use client'
 
 import { useForm } from 'react-hook-form'
-import { Timer } from '../interfaces/time'
-import Button from './ui/Button'
-import { createTimerApi } from '../hooks/proPresenterApi'
-import { useSettings } from '../providers/settings'
+import { Timer } from '../../interfaces/time'
+import Button from '../ui/Button'
+import { createTimerApi } from '../../hooks/proPresenterApi'
+import { useSettings } from '../../providers/settings'
+import { useEffect } from 'react'
 
 interface CreateTimerModalProps {
   open: boolean
@@ -34,6 +35,16 @@ export default function CreateTimerModal({
       duration: 5,
     },
   })
+
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [])
 
   if (!open) return null
 

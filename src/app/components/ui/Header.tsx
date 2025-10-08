@@ -7,17 +7,20 @@ import { LuTimerReset } from 'react-icons/lu'
 import { TimerActions } from '@/app/hooks/timer'
 import { AiOutlineFullscreenExit } from 'react-icons/ai'
 import IconButton from './IconButton'
+import { RiRefreshLine } from 'react-icons/ri'
 
 export function Header({
   setIsModalOpen,
   openSettings,
   onExitFullscreen,
   resetAllTimers,
+  refreshTimers,
 }: {
   setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
   onExitFullscreen: () => void
   resetAllTimers: (action: TimerActions) => Promise<void>
+  refreshTimers: () => void
 }) {
   return (
     <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
@@ -35,6 +38,13 @@ export function Header({
             </p>
           </div>
           <div className='flex items-center gap-2 sm:gap-4 flex-shrink-0'>
+            <IconButton
+              variant='primary'
+              icon={<RiRefreshLine size={40} />}
+              tooltip='Refresh'
+              tooltipPosition='bottom'
+              onClick={refreshTimers}
+            />
             <IconButton
               variant='primary'
               icon={<TbLayoutGridAdd size={40} />}

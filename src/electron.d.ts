@@ -12,6 +12,7 @@ declare global {
   interface Window {
     electron?: IElectronAPI
     getScreenDetails: () => Promise<ScreenDetails>
+    charCode: string
   }
 
   interface IElectronAPI {

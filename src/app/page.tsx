@@ -3,12 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
-import CreateTimerModal from './components/CreateTimerModal'
+import CreateTimerModal from './components/modals/CreateTimerModal'
 import { TimerCard } from './components/TimerCardContent'
 import { Header } from './components/ui/Header'
 import EmptyTimer from './components/EmptyTimer'
 import WatchLayoutWithProps from './components/WatchLayout'
-import EditTimerModal from './components/EditTimerModal'
+import EditTimerModal from './components/modals/EditTimerModal'
 import { useShared } from './providers/timer'
 import {
   deleteTimerApi,
@@ -16,7 +16,7 @@ import {
   setAllTimersOperationApi,
   setTimerOperationApi,
 } from './hooks/proPresenterApi'
-import SettingsDialog from './components/SettingsDialog'
+import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
 import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
 
@@ -27,12 +27,8 @@ export default function Home() {
   const [timers, setTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const {
-    currentTimer,
-    setCurrentTimer,
-    localTimer,
-    fullscreenWindow,
-  } = useShared()
+  const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
+    useShared()
   const { openNewWindow } = useSecondScreenDisplay()
 
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
@@ -101,7 +97,6 @@ export default function Home() {
     }
   }, [proPresenterUrl, isInitialized, fetchTimers, setCurrentTimer, localTimer])
 
-  // Fetch timers whenever proPresenterUrl changes (after initialization)
   useEffect(() => {
     if (isInitialized && proPresenterUrl) {
       fetchTimers()
@@ -206,6 +201,10 @@ export default function Home() {
               fullscreenWindow?.close()
             }}
             resetAllTimers={resetAllTimers}
+            refreshTimers={() => {
+              setTimers([])
+              fetchTimers()
+            }}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
             {timers.length === 0 ? (

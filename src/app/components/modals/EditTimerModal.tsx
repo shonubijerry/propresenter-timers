@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { Timer } from '../interfaces/time'
-import Button from './ui/Button'
-import { editTimerApi } from '../hooks/proPresenterApi'
-import { useSettings } from '../providers/settings'
+import { Timer } from '../../interfaces/time'
+import Button from '../ui/Button'
+import { editTimerApi } from '../../hooks/proPresenterApi'
+import { useSettings } from '../../providers/settings'
 
 interface CreateTimerModalProps {
   timer: Timer | null
@@ -38,6 +38,16 @@ export default function EditTimerModal({
       duration: timer?.countdown?.duration ?? 5,
     },
   })
+
+  useEffect(() => {
+    const close = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [])
 
   // Reset form when timer changes
   useEffect(() => {
