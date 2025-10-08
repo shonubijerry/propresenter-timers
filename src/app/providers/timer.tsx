@@ -10,7 +10,6 @@ import {
 } from 'react'
 import useTimerHook, { TimerActions, ReactHookTimerType } from '../hooks/timer'
 import { Timer } from '../interfaces/time'
-import { FullScreenHandle, useFullScreenHandle } from 'react-full-screen'
 
 export type LocalTime = {
   totalSeconds: number
@@ -27,7 +26,6 @@ type SharedState = {
   currentTimer?: Timer | null
   setCurrentTimer: Dispatch<SetStateAction<Timer | null | undefined>>
   localTimer: LocalTime
-  handle: FullScreenHandle
   fullscreenWindow: Electron.BrowserWindowProxy | null | undefined
   setFullscreenWindow: Dispatch<
     SetStateAction<Electron.BrowserWindowProxy | null | undefined>
@@ -44,7 +42,6 @@ export function SharedProvider({ children }: { children: ReactNode }) {
   const [fullscreenWindow, setFullscreenWindow] = useState<
     Electron.BrowserWindowProxy | null | undefined
   >(null)
-  const handle = useFullScreenHandle()
 
 
 
@@ -54,7 +51,6 @@ export function SharedProvider({ children }: { children: ReactNode }) {
         currentTimer,
         setCurrentTimer,
         localTimer,
-        handle,
         fullscreenWindow,
         setFullscreenWindow,
       }}
