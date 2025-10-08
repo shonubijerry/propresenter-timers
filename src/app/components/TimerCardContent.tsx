@@ -4,13 +4,12 @@ import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
 import { TimerActions } from '../hooks/timer'
 import Watch from './Watch'
-import fullScreenSvg from '../../../public/fullscreen.svg'
-import Image from 'next/image'
 import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
-import { AiOutlineEdit } from 'react-icons/ai'
+import { AiOutlineEdit, AiOutlineFullscreenExit } from 'react-icons/ai'
 import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../providers/timer'
+import { BiFullscreen } from 'react-icons/bi'
 
 interface TimerCardProps {
   timer: Timer
@@ -81,14 +80,11 @@ export function TimerCard({
                 />
               </div>
               <button
-                className='cursor-pointer bg-slate-400 hover:bg-slate-500 text-white rounded-r-xl font-medium text-sm transition-colors duration-200 flex-1 min-w-0 flex items-center justify-center'
+                className='cursor-pointer bg-slate-500 hover:bg-slate-700 rounded-r-xl transition-colors duration-200 flex-1 min-w-0 flex items-center justify-items-center has-tooltip'
                 onClick={() => onOpenFullScreen(timer)}
               >
-                <Image
-                  className='w-8 h-8'
-                  src={fullScreenSvg}
-                  alt='Full Screen'
-                />
+                <span className='tooltip tooltip-top'>Open fullscreen</span>
+                <BiFullscreen size={40} />
               </button>
             </div>
           )}

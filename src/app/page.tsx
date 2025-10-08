@@ -1,6 +1,5 @@
 'use client'
 
-import { formatSecondsToTime } from '@/lib/formatter'
 import { useEffect, useState, useCallback } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
@@ -29,8 +28,7 @@ export default function Home() {
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const { currentTimer, setCurrentTimer, localTimer } = useShared()
-  const { openNewWindow } = useSecondScreenDisplay()
-  const [fsWindow, setFsWindow] = useState<Window | null | undefined>(null)
+  const { openNewWindow, fullscreenWindow } = useSecondScreenDisplay()
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
 
   // Handle URL search params on client side
@@ -139,7 +137,6 @@ export default function Home() {
 
         if (action === 'reset') {
           setCurrentTimer(null)
-          fsWindow?.close()
         }
 
         await setTimerOperationApi(proPresenterUrl, action, timer.id.uuid)
@@ -149,7 +146,7 @@ export default function Home() {
         console.error('Failed to perform timer operation:', error)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
   )
 
@@ -160,7 +157,6 @@ export default function Home() {
       setCurrentTimer(null)
       localTimer.overtime.reset(undefined, false)
       localTimer.handleLocalTimer('reset')
-      fsWindow?.close()
     } catch (e) {
       console.log(e)
     }
@@ -178,8 +174,6 @@ export default function Home() {
 
   const handleOpenFullScreen = useCallback(async () => {
     await openNewWindow({
-      fsWindow,
-      setFsWindow,
       componentToDisplay: (
         <iframe
           src='/?showTime=true'
@@ -189,7 +183,8 @@ export default function Home() {
         ></iframe>
       ),
     })
-  }, [fsWindow, openNewWindow])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isLoading) {
     return
@@ -202,6 +197,9 @@ export default function Home() {
           <Header
             setIsModalOpen={setIsCreateTimerModalOpen}
             openSettings={openSettingsDialog}
+            onExitFullscreen={() => {
+              fullscreenWindow?.close()
+            }}
             resetAllTimers={resetAllTimers}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>

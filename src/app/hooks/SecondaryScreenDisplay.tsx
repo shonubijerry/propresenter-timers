@@ -1,56 +1,58 @@
 'use client'
 
-import React, { Dispatch, SetStateAction } from 'react'
+import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-
-// Extend the Window interface to include getScreenDetails
-declare global {
-  interface Window {
-    getScreenDetails?: () => Promise<ScreenDetails>
-  }
-}
 
 type Prop = {
   componentToDisplay: React.ReactNode
-  fsWindow?: Window | null
-  setFsWindow: Dispatch<SetStateAction<Window | null | undefined>>
-}
-
-// Type definitions for Window Management API
-interface ScreenDetails {
-  screens: ScreenDetailed[]
-  currentScreen: ScreenDetailed
-}
-
-interface ScreenDetailed {
-  availHeight: number
-  availLeft: number
-  availTop: number
-  availWidth: number
-  colorDepth: number
-  devicePixelRatio: number
-  height: number
-  isExtended: boolean
-  isInternal: boolean
-  isPrimary: boolean
-  label: string
-  left: number
-  orientation: {
-    angle: number
-    type: string
-  }
-  pixelDepth: number
-  top: number
-  width: number
 }
 
 export default function useSecondScreenDisplay() {
-  const openNewWindow = async ({
-    componentToDisplay,
-    fsWindow,
-    setFsWindow,
-  }: Prop) => {
+  const [fullscreenWindow, setFullscreenWindow] = useState<
+    Electron.BrowserWindowProxy | null | undefined
+  >(null)
+  const [componentToDisplay, setComponentToDisplay] = useState<
+    React.ReactNode | undefined
+  >(null)
+
+  // 👇 Watch for fullscreenWindow changes here
+  useEffect(() => {
+    if (!fullscreenWindow) return
+
+    // Render your React component into the new window
+    displayComponent()
+
+    // Cleanup when the window is closed
+    const handleUnload = () => {
+      setFullscreenWindow(null)
+    }
+    fullscreenWindow.addEventListener('beforeunload', handleUnload)
+
+    return () => {
+      fullscreenWindow.removeEventListener('beforeunload', handleUnload)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullscreenWindow])
+
+  const displayComponent = () => {
+    if (!fullscreenWindow) {
+      return
+    }
+
+    fullscreenWindow.document.body.style.margin = '0'
+    fullscreenWindow.document.body.innerHTML =
+      '<div id="root-second-screen"></div>'
+
+    const node = fullscreenWindow.document.getElementById('root-second-screen')
+    if (node) {
+      createRoot(node).render(componentToDisplay)
+    }
+  }
+
+  const openNewWindow = async ({ componentToDisplay }: Prop) => {
     try {
+      setComponentToDisplay(componentToDisplay)
+
       if ('getScreenDetails' in window) {
         const screenDetails: ScreenDetails = await window.getScreenDetails!()
 
@@ -71,25 +73,15 @@ export default function useSecondScreenDisplay() {
             fullscreen=yes
           `
 
-          if (!fsWindow || fsWindow.closed) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            fsWindow = (window as any).open('', 'screenWindow', windowFeatures)
-            setFsWindow(fsWindow)
+          if (!fullscreenWindow || fullscreenWindow.closed) {
+            const fs = window.open('', 'screenWindow', windowFeatures)
+            setFullscreenWindow(fs)
           } else {
-            fsWindow.focus()
+            fullscreenWindow.focus()
           }
 
           // Render your React component into the new window's body
-          if (fsWindow) {
-            fsWindow.document.body.style.margin = '0'
-            fsWindow.document.body.innerHTML =
-              '<div id="root-second-screen"></div>'
-
-            const node = fsWindow.document.getElementById('root-second-screen')
-            if (node) {
-              createRoot(node).render(componentToDisplay)
-            }
-          }
+          displayComponent()
         } else {
           alert('No extended display found or permission denied.')
         }
@@ -97,12 +89,15 @@ export default function useSecondScreenDisplay() {
         alert('Window Management API not supported in this browser.')
       }
     } catch (error) {
-      console.error('Error opening new window:', error)
-      alert('Could not open a new window. Check your browser permissions.')
+      alert(
+        `Could not open a new window. Check your browser permissions. ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
+      )
     }
   }
 
   return {
     openNewWindow,
+    fullscreenWindow,
+    setFullscreenWindow,
   }
 }
