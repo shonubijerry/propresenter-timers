@@ -3,6 +3,7 @@ import { AppSettings, useSettings } from '../../providers/settings'
 import { useForm } from 'react-hook-form'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
+import Modal from './Modal'
 
 export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
@@ -23,16 +24,6 @@ export default function SettingsDialog() {
     reset(settings)
   }, [settings, isDialogOpen, reset])
 
-  useEffect(() => {
-    const close = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeSettingsDialog()
-      }
-    }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
-  }, [])
-
   const onSubmit = (data: AppSettings) => {
     updateSettings(data)
     closeSettingsDialog()
@@ -40,22 +31,9 @@ export default function SettingsDialog() {
 
   if (!isDialogOpen) return null
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLInputElement>) => {
-    if (e.target === e.currentTarget) {
-      closeSettingsDialog()
-    }
-  }
-
   return (
-    <div
-      onClick={handleBackdropClick}
-      className='fixed inset-0 bg-black/30 flex items-center justify-center z-50'
-    >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className='bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-200'
-      >
-        <h2 className='text-xl font-bold mb-4 text-gray-700'>Settings</h2>
+    <Modal open={isDialogOpen} onClose={closeSettingsDialog} title='Settings'>
+      <form onSubmit={handleSubmit(onSubmit)} className='bg-white'>
         <div className='space-y-4 text-gray-600'>
           <Alert
             type='info'
@@ -117,6 +95,6 @@ export default function SettingsDialog() {
           </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   )
 }
