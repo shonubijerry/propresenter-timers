@@ -41,7 +41,7 @@ export function Header({
           </div>
           <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
             <input
-              className='text-slate-600'
+              className='w-full px-4 py-2.5 text-slate-700 placeholder:text-slate-400 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-slate-300'
               type='text'
               placeholder='Search...'
               onChange={(e) => onSearch(e.target.value)}

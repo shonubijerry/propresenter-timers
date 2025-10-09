@@ -58,12 +58,9 @@ export default function Home() {
     }
   }, [proPresenterUrl])
 
-  const updateTimers = useCallback(
-    (timer: Timer) => {
-      fetchTimers()
-    },
-    [fetchTimers]
-  )
+  const updateTimers = useCallback(() => {
+    fetchTimers()
+  }, [fetchTimers])
 
   // Initial load and URL changes
   useEffect(() => {
