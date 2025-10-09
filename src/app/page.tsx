@@ -196,6 +196,7 @@ export default function Home() {
   )
 
   const refreshTimers = useCallback(async () => {
+    setSearchableTimers([])
     await fetchTimers()
   }, [fetchTimers])
 
