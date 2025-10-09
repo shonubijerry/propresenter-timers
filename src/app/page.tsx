@@ -25,6 +25,7 @@ export default function Home() {
   const [isEditTimerModalOpen, setIsEditTimerModalOpen] = useState(false)
   const [timerToEdit, setTimerToEdit] = useState<Timer | null>(null)
   const [timers, setTimers] = useState<Timer[]>([])
+  const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
@@ -41,18 +42,6 @@ export default function Home() {
     }
   }, [])
 
-  const updateTimers = useCallback((timer: Timer) => {
-    setTimers((prevTimers) =>
-      prevTimers.map((p) => {
-        if (p.id.uuid === timer.id.uuid) {
-          return timer
-        }
-
-        return p
-      })
-    )
-  }, [])
-
   const fetchTimers = useCallback(async () => {
     if (!proPresenterUrl) {
       return []
@@ -60,6 +49,7 @@ export default function Home() {
 
     try {
       const data = await fetchTimersApi(proPresenterUrl)
+      setSearchableTimers(data)
       setTimers(data)
       return data
     } catch (error) {
@@ -67,6 +57,13 @@ export default function Home() {
       return []
     }
   }, [proPresenterUrl])
+
+  const updateTimers = useCallback(
+    (timer: Timer) => {
+      fetchTimers()
+    },
+    [fetchTimers]
+  )
 
   // Initial load and URL changes
   useEffect(() => {
@@ -101,14 +98,13 @@ export default function Home() {
     if (isInitialized && proPresenterUrl) {
       fetchTimers()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proPresenterUrl, isInitialized])
+  }, [proPresenterUrl, isInitialized, fetchTimers])
 
   const handleDelete = useCallback(
     async (uuid: string) => {
       try {
         await deleteTimerApi(proPresenterUrl, uuid)
-        setTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
+        setSearchableTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
 
         if (currentTimer?.id.uuid === uuid) {
           setCurrentTimer(null)
@@ -118,8 +114,7 @@ export default function Home() {
         console.error('Failed to delete timer:', error)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentTimer?.id.uuid, setCurrentTimer, localTimer]
+    [proPresenterUrl, currentTimer?.id.uuid, setCurrentTimer, localTimer]
   )
 
   const handleOperation = useCallback(
@@ -148,21 +143,23 @@ export default function Home() {
         console.error('Failed to perform timer operation:', error)
       }
     },
-
     [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
   )
 
-  const resetAllTimers = async (action: TimerActions) => {
-    try {
-      await setAllTimersOperationApi(proPresenterUrl, action)
-      await fetchTimers()
-      setCurrentTimer(null)
-      localTimer.overtime.reset(undefined, false)
-      localTimer.handleLocalTimer('reset')
-    } catch (e) {
-      console.log(e)
-    }
-  }
+  const resetAllTimers = useCallback(
+    async (action: TimerActions) => {
+      try {
+        await setAllTimersOperationApi(proPresenterUrl, action)
+        await fetchTimers()
+        setCurrentTimer(null)
+        localTimer.overtime.reset(undefined, false)
+        localTimer.handleLocalTimer('reset')
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    [proPresenterUrl, fetchTimers, setCurrentTimer, localTimer]
+  )
 
   const handleEdit = useCallback((timer: Timer) => {
     setTimerToEdit(timer)
@@ -183,11 +180,31 @@ export default function Home() {
         allow='window-management'
       ></iframe>
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [openNewWindow])
+
+  const onSearch = useCallback(
+    (term: string) => {
+      const result = timers.filter(
+        (item) =>
+          item.id.name.toLowerCase().includes(term.toLowerCase()) ||
+          item.id.uuid === currentTimer?.id.uuid
+      )
+
+      setSearchableTimers(result)
+    },
+    [timers, currentTimer]
+  )
+
+  const refreshTimers = useCallback(async () => {
+    await fetchTimers()
+  }, [fetchTimers])
 
   if (isLoading) {
-    return
+    return (
+      <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70 flex items-center justify-center'>
+        <div className='text-xl text-blue-600'>Loading...</div>
+      </main>
+    )
   }
 
   return (
@@ -201,18 +218,16 @@ export default function Home() {
               fullscreenWindow?.close()
             }}
             resetAllTimers={resetAllTimers}
-            refreshTimers={() => {
-              setTimers([])
-              fetchTimers()
-            }}
+            refreshTimers={refreshTimers}
+            onSearch={onSearch}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
-            {timers.length === 0 ? (
+            {searchableTimers.length === 0 ? (
               <EmptyTimer openSettings={openSettingsDialog} />
             ) : (
               /* Timer Grid */
               <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                {timers.map((timer) => (
+                {searchableTimers.map((timer) => (
                   <TimerCard
                     key={timer.id.uuid}
                     timer={timer}

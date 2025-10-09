@@ -15,12 +15,14 @@ export function Header({
   onExitFullscreen,
   resetAllTimers,
   refreshTimers,
+  onSearch,
 }: {
   setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
   onExitFullscreen: () => void
   resetAllTimers: (action: TimerActions) => Promise<void>
   refreshTimers: () => void
+  onSearch: (term: string) => void
 }) {
   return (
     <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
@@ -36,6 +38,14 @@ export function Header({
             <p className='text-sm sm:text-xl md:text-2xl font-bold text-slate-600 mt-1 truncate'>
               AGC Timer Control
             </p>
+          </div>
+          <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+            <input
+              className='text-slate-600'
+              type='text'
+              placeholder='Search...'
+              onChange={(e) => onSearch(e.target.value)}
+            />
           </div>
           <div className='flex items-center gap-2 sm:gap-4 flex-shrink-0'>
             <IconButton
