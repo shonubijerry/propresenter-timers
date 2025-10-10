@@ -62,10 +62,26 @@ export default function Home() {
     fetchTimers()
   }, [fetchTimers])
 
+  const resetAllTimers = useCallback(
+    async (action: TimerActions) => {
+      try {
+        await setAllTimersOperationApi(proPresenterUrl, action)
+        await fetchTimers()
+        setCurrentTimer(null)
+        localTimer.overtime.reset(undefined, false)
+        localTimer.handleLocalTimer('reset')
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    [proPresenterUrl, fetchTimers, setCurrentTimer, localTimer]
+  )
+
   // Initial load and URL changes
   useEffect(() => {
     if (!isInitialized && proPresenterUrl) {
       const loadTimers = async () => {
+        await resetAllTimers('reset')
         const fetched = await fetchTimers()
 
         const runningTimer = fetched.find((d) =>
@@ -89,7 +105,7 @@ export default function Home() {
 
       loadTimers()
     }
-  }, [proPresenterUrl, isInitialized, fetchTimers, setCurrentTimer, localTimer])
+  }, [proPresenterUrl, isInitialized, fetchTimers, setCurrentTimer, localTimer, resetAllTimers])
 
   useEffect(() => {
     if (isInitialized && proPresenterUrl) {
@@ -141,21 +157,6 @@ export default function Home() {
       }
     },
     [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
-  )
-
-  const resetAllTimers = useCallback(
-    async (action: TimerActions) => {
-      try {
-        await setAllTimersOperationApi(proPresenterUrl, action)
-        await fetchTimers()
-        setCurrentTimer(null)
-        localTimer.overtime.reset(undefined, false)
-        localTimer.handleLocalTimer('reset')
-      } catch (e) {
-        console.log(e)
-      }
-    },
-    [proPresenterUrl, fetchTimers, setCurrentTimer, localTimer]
   )
 
   const handleEdit = useCallback((timer: Timer) => {

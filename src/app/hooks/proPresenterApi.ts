@@ -1,5 +1,6 @@
 import { convertTimeToSeconds } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
+import { TimerActions } from './timer'
 
 const fetchJson = async <T>(
   url: string,
@@ -118,7 +119,7 @@ export const setTimerOperationApi = async (
 
 export const setAllTimersOperationApi = async (
   baseUrl: string | null,
-  operation: string
+  operation: TimerActions
 ): Promise<void> => {
   await fetchJson<void>(
     `${baseUrl}/v1/timers/${operation}`,
