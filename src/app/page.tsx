@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
 import CreateTimerModal from './components/modals/CreateTimerModal'
@@ -28,11 +28,15 @@ export default function Home() {
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
     useShared()
   const { openNewWindow } = useSecondScreenDisplay()
-
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
+
+  // Ref to track if we're currently performing an operation
+  const operationInProgress = useRef(false)
 
   // Handle URL search params on client side
   useEffect(() => {
@@ -44,6 +48,7 @@ export default function Home() {
 
   const fetchTimers = useCallback(async () => {
     if (!proPresenterUrl) {
+      setError('ProPresenter URL not configured')
       return []
     }
 
@@ -51,80 +56,144 @@ export default function Home() {
       const data = await fetchTimersApi(proPresenterUrl)
       setSearchableTimers(data)
       setTimers(data)
+      setError(null)
       return data
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to fetch timers'
       console.error('Failed to fetch timers:', error)
+      setError(errorMessage)
       return []
     }
   }, [proPresenterUrl])
 
-  const updateTimers = useCallback(() => {
-    fetchTimers()
-  }, [fetchTimers])
-
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
+      if (!proPresenterUrl) {
+        setError('ProPresenter URL not configured')
+        return
+      }
+
+      if (operationInProgress.current) {
+        return
+      }
+
       try {
+        operationInProgress.current = true
         await setAllTimersOperationApi(proPresenterUrl, action)
-        await fetchTimers()
+        const updatedTimers = await fetchTimersApi(proPresenterUrl)
+        setSearchableTimers(updatedTimers)
+        setTimers(updatedTimers)
         setCurrentTimer(null)
         localTimer.overtime.reset(undefined, false)
         localTimer.handleLocalTimer('reset')
-      } catch (e) {
-        console.log(e)
+        setError(null)
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to reset timers'
+        console.error('Failed to reset timers:', error)
+        setError(errorMessage)
+      } finally {
+        operationInProgress.current = false
       }
     },
-    [proPresenterUrl, fetchTimers, setCurrentTimer, localTimer]
+    [proPresenterUrl, setCurrentTimer, localTimer]
   )
 
-  // Initial load and URL changes
+  // Initial load - sync with ProPresenter state
   useEffect(() => {
     if (!isInitialized && proPresenterUrl) {
       const loadTimers = async () => {
-        await resetAllTimers('reset')
-        const fetched = await fetchTimers()
+        try {
+          // Fetch current state without resetting
+          const fetched = await fetchTimersApi(proPresenterUrl)
+          setSearchableTimers(fetched)
+          setTimers(fetched)
 
-        const runningTimer = fetched.find((d) =>
-          ['running', 'overrunning'].includes(d.state)
-        )
-
-        if (runningTimer && runningTimer.state === 'running') {
-          setCurrentTimer(runningTimer)
-          localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
-        } else if (runningTimer && runningTimer.state === 'overrunning') {
-          setCurrentTimer(runningTimer)
-          const timestamp = new Date().valueOf()
-          localTimer.overtime.reset(
-            new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
-            true
+          // Check if any timer is currently running
+          const runningTimer = fetched.find((d) =>
+            ['running', 'overrunning'].includes(d.state)
           )
-        }
 
-        setIsInitialized(true)
+          if (runningTimer) {
+            setCurrentTimer(runningTimer)
+
+            if (runningTimer.state === 'running') {
+              localTimer.handleLocalTimer(
+                'start',
+                runningTimer.remainingSeconds
+              )
+            } else if (runningTimer.state === 'overrunning') {
+              const timestamp = new Date().valueOf()
+              localTimer.overtime.reset(
+                new Date(
+                  timestamp + (runningTimer.remainingSeconds ?? 0) * 1000
+                ),
+                true
+              )
+            }
+          }
+
+          setError(null)
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to initialize timers'
+          console.error('Failed to initialize timers:', error)
+          setError(errorMessage)
+        } finally {
+          setIsInitialized(true)
+        }
       }
 
       loadTimers()
     }
-  }, [proPresenterUrl, isInitialized, fetchTimers, setCurrentTimer, localTimer, resetAllTimers])
+  }, [proPresenterUrl, isInitialized, setCurrentTimer, localTimer])
 
+  // Cleanup on unmount
   useEffect(() => {
-    if (isInitialized && proPresenterUrl) {
-      fetchTimers()
+    return () => {
+      if (fullscreenWindow && !fullscreenWindow.closed) {
+        fullscreenWindow.close()
+      }
     }
-  }, [proPresenterUrl, isInitialized, fetchTimers])
+  }, [fullscreenWindow])
 
   const handleDelete = useCallback(
     async (uuid: string) => {
+      if (!proPresenterUrl) {
+        setError('ProPresenter URL not configured')
+        return
+      }
+
+      if (operationInProgress.current) {
+        return
+      }
+
       try {
+        operationInProgress.current = true
         await deleteTimerApi(proPresenterUrl, uuid)
+
+        // Update local state
+        setTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
         setSearchableTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
 
+        // Reset current timer if it was deleted
         if (currentTimer?.id.uuid === uuid) {
           setCurrentTimer(null)
           localTimer.handleLocalTimer('reset')
+          localTimer.overtime.reset(undefined, false)
         }
+
+        setError(null)
       } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to delete timer'
         console.error('Failed to delete timer:', error)
+        setError(errorMessage)
+      } finally {
+        operationInProgress.current = false
       }
     },
     [proPresenterUrl, currentTimer?.id.uuid, setCurrentTimer, localTimer]
@@ -132,9 +201,19 @@ export default function Home() {
 
   const handleOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
-      try {
-        localTimer.overtime.reset(undefined, false)
+      if (!proPresenterUrl) {
+        setError('ProPresenter URL not configured')
+        return
+      }
 
+      if (operationInProgress.current) {
+        return
+      }
+
+      try {
+        operationInProgress.current = true
+
+        // Prevent duplicate start/stop operations
         if (localTimer.isRunning && action === 'start') {
           return
         }
@@ -143,20 +222,39 @@ export default function Home() {
           return
         }
 
-        setCurrentTimer(timer)
+        // Reset overtime when performing any operation
+        localTimer.overtime.reset(undefined, false)
 
+        // Perform API operation first
+        await setTimerOperationApi(proPresenterUrl, action, timer.id.uuid)
+
+        // Update local state based on action
         if (action === 'reset') {
           setCurrentTimer(null)
+          localTimer.handleLocalTimer('reset')
+        } else {
+          setCurrentTimer(timer)
+          localTimer.handleLocalTimer(action, timer.remainingSeconds)
         }
 
-        await setTimerOperationApi(proPresenterUrl, action, timer.id.uuid)
-        localTimer.handleLocalTimer(action, timer.remainingSeconds)
-        await fetchTimers()
+        // Fetch updated timer states
+        const updatedTimers = await fetchTimersApi(proPresenterUrl)
+        setTimers(updatedTimers)
+        setSearchableTimers(updatedTimers)
+
+        setError(null)
       } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Failed to perform timer operation'
         console.error('Failed to perform timer operation:', error)
+        setError(errorMessage)
+      } finally {
+        operationInProgress.current = false
       }
     },
-    [localTimer, setCurrentTimer, proPresenterUrl, fetchTimers]
+    [localTimer, setCurrentTimer, proPresenterUrl]
   )
 
   const handleEdit = useCallback((timer: Timer) => {
@@ -170,33 +268,66 @@ export default function Home() {
   }, [])
 
   const handleOpenFullScreen = useCallback(async () => {
-    await openNewWindow(
-      <iframe
-        src='/?showTime=true'
-        width='100%'
-        height='100%'
-        allow='window-management'
-      ></iframe>
-    )
+    try {
+      await openNewWindow(
+        <iframe
+          src='/?showTime=true'
+          width='100%'
+          height='100%'
+          allow='window-management'
+          title='Timer Fullscreen'
+        ></iframe>
+      )
+    } catch (error) {
+      console.error('Failed to open fullscreen:', error)
+      setError('Failed to open fullscreen window')
+    }
   }, [openNewWindow])
+
+  const handleExitFullscreen = useCallback(() => {
+    if (fullscreenWindow && !fullscreenWindow.closed) {
+      fullscreenWindow.close()
+    }
+  }, [fullscreenWindow])
 
   const onSearch = useCallback(
     (term: string) => {
-      const result = timers.filter(
-        (item) =>
-          item.id.name.toLowerCase().includes(term.toLowerCase()) ||
-          item.id.uuid === currentTimer?.id.uuid
+      if (!term.trim()) {
+        setSearchableTimers(timers)
+        return
+      }
+
+      const result = timers.filter((item) =>
+        item.id.name.toLowerCase().includes(term.toLowerCase())
       )
 
       setSearchableTimers(result)
     },
-    [timers, currentTimer]
+    [timers]
   )
 
   const refreshTimers = useCallback(async () => {
-    setSearchableTimers([])
-    await fetchTimers()
-  }, [fetchTimers])
+    if (!proPresenterUrl) {
+      setError('ProPresenter URL not configured')
+      return
+    }
+
+    try {
+      const data = await fetchTimersApi(proPresenterUrl)
+      setTimers(data)
+      setSearchableTimers(data)
+      setError(null)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to refresh timers'
+      console.error('Failed to refresh timers:', error)
+      setError(errorMessage)
+    }
+  }, [proPresenterUrl])
+
+  const updateTimers = useCallback(async () => {
+    await refreshTimers()
+  }, [refreshTimers])
 
   if (isLoading) {
     return (
@@ -213,14 +344,18 @@ export default function Home() {
           <Header
             setIsModalOpen={setIsCreateTimerModalOpen}
             openSettings={openSettingsDialog}
-            onExitFullscreen={() => {
-              fullscreenWindow?.close()
-            }}
+            onExitFullscreen={handleExitFullscreen}
             resetAllTimers={resetAllTimers}
             refreshTimers={refreshTimers}
             onSearch={onSearch}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
+            {error && (
+              <div className='mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded'>
+                {error}
+              </div>
+            )}
+
             {searchableTimers.length === 0 ? (
               <EmptyTimer openSettings={openSettingsDialog} />
             ) : (
