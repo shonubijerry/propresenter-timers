@@ -6,6 +6,7 @@ import { Logger } from './lib/logger'
 import { LocalServer } from './lib/server'
 import { menuTemplate } from './lib/menu_template'
 import { loadSettings, saveSettings } from './lib/settings'
+import { checkForFolderUpdate } from './lib/updater'
 
 let localServer: LocalServer | null = null
 let mainWindow: BrowserWindow | null = null
@@ -68,7 +69,7 @@ function createWindow(): void {
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.maximize();
+    mainWindow?.maximize()
     mainWindow?.show()
   })
 
@@ -114,8 +115,9 @@ function setupIpcHandlers(): void {
 }
 
 // App event listeners
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
+    await checkForFolderUpdate(logger)
     setupIpcHandlers()
     createWindow()
   } catch (error) {
