@@ -2,33 +2,104 @@
   "name": "propresenter-timers",
   "version": "0.1.0",
   "private": true,
+  "description": "Pro Presenter timer app",
+  "author": {
+    "name": "Oluwakorede Shonubi"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev:next": "next dev -p 3000",
+    "dev:electron": "electron .",
+    "dev": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
+    "build:next": "rimraf out .next && next build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run clean && npm run build:next && npm run build:electron",
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
+    "clean": "rimraf release",
     "lint": "eslint"
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.2",
     "next": "15.5.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-full-screen": "^1.1.1",
+    "react-hook-form": "^7.63.0",
+    "react-icons": "^5.5.0",
     "react-timer-hook": "^4.0.5",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/electron": "^1.4.38",
+    "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
+    "electron": "^38.1.2",
+    "electron-builder": "^26.0.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^9.0.1"
+  },
+  "main": "electron/dist/main.js",
+  "build": {
+    "appId": "com.amazingrace.timer",
+    "productName": "AGC Timer Control",
+    "asar": false,
+    "compression": "maximum",
+    "files": [
+      ".env",
+      "out/**/*",
+      "electron/dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "identity": null
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "AGC Timer Control",
+      "uninstallDisplayName": "AGC Timer Control Unistall",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "menuCategory": false,
+      "include": "build.win.nsh"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    }
   }
 }

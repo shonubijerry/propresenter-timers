@@ -3,25 +3,19 @@
 import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
 import { TimerActions } from '../hooks/timer'
-import Button from './ui/Button'
-import { useStopwatch } from 'react-timer-hook'
 import Watch from './Watch'
-import resetSvg from '../../../public/reset.svg'
-import deleteSvg from '../../../public/delete.svg'
-import startSvg from '../../../public/start.svg'
-import stopSvg from '../../../public/stop.svg'
-import fullScreenSvg from '../../../public/fullscreen.svg'
-import editSvg from '../../../public/edit.svg'
-import Image from 'next/image'
+import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
+import { LuTimerReset } from 'react-icons/lu'
+import { AiOutlineEdit } from 'react-icons/ai'
+import { MdOutlineDelete } from 'react-icons/md'
+import { LocalTime } from '../providers/timer'
+import { BiFullscreen } from 'react-icons/bi'
+import IconButton from './ui/IconButton'
 
 interface TimerCardProps {
   timer: Timer
   isActive: boolean
-  isRunning: boolean
-  hours: number
-  minutes: number
-  seconds: number
-  overtime: ReturnType<typeof useStopwatch>
+  localTimer: LocalTime
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
   onOpenFullScreen: (timer: Timer) => void
@@ -31,19 +25,15 @@ interface TimerCardProps {
 export function TimerCard({
   timer,
   isActive,
-  isRunning,
-  hours,
-  minutes,
-  seconds,
-  overtime,
-  onOperation,
+  localTimer,
   onDelete,
+  onOperation,
   onOpenFullScreen,
   onEdit,
 }: TimerCardProps) {
   return (
     <div
-      className={`bg-white rounded-2xl p-6 shadow-sm border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+      className={`bg-white rounded-2xl p-6 shadow-sm border transition-all duration-300 hover:shadow-lg ${
         isActive
           ? 'border-blue-300 bg-gradient-to-br from-blue-50/50 to-white shadow-lg shadow-blue-100/50'
           : 'border-slate-200/50 hover:border-slate-300/50'
@@ -58,14 +48,14 @@ export function TimerCard({
           {timer.countdown && (
             <div className='flex items-center gap-2'>
               <span className='text-sm text-slate-500'>Duration:</span>
-              <span className='text-sm font-mono bg-slate-100 px-2 py-1 rounded-lg text-slate-700'>
+              <span className='text-sm font-mono bg-slate-100 px-2 py-1 rounded-lg text-slate-800'>
                 {formatSecondsToTime(timer.countdown.duration)}
               </span>
             </div>
           )}
         </div>
         {isActive && (
-          <div className='flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium'>
+          <div className='flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium'>
             <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
             Active
           </div>
@@ -79,62 +69,78 @@ export function TimerCard({
               <div className='flex-3 bg-gradient-to-br from-slate-100 to-slate-300/50 rounded-l-xl p-2 border border-slate-200/50'>
                 <Watch
                   mode='normal'
-                  hours={hours}
-                  minutes={minutes}
-                  seconds={seconds}
-                  overtime={overtime}
+                  isInjuryTime={
+                    localTimer.totalSeconds <
+                    (timer?.countdown?.duration ?? 0) * 0.2
+                  }
+                  hours={localTimer.hours}
+                  minutes={localTimer.minutes}
+                  seconds={localTimer.seconds}
+                  overtime={localTimer.overtime}
                   fullscreen={false}
                 />
               </div>
-              <button
-                className='cursor-pointer bg-slate-400 hover:bg-slate-500 text-white rounded-r-xl font-medium text-sm transition-colors duration-200 flex-1 min-w-0 flex items-center justify-center'
+              <IconButton
+                className='cursor-pointer bg-slate-500 hover:bg-slate-700 rounded-r-xl rounded-l-none transition-colors duration-200 flex-1 min-w-0 flex items-center justify-items-center has-tooltip'
+                variant='ghost'
+                icon={<BiFullscreen size={40} />}
+                tooltip='Open fullscreen'
+                tooltipPosition='top'
                 onClick={() => onOpenFullScreen(timer)}
-              >
-                <Image
-                  className='w-8 h-8'
-                  src={fullScreenSvg}
-                  alt='Full Screen'
-                />
-              </button>
+              />
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className='flex gap-2 flex-wrap'>
-            <Button
-              className='flex-1 min-w-0'
+          <div className='flex gap-8 flex-wrap'>
+            <IconButton
+              disabled={localTimer.isRunning || localTimer.overtime.isRunning}
               variant='success'
+              icon={<IoPlayOutline size={30} />}
+              tooltip='Start'
+              tooltipPosition='top'
               onClick={() => onOperation(timer, 'start')}
-              disabled={isRunning || overtime.isRunning}
-            >
-              <Image className='w-4 h-4' src={startSvg} alt='Start' />
-            </Button>
-            <Button
-              className='flex-1 min-w-0'
+            />
+            <IconButton
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                !isActive
+              }
               variant='warning'
+              icon={<IoStopOutline size={30} />}
+              tooltip='Stop'
+              tooltipPosition='top'
               onClick={() => onOperation(timer, 'stop')}
-              disabled={(isRunning || overtime.isRunning) && !isActive}
-            >
-              <Image className='w-4 h-4' src={stopSvg} alt='Stop' />
-            </Button>
-            <Button
-              className='flex-1 min-w-0'
+            />
+            <IconButton
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                !isActive
+              }
               variant='primary'
+              icon={<LuTimerReset size={30} />}
+              tooltip='Reset'
+              tooltipPosition='top'
               onClick={() => onOperation(timer, 'reset')}
-              disabled={(isRunning || overtime.isRunning) && !isActive}
-            >
-              <Image className='w-4 h-4' src={resetSvg} alt='Reset' />
-            </Button>
-            <Button
+            />
+            <IconButton
+              disabled={
+                (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                isActive
+              }
               variant='primary'
+              icon={<AiOutlineEdit size={30} />}
+              tooltip='Edit'
+              tooltipPosition='top'
               onClick={() => onEdit(timer)}
-              disabled={(isRunning || overtime.isRunning) && isActive}
-            >
-              <Image className='w-4 h-4' src={editSvg} alt='Edit' />
-            </Button>
-            <Button variant='error' onClick={() => onDelete(timer.id.uuid)}>
-              <Image className='w-4 h-4' src={deleteSvg} alt='Delete' />
-            </Button>
+            />
+            <IconButton
+              variant='error'
+              icon={<MdOutlineDelete size={30} />}
+              tooltip='Delete'
+              tooltipPosition='top'
+              onClick={() => onDelete(timer.id.uuid)}
+            />
           </div>
         </div>
       ) : (
