@@ -37,6 +37,8 @@ export default function Home() {
 
   const operationInProgress = useRef(false)
 
+  console.log('app don start oooo')
+
   // Helper to set and log API errors
   const setApiError = useCallback(
     (err: unknown, fallback = 'An error occurred') => {
