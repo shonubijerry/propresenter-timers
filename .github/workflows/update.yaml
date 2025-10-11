@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - '.github/workflows/update.yml'
   workflow_dispatch:
 
 permissions:
