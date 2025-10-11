@@ -26,24 +26,15 @@ export default function useTimerHook({ expiryTimestamp }: Props) {
       },
     })
 
-  const timerActionsMap: TimerActionsMap = {
-    start: restart,
-    stop: pause,
-    reset: restart,
-  }
-
   const handleLocalTimer = async (action: TimerActions, duration?: number) => {
     if (action === 'stop') {
-      timerActionsMap[action]()
+      pause()
       return
     }
 
     const timestamp = new Date().valueOf()
 
-    timerActionsMap[action](
-      new Date(timestamp + (duration ?? 0) * 1000),
-      action === 'start'
-    )
+    restart(new Date(timestamp + (duration ?? 0) * 1000), action === 'start')
   }
 
   return {

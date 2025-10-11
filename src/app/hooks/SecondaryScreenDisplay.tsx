@@ -27,11 +27,10 @@ export default function useSecondScreenDisplay() {
       if ('getScreenDetails' in window) {
         const screenDetails: ScreenDetails = await window.getScreenDetails!()
 
+        console.log(screenDetails)
+
         const secondaryScreen = screenDetails.screens.find(
-          (screen) =>
-            screen.isExtended &&
-            // screen.availLeft > 0 &&
-            screen.label !== screenDetails.currentScreen.label
+          (screen) => !screen.isPrimary
         )
 
         if (secondaryScreen) {
@@ -50,8 +49,6 @@ export default function useSecondScreenDisplay() {
           } else {
             fullscreenWindow.focus()
           }
-
-          console.log('oya display', fullscreenWindow)
         } else {
           alert('No extended display found or permission denied.')
         }

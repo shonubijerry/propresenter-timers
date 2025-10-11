@@ -68,6 +68,7 @@ function createWindow(): void {
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
     mainWindow?.show()
   })
 

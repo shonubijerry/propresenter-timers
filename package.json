@@ -13,8 +13,8 @@
     "build:next": "rimraf out .next && next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
-    "dist": "npm run build && electron-builder",
-    "clean": "rimraf dist",
+    "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
+    "clean": "rimraf release",
     "lint": "eslint"
   },
   "dependencies": {
@@ -76,12 +76,6 @@
             "x64",
             "ia32"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "assets/icon.ico",
@@ -94,7 +88,7 @@
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "AGC Timer Control",
-      "uninstallDisplayName": "AGC Timer Control",
+      "uninstallDisplayName": "AGC Timer Control Unistall",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico",
@@ -102,9 +96,6 @@
       "runAfterFinish": true,
       "menuCategory": false,
       "include": "build.win.nsh"
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
     },
     "directories": {
       "output": "release",
