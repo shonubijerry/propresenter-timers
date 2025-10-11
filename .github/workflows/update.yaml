@@ -4,10 +4,10 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch: # allow manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
-  zip-out:
+  build-and-zip:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,6 +15,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # or the version your Next.js project uses
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Next.js build
+        run: npm run build:next
 
       - name: Check if out directory exists
         run: |
