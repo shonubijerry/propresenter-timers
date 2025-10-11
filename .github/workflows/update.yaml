@@ -1,0 +1,39 @@
+name: Setup Update
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch: # allow manual trigger from the Actions tab
+
+jobs:
+  zip-out:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if out directory exists
+        run: |
+          if [ ! -d "out" ]; then
+            echo "❌ Directory out does not exist."
+            exit 1
+          fi
+
+      - name: Create update.zip from out directory
+        run: |
+          zip -r update.zip out
+          echo "✅ Created update.zip"
+
+      - name: Commit and push ZIP file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.zip
+          git commit -m "Add zipped out directory [skip ci]" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
