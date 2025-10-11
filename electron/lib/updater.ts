@@ -8,7 +8,7 @@ import { Logger } from './logger'
 const UPDATABLE_DIR = path.join(process.resourcesPath, 'app', 'out')
 const LOCAL_VERSION_FILE = path.join(UPDATABLE_DIR, 'version.json')
 const REMOTE_VERSION_URL =
-  'https://github.com/shonubijerry/propresenter-timers/blob/master/version.json'
+  'https://raw.githubusercontent.com/shonubijerry/propresenter-timers/master/version.json'
 
 interface VersionData {
   version: string
