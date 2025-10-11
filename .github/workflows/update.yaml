@@ -39,7 +39,7 @@ jobs:
 
       - name: Create update.zip from out directory
         run: |
-          cd out && zip -r ../update.zip .
+          zip -r update.zip out/* -x
           echo "✅ Created update.zip"
 
       - name: Commit and push ZIP file
