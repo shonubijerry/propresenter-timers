@@ -286,6 +286,7 @@ export default function Home() {
     }
 
     try {
+      setSearchableTimers([])
       await fetchTimers()
       setError(null)
     } catch (err) {

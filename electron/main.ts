@@ -4,7 +4,7 @@ import * as path from 'path'
 import 'dotenv/config'
 import { Logger } from './lib/logger'
 import { LocalServer } from './lib/server'
-import { menuTemplate } from './lib/menu_template'
+import { menuTemplate } from './lib/menu'
 import { loadSettings, saveSettings } from './lib/settings'
 import { checkForFolderUpdate } from './lib/updater'
 
@@ -117,7 +117,10 @@ function setupIpcHandlers(): void {
 // App event listeners
 app.whenReady().then(async () => {
   try {
-    await checkForFolderUpdate(logger)
+    if (process.env.NODE_ENV !== 'development') {
+      await checkForFolderUpdate(logger)
+    }
+
     setupIpcHandlers()
     createWindow()
   } catch (error) {
