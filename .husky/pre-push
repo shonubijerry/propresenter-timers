@@ -10,12 +10,6 @@ fi
 
 echo "🚀 Running Next.js build and zipping output..."
 
-# Install dependencies if node_modules is missing
-if [ ! -d "node_modules" ]; then
-  echo "📦 Installing dependencies..."
-  npm ci
-fi
-
 # Run the Next.js build
 npm run build:next
 
