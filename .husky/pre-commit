@@ -1,32 +1,65 @@
-#!/usr/bin/env bash
 set -e
 
+# Detect current branch
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 if [ "$BRANCH" != "master" ]; then
-  echo "🛑 You are not on the master branch. Skipping build and zip."
+  echo "🛑 Not pushing to master. Skipping build + version bump."
   exit 0
 fi
 
-echo "🚀 Running Next.js build and zipping output..."
+echo "🚀 Running Next.js build, zipping output, and bumping version for master..."
 
-# Run the Next.js build
+# Ensure dependencies are installed
+if [ ! -d "node_modules" ]; then
+  echo "📦 Installing dependencies..."
+  npm ci
+fi
+
+# Run Next.js build
 npm run build:next
 
-# Verify build output
+# Validate build output
 if [ ! -d "out" ]; then
-  echo "❌ Directory 'out' does not exist. Build failed."
+  echo "❌ Directory 'out' not found. Build failed."
   exit 1
 fi
 
-# Create zip
+# Create update.zip
 cd out
-zip -r update.zip .
+zip -r update.zip . >/dev/null
 mv update.zip ..
 cd ..
 
 echo "✅ Created update.zip successfully."
 
-# Stage the zip for commit
-git add update.zip
-echo "📦 Added update.zip to commit."
+# -----------------------------
+# 🔢 Increment version.json
+# -----------------------------
+VERSION_FILE="version.json"
+
+if [ -f "$VERSION_FILE" ]; then
+  echo "🔍 Found version.json, incrementing version..."
+  CURRENT_VERSION=$(jq -r '.version' "$VERSION_FILE")
+
+  if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "❌ Invalid version format in version.json: $CURRENT_VERSION"
+    exit 1
+  fi
+
+  IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+  patch=$((patch + 1))
+  NEW_VERSION="$major.$minor.$patch"
+
+  # Update version in JSON without touching zipUrl
+  jq --arg v "$NEW_VERSION" '.version = $v' "$VERSION_FILE" > tmp.$$.json && mv tmp.$$.json "$VERSION_FILE"
+
+  echo "📈 Version bumped: $CURRENT_VERSION → $NEW_VERSION"
+else
+  echo "⚠️ version.json not found, skipping version bump."
+fi
+
+echo "Adding changes to commit..."
+git add update.zip version.json
+
+echo "✅ Build, zip, version bump, and push completed successfully."
