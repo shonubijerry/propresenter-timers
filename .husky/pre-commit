@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -e
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" != "master" ]; then
+  echo "🛑 You are not on the master branch. Skipping build and zip."
+  exit 0
+fi
+
+echo "🚀 Running Next.js build and zipping output..."
+
+# Install dependencies if node_modules is missing
+if [ ! -d "node_modules" ]; then
+  echo "📦 Installing dependencies..."
+  npm ci
+fi
+
+# Run the Next.js build
+npm run build:next
+
+# Verify build output
+if [ ! -d "out" ]; then
+  echo "❌ Directory 'out' does not exist. Build failed."
+  exit 1
+fi
+
+# Create zip
+cd out
+zip -r update.zip .
+mv update.zip ..
+cd ..
+
+echo "✅ Created update.zip successfully."
+
+# Stage the zip for commit
+git add update.zip
+echo "📦 Added update.zip to commit."

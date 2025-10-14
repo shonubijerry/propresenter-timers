@@ -15,7 +15,8 @@
     "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
     "clean": "rimraf release",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "husky"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -44,6 +45,7 @@
     "eslint-config-next": "15.5.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
     "typescript": "^5",
