@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from 'react'
 import Image from 'next/image'
-import logoSvg from '../../../../public/logo.svg'
+import logoSvg from '../../../public/logo.svg'
 import { DiAptana } from 'react-icons/di'
 import { TbLayoutGridAdd } from 'react-icons/tb'
 import { LuTimerReset } from 'react-icons/lu'
