@@ -18,7 +18,7 @@ import {
 } from './hooks/proPresenterApi'
 import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
-import useSecondScreenDisplay from './hooks/SecondaryScreenDisplay'
+import useSecondScreenDisplay from './hooks/secondaryDisplay'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -69,8 +69,7 @@ export default function Home() {
   // Fetch timers from API and update local state
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
     if (!proPresenterUrl) {
-      const msg = 'ProPresenter URL not configured'
-      setError(msg)
+      setError('ProPresenter URL not configured')
       return []
     }
 
