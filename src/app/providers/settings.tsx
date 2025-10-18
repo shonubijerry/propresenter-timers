@@ -34,7 +34,7 @@ export const useSettings = () => {
   return context
 }
 
-const defaultSettings = { address: 'http://192.168.1.142', port: 58000 }
+const defaultSettings = { address: 'http://192.168.1.103', port: 58000 }
 
 // Settings Provider
 export function SettingsProvider({ children }: { children: ReactNode }) {
