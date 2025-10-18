@@ -250,7 +250,8 @@ export default function Home() {
           height='100%'
           allow='window-management'
           title='Timer Fullscreen'
-        />
+        />,
+        setError
       )
     } catch (err) {
       console.error('Failed to open fullscreen:', err)

@@ -1,6 +1,12 @@
 'use client'
 
-import React, { ReactNode, useEffect, useState } from 'react'
+import React, {
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useEffect,
+  useState,
+} from 'react'
 import { createRoot } from 'react-dom/client'
 import { useShared } from '../providers/timer'
 
@@ -21,7 +27,10 @@ export default function useSecondScreenDisplay() {
     }
   }, [fullscreenWindow, componentToDisplay])
 
-  const openNewWindow = async (componentToDisplay: React.ReactNode) => {
+  const openNewWindow = async (
+    componentToDisplay: React.ReactNode,
+    setError: Dispatch<SetStateAction<string | null>>
+  ) => {
     setComponentToDisplay(componentToDisplay)
     try {
       if ('getScreenDetails' in window) {
@@ -50,13 +59,13 @@ export default function useSecondScreenDisplay() {
             fullscreenWindow.focus()
           }
         } else {
-          alert('No extended display found or permission denied.')
+          setError('No extended display found or permission denied.')
         }
       } else {
-        alert('Window Management API not supported in this browser.')
+        setError('Window Management API not supported in this browser.')
       }
     } catch (error) {
-      alert(
+      setError(
         `Could not open a new window. Check your browser permissions. ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }
