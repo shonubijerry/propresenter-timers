@@ -39,7 +39,9 @@ export default function useSecondScreenDisplay() {
         console.log(screenDetails)
 
         const secondaryScreen = screenDetails.screens.find(
-          (screen) => !screen.isPrimary
+          (screen) =>
+            !screen.isPrimary &&
+            screen.left !== screenDetails.currentScreen.left
         )
 
         if (secondaryScreen) {
