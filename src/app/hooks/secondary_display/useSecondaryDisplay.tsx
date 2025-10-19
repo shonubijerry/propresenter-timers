@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, Dispatch, SetStateAction, useState, useEffect } from 'react'
+import { Dispatch, SetStateAction, useState, useEffect } from 'react'
 import useBrowserWindow from './useBrowserWindow'
 import useTauriWindow from './useTauriWindow'
 

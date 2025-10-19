@@ -9,12 +9,13 @@
   "scripts": {
     "dev:next": "next dev -p 3000",
     "dev:electron": "electron .",
-    "dev:tauri": "cd src-tauri && npx tauri dev",
+    "dev:tauri": "tauri dev",
     "dev": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
     "build:next": "rimraf out .next && next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
+    "dist:tauri": "tauri build",
     "clean": "rimraf release",
     "lint": "eslint",
     "prepare": "husky"

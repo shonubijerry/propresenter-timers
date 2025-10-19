@@ -2,9 +2,9 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "agc-timer",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.amazingrace.timer",
   "build": {
-    "frontendDist": "../../out",
+    "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev:next",
     "beforeBuildCommand": "npm run build:next"

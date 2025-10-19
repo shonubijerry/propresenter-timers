@@ -43,6 +43,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [proPresenterUrl, setProPresenterUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const getProdSettings = async () => {
+    if (typeof window === 'undefined') return defaultSettings
+
+    if (window.isTauri) {
+      return defaultSettings
+    } else {
+      return window.electron?.getSettings()
+    }
+  }
+
   // Load settings from Electron on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -56,7 +66,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const loadedSettings =
           process.env.NODE_ENV === 'development'
             ? defaultSettings
-            : ((await window.electron?.getSettings()) ?? defaultSettings)
+            : await getProdSettings()
 
         setSettings(loadedSettings)
 
