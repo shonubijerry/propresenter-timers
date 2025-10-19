@@ -9,6 +9,7 @@
   "scripts": {
     "dev:next": "next dev -p 3000",
     "dev:electron": "electron .",
+    "dev:tauri": "cd src-tauri && npx tauri dev",
     "dev": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
     "build:next": "rimraf out .next && next build",
     "build:electron": "tsc -p tsconfig.electron.json",
@@ -19,6 +20,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
     "adm-zip": "^0.5.16",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.2",
@@ -33,6 +35,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.8.4",
     "@types/adm-zip": "^0.5.7",
     "@types/electron": "^1.4.38",
     "@types/node": "^20.19.17",

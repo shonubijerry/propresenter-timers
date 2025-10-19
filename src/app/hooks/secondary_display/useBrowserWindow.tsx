@@ -8,9 +8,9 @@ import React, {
   useState,
 } from 'react'
 import { createRoot } from 'react-dom/client'
-import { useShared } from '../providers/timer'
+import { useShared } from '../../providers/timer'
 
-export default function useSecondScreenDisplay() {
+export default function useBrowserWindow() {
   const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
   const { fullscreenWindow, setFullscreenWindow } = useShared()
 
@@ -27,9 +27,9 @@ export default function useSecondScreenDisplay() {
     }
   }, [fullscreenWindow, componentToDisplay])
 
-  const openNewWindow = async (
-    componentToDisplay: React.ReactNode,
-    setError: Dispatch<SetStateAction<string | null>>
+  const openNewBrowserWindow = async (
+    setError: Dispatch<SetStateAction<string | null>>,
+    componentToDisplay?: React.ReactNode,
   ) => {
     setComponentToDisplay(componentToDisplay)
     try {
@@ -51,14 +51,14 @@ export default function useSecondScreenDisplay() {
             width=${secondaryScreen.availWidth},
             height=${secondaryScreen.availHeight},
             popup=true,
-            fullscreen=yes
+            fullscreen=true
           `
 
           if (!fullscreenWindow || fullscreenWindow.closed) {
-            const fs = window.open('', 'screenWindow', windowFeatures)
+            const fs = window.open('?showTime=true', 'screenWindow', windowFeatures)
             setFullscreenWindow(fs)
           } else {
-            fullscreenWindow.focus()
+            fullscreenWindow.open('?showTime=true', 'screenWindow', windowFeatures)
           }
         } else {
           setError('No extended display found or permission denied.')
@@ -74,6 +74,6 @@ export default function useSecondScreenDisplay() {
   }
 
   return {
-    openNewWindow,
+    openNewBrowserWindow,
   }
 }

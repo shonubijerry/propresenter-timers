@@ -18,7 +18,7 @@ import {
 } from './hooks/proPresenterApi'
 import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
-import useSecondScreenDisplay from './hooks/secondaryDisplay'
+import useSecondScreenDisplay from './hooks/secondary_display/useSecondaryDisplay'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -242,19 +242,11 @@ export default function Home() {
   // Open the fullscreen window with the watch layout
   const handleOpenFullScreen = useCallback(async () => {
     try {
-      await openNewWindow(
-        <iframe
-          src='/?showTime=true'
-          width='100%'
-          height='100%'
-          allow='window-management'
-          title='Timer Fullscreen'
-        />,
-        setError
-      )
+      await openNewWindow(setError)
     } catch (err) {
-      console.error('Failed to open fullscreen:', err)
-      setError('Failed to open fullscreen window')
+      setError(
+        `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+      )
     }
   }, [openNewWindow])
 
