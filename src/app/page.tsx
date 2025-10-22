@@ -19,6 +19,7 @@ import {
 import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
 import useSecondScreenDisplay from './hooks/secondary_display/useSecondaryDisplay'
+import toast from 'react-simple-toasts'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -28,7 +29,6 @@ export default function Home() {
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
     useShared()
@@ -42,7 +42,7 @@ export default function Home() {
     (err: unknown, fallback = 'An error occurred') => {
       const message = err instanceof Error ? err.message : fallback
       console.error(fallback + ':', err)
-      setError(message)
+      toast(message)
     },
     []
   )
@@ -54,7 +54,7 @@ export default function Home() {
       try {
         operationInProgress.current = true
         await fn()
-        setError(null)
+        toast(null)
         return true
       } catch (err) {
         setApiError(err, onErrorFallback ?? 'Operation failed')
@@ -69,7 +69,7 @@ export default function Home() {
   // Fetch timers from API and update local state
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
     if (!proPresenterUrl) {
-      setError('ProPresenter URL not configured')
+      toast('ProPresenter URL not configured')
       return []
     }
 
@@ -77,7 +77,7 @@ export default function Home() {
       const data = await fetchTimersApi(proPresenterUrl)
       setTimers(data)
       setSearchableTimers(data)
-      setError(null)
+      toast(null)
       return data
     } catch (err) {
       setApiError(err, 'Failed to fetch timers')
@@ -115,7 +115,7 @@ export default function Home() {
           }
         }
 
-        setError(null)
+        toast(null)
       } catch (err) {
         setApiError(err, 'Failed to initialize timers')
       } finally {
@@ -155,7 +155,7 @@ export default function Home() {
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
       if (!proPresenterUrl) {
-        setError('ProPresenter URL not configured')
+        toast('ProPresenter URL not configured')
         return
       }
 
@@ -174,7 +174,7 @@ export default function Home() {
   const handleDelete = useCallback(
     async (uuid: string) => {
       if (!proPresenterUrl) {
-        setError('ProPresenter URL not configured')
+        toast('ProPresenter URL not configured')
         return
       }
 
@@ -203,7 +203,7 @@ export default function Home() {
   const handleOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
       if (!proPresenterUrl) {
-        setError('ProPresenter URL not configured')
+        toast('ProPresenter URL not configured')
         return
       }
 
@@ -242,9 +242,9 @@ export default function Home() {
   // Open the fullscreen window with the watch layout
   const handleOpenFullScreen = useCallback(async () => {
     try {
-      await openNewWindow(setError)
+      await openNewWindow()
     } catch (err) {
-      setError(
+      toast(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
       )
     }
@@ -273,14 +273,14 @@ export default function Home() {
 
   const refreshTimers = useCallback(async () => {
     if (!proPresenterUrl) {
-      setError('ProPresenter URL not configured')
+      toast('ProPresenter URL not configured')
       return
     }
 
     try {
       setSearchableTimers([])
       await fetchTimers()
-      setError(null)
+      toast(null)
     } catch (err) {
       setApiError(err, 'Failed to refresh timers')
     }
@@ -311,12 +311,6 @@ export default function Home() {
             onSearch={onSearch}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
-            {error && (
-              <div className='mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded'>
-                {error}
-              </div>
-            )}
-
             {searchableTimers.length === 0 ? (
               <EmptyTimer openSettings={openSettingsDialog} />
             ) : (

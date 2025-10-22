@@ -5,12 +5,13 @@ pub fn run() {
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
+            .level(log::LevelFilter::Debug)
             .build(),
         )?;
       }
       Ok(())
     })
+    .plugin(tauri_plugin_fs::init())
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

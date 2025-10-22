@@ -11,7 +11,7 @@
     "dev:electron": "electron .",
     "dev:tauri": "tauri dev",
     "dev": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
-    "build:next": "rimraf out .next && next build",
+    "build:next": "rimraf out .next src-tauri/target && next build",
     "build:electron": "tsc -p tsconfig.electron.json",
     "build": "npm run clean && npm run build:next && npm run build:electron",
     "dist": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/plugin-fs": "^2.4.2",
     "adm-zip": "^0.5.16",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.2",
@@ -30,6 +31,7 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.63.0",
     "react-icons": "^5.5.0",
+    "react-simple-toasts": "^6.1.0",
     "react-timer-hook": "^4.0.5",
     "tailwind-merge": "^3.3.1"
   },

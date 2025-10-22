@@ -1,6 +1,6 @@
 'use client'
 
-import { Dispatch, SetStateAction, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import useBrowserWindow from './useBrowserWindow'
 import useTauriWindow from './useTauriWindow'
 
@@ -13,13 +13,11 @@ export default function useSecondScreenDisplay() {
     setIsTauri(typeof window !== 'undefined' && window.isTauri)
   }, [])
 
-  const openNewWindow = async (
-    setError: Dispatch<SetStateAction<string | null>>
-  ) => {
+  const openNewWindow = async () => {
     if (isTauri) {
-      await openNewTauriWindow(setError)
+      await openNewTauriWindow()
     } else {
-      await openNewBrowserWindow(setError)
+      await openNewBrowserWindow()
     }
   }
 

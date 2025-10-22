@@ -1,14 +1,9 @@
 'use client'
 
-import React, {
-  Dispatch,
-  ReactNode,
-  SetStateAction,
-  useEffect,
-  useState,
-} from 'react'
+import React, { ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useShared } from '../../providers/timer'
+import toast from 'react-simple-toasts'
 
 export default function useBrowserWindow() {
   const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
@@ -27,10 +22,7 @@ export default function useBrowserWindow() {
     }
   }, [fullscreenWindow, componentToDisplay])
 
-  const openNewBrowserWindow = async (
-    setError: Dispatch<SetStateAction<string | null>>,
-    componentToDisplay?: React.ReactNode,
-  ) => {
+  const openNewBrowserWindow = async (componentToDisplay?: React.ReactNode) => {
     setComponentToDisplay(componentToDisplay)
     try {
       if ('getScreenDetails' in window) {
@@ -55,19 +47,27 @@ export default function useBrowserWindow() {
           `
 
           if (!fullscreenWindow || fullscreenWindow.closed) {
-            const fs = window.open('?showTime=true', 'screenWindow', windowFeatures)
+            const fs = window.open(
+              '?showTime=true',
+              'screenWindow',
+              windowFeatures
+            )
             setFullscreenWindow(fs)
           } else {
-            fullscreenWindow.open('?showTime=true', 'screenWindow', windowFeatures)
+            fullscreenWindow.open(
+              '?showTime=true',
+              'screenWindow',
+              windowFeatures
+            )
           }
         } else {
-          setError('No extended display found or permission denied.')
+          toast('No extended display found or permission denied.')
         }
       } else {
-        setError('Window Management API not supported in this browser.')
+        toast('Window Management API not supported in this browser.')
       }
     } catch (error) {
-      setError(
+      toast(
         `Could not open a new window. Check your browser permissions. ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }

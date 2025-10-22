@@ -9,13 +9,20 @@ import React, {
   ReactNode,
 } from 'react'
 import logoSvg from '../../../public/logo.svg'
+import { appDataDir, BaseDirectory } from '@tauri-apps/api/path'
+import {
+  create,
+  exists,
+  mkdir,
+  readTextFile,
+  writeTextFile,
+} from '@tauri-apps/plugin-fs'
 
 export interface AppSettings {
   address: string
   port: number
 }
 
-// Settings Context
 const SettingsContext = createContext<{
   proPresenterUrl: string | null
   settings?: AppSettings
@@ -36,60 +43,96 @@ export const useSettings = () => {
 
 const defaultSettings = { address: 'http://192.168.1.103', port: 58000 }
 
-// Settings Provider
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [proPresenterUrl, setProPresenterUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const getProdSettings = async () => {
+  // 🔹 Fetch settings for either Electron or Tauri
+  const getProdSettings = async (): Promise<AppSettings> => {
     if (typeof window === 'undefined') return defaultSettings
 
-    if (window.isTauri) {
-      return defaultSettings
-    } else {
-      return window.electron?.getSettings()
+    // 🟢 TAURI
+    if (window.isTauri !== undefined) {
+      try {
+        const appDirExists = await exists('', {
+          baseDir: BaseDirectory.AppData,
+        })
+
+        if (!appDirExists) {
+          await mkdir(await appDataDir())
+        }
+
+        const fileExists = await exists('settings.json', {
+          baseDir: BaseDirectory.AppData,
+        })
+
+        if (!fileExists) {
+          const file = await create('settings.json', {
+            baseDir: BaseDirectory.AppLocalData,
+          })
+          console.log(await file.stat())
+
+          await writeTextFile(
+            'settings.json',
+            JSON.stringify(defaultSettings, null, 2),
+            { baseDir: BaseDirectory.AppLocalData }
+          )
+          return defaultSettings
+        }
+
+        const data = await readTextFile('settings.json', {
+          baseDir: BaseDirectory.AppLocalData,
+        })
+        return JSON.parse(data) as AppSettings
+      } catch (err) {
+        console.error(
+          'Failed to read Tauri settings:',
+          JSON.stringify(err, Object.getOwnPropertyNames(err))
+        )
+        return defaultSettings
+      }
     }
+
+    // 🟠 ELECTRON
+    if (window.electron?.getSettings) {
+      return window.electron.getSettings()
+    }
+
+    // Default fallback
+    return defaultSettings
   }
 
-  // Load settings from Electron on mount
   useEffect(() => {
     const loadSettings = async () => {
-      // Wait for Electron API to be available
-      if (typeof window === 'undefined') {
-        setIsLoading(false)
-        return
-      }
-
       try {
         const loadedSettings =
-          process.env.NODE_ENV === 'development'
+          process.env.NODE_ENV !== 'development'
             ? defaultSettings
             : await getProdSettings()
 
         setSettings(loadedSettings)
-
         if (loadedSettings?.address && loadedSettings?.port) {
           setProPresenterUrl(`${loadedSettings.address}:${loadedSettings.port}`)
         }
 
-        // Listen for settings updates from Electron
-        const cleanup = window.electron?.onSettingsUpdate((updatedSettings) => {
-          console.log('Settings updated from Electron:', updatedSettings)
-          setSettings(updatedSettings)
-          if (updatedSettings?.address && updatedSettings?.port) {
-            setProPresenterUrl(
-              `${updatedSettings.address}:${updatedSettings.port}`
-            )
+        // Listen for updates (Electron only)
+        const cleanup = window.electron?.onSettingsUpdate?.(
+          (updatedSettings) => {
+            setSettings(updatedSettings)
+            if (updatedSettings?.address && updatedSettings?.port) {
+              setProPresenterUrl(
+                `${updatedSettings.address}:${updatedSettings.port}`
+              )
+            }
           }
-        })
+        )
 
         setIsLoading(false)
-
         return cleanup
       } catch (err) {
-        console.error('Failed to load electron settings:', err)
+        console.error('Failed to load settings:', err)
         setIsLoading(false)
       }
     }
@@ -97,51 +140,37 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     loadSettings()
   }, [])
 
-  // Save settings to Electron
+  // 🔹 Save settings for both Electron and Tauri
   const updateSettings = async (newSettings: AppSettings) => {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
-
     if (updatedSettings?.address && updatedSettings?.port) {
       setProPresenterUrl(`${updatedSettings.address}:${updatedSettings.port}`)
     }
 
-    if (typeof window !== 'undefined' && window.electron) {
-      try {
-        const result = await window.electron.saveSettings(updatedSettings)
-        if (!result.success) {
-          console.error('Failed to save settings:', result.error)
-        }
-      } catch (err) {
-        console.error('Failed to save electron settings:', err)
+    try {
+      if (window.isTauri) {
+        await writeTextFile(
+          'settings.json',
+          JSON.stringify(updatedSettings, null, 2),
+          { baseDir: BaseDirectory.AppLocalData }
+        )
+      } else if (window.electron?.saveSettings) {
+        await window.electron.saveSettings(updatedSettings)
       }
+    } catch (err) {
+      console.error('Failed to save settings:', err)
     }
   }
 
   const openSettingsDialog = () => setIsDialogOpen(true)
   const closeSettingsDialog = () => setIsDialogOpen(false)
 
-  // Show loading state until settings are loaded
   if (isLoading) {
     return (
-      <div
-        style={{
-          background: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          fontSize: '1.2rem',
-          color: '#666',
-        }}
-      >
+      <div className='flex items-center justify-center h-screen text-gray-600'>
         <div className='flex items-center gap-3'>
-          <Image
-            priority={true}
-            className='w-30 h-15 text-center flex-1'
-            src={logoSvg}
-            alt='Logo'
-          />
+          <Image priority className='w-30 h-15' src={logoSvg} alt='Logo' />
         </div>
       </div>
     )

@@ -1,36 +1,28 @@
 'use client'
 
-import { Dispatch, SetStateAction } from 'react'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
+import toast from 'react-simple-toasts'
 
 export default function useTauriWindow() {
-  const openNewTauriWindow = async (
-    setError: Dispatch<SetStateAction<string | null>>
-  ) => {
+  const openNewTauriWindow = async () => {
     try {
       const monitors = await availableMonitors()
       const current = await currentMonitor()
 
-      console.log('Available monitors:', monitors)
-      console.log('Current monitor:', current)
-
-      // Find a secondary monitor (not the current one)
       const secondaryMonitor = monitors.find(
         (monitor) => monitor.name !== current?.name
       )
 
       if (!secondaryMonitor) {
-        setError('No secondary display found.')
+        toast('No secondary display found.')
         return
       }
 
-      // Calculate window position for secondary monitor
       const { position, size } = secondaryMonitor
 
-      // Create a new Tauri window on the secondary screen
       const webview = new WebviewWindow('secondScreen', {
-        url: '?showTime=true', // You'll need to create this route
+        url: '?showTime=true',
         title: 'Timer',
         x: position.x,
         y: position.y,
@@ -42,19 +34,19 @@ export default function useTauriWindow() {
         skipTaskbar: false,
       })
 
-      // Wait for the window to be ready
       webview.once('tauri://created', () => {
         console.log('Second screen window created')
       })
 
       webview.once('tauri://error', (e) => {
-        setError(`Failed to create window: ${JSON.stringify(e, Object.getOwnPropertyNames(e))}`)
+        toast(
+          `Failed to create window: ${JSON.stringify(e, Object.getOwnPropertyNames(e))}`
+        )
       })
 
-      // Optional: Focus the window
-      // await webview.setFocus()
+      await webview.setFocus()
     } catch (error) {
-      setError(
+      toast(
         `Could not open a new window: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }

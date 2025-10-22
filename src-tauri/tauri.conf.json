@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "agc-timer",
+  "productName": "AGC Timer Control",
   "version": "0.1.0",
-  "identifier": "com.amazingrace.timer",
+  "identifier": "amazingrace.timer",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -17,23 +17,13 @@
         "height": 600,
         "resizable": true,
         "fullscreen": false,
-        "focusable": true
+        "focusable": true,
+        "maximized": true,
+        "devtools": true
       }
     ],
     "security": {
-      "csp": null,
-      "capabilities": [
-        {
-          "identifier": "main-window-creates-webview",
-          "description": "This capability allows the `main` window access to `filesystem`, `window` and `webview`",
-          "windows": ["main"],
-          "permissions": [
-            "core:default",
-            "core:window:allow-set-focus",
-            "core:webview:allow-create-webview-window"
-          ]
-        }
-      ]
+      "csp": null
     }
   },
   "bundle": {
