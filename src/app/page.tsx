@@ -32,7 +32,7 @@ export default function Home() {
 
   const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
     useShared()
-  const { openNewWindow } = useSecondScreenDisplay()
+  const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
   const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
 
   const operationInProgress = useRef(false)
@@ -41,7 +41,7 @@ export default function Home() {
   const setApiError = useCallback(
     (err: unknown, fallback = 'An error occurred') => {
       const message = err instanceof Error ? err.message : fallback
-      console.error(fallback + ':', err)
+      console.error(`${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`)
       toast(message)
     },
     []
@@ -54,7 +54,6 @@ export default function Home() {
       try {
         operationInProgress.current = true
         await fn()
-        toast(null)
         return true
       } catch (err) {
         setApiError(err, onErrorFallback ?? 'Operation failed')
@@ -77,7 +76,6 @@ export default function Home() {
       const data = await fetchTimersApi(proPresenterUrl)
       setTimers(data)
       setSearchableTimers(data)
-      toast(null)
       return data
     } catch (err) {
       setApiError(err, 'Failed to fetch timers')
@@ -114,8 +112,6 @@ export default function Home() {
             )
           }
         }
-
-        toast(null)
       } catch (err) {
         setApiError(err, 'Failed to initialize timers')
       } finally {
@@ -250,11 +246,15 @@ export default function Home() {
     }
   }, [openNewWindow])
 
-  const handleExitFullscreen = useCallback(() => {
+  const handleExitFullscreen = useCallback(async () => {
+    if (typeof window !== 'undefined' && window.isTauri) {
+      await closeTauriWindow()
+    }
+
     if (fullscreenWindow && !fullscreenWindow.closed) {
       fullscreenWindow.close()
     }
-  }, [fullscreenWindow])
+  }, [fullscreenWindow, closeTauriWindow])
 
   const onSearch = useCallback(
     (term: string) => {
@@ -280,7 +280,6 @@ export default function Home() {
     try {
       setSearchableTimers([])
       await fetchTimers()
-      toast(null)
     } catch (err) {
       setApiError(err, 'Failed to refresh timers')
     }

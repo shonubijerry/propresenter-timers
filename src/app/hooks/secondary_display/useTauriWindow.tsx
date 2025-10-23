@@ -1,10 +1,20 @@
 'use client'
 
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import {
+  getAllWebviewWindows,
+  WebviewWindow,
+} from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
 import toast from 'react-simple-toasts'
 
 export default function useTauriWindow() {
+  const closeTauriWindow = async (view = 'second-screen') => {
+    const windows = await getAllWebviewWindows()
+    if (windows.length > 1) {
+      await windows.find((w) => w.label === view)?.close()
+    }
+  }
+
   const openNewTauriWindow = async () => {
     try {
       const monitors = await availableMonitors()
@@ -19,9 +29,11 @@ export default function useTauriWindow() {
         return
       }
 
+      await closeTauriWindow()
+
       const { position, size } = secondaryMonitor
 
-      const webview = new WebviewWindow('secondScreen', {
+      const webview = new WebviewWindow('second-screen', {
         url: '?showTime=true',
         title: 'Timer',
         x: position.x,
@@ -43,8 +55,6 @@ export default function useTauriWindow() {
           `Failed to create window: ${JSON.stringify(e, Object.getOwnPropertyNames(e))}`
         )
       })
-
-      await webview.setFocus()
     } catch (error) {
       toast(
         `Could not open a new window: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
@@ -54,5 +64,6 @@ export default function useTauriWindow() {
 
   return {
     openNewTauriWindow,
+    closeTauriWindow
   }
 }

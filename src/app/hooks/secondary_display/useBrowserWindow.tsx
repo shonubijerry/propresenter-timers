@@ -7,7 +7,7 @@ import toast from 'react-simple-toasts'
 
 export default function useBrowserWindow() {
   const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
-  const { fullscreenWindow, setFullscreenWindow } = useShared()
+  const { fullscreenWindow, setFullscreenWindow } = useShared<'browser'>()
 
   useEffect(() => {
     if (!fullscreenWindow || !componentToDisplay) return

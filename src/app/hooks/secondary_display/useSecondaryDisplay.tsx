@@ -5,7 +5,7 @@ import useBrowserWindow from './useBrowserWindow'
 import useTauriWindow from './useTauriWindow'
 
 export default function useSecondScreenDisplay() {
-  const { openNewTauriWindow } = useTauriWindow()
+  const { openNewTauriWindow, closeTauriWindow } = useTauriWindow()
   const { openNewBrowserWindow } = useBrowserWindow()
   const [isTauri, setIsTauri] = useState(false)
 
@@ -23,5 +23,6 @@ export default function useSecondScreenDisplay() {
 
   return {
     openNewWindow,
+    closeTauriWindow,
   }
 }

@@ -10,6 +10,7 @@ import {
 } from 'react'
 import useTimerHook, { TimerActions, ReactHookTimerType } from '../hooks/timer'
 import { Timer } from '../interfaces/time'
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
 
 export type LocalTime = {
   totalSeconds: number
@@ -22,17 +23,26 @@ export type LocalTime = {
   overtime: ReactHookTimerType
 }
 
-type SharedState = {
-  currentTimer?: Timer | null
+export type FullScreenWindow = Electron.BrowserWindowProxy | WebviewWindow
+
+type SharedState<T extends 'browser' | 'tauri'> = {
+  currentTimer: Timer | null | undefined
   setCurrentTimer: Dispatch<SetStateAction<Timer | null | undefined>>
   localTimer: LocalTime
-  fullscreenWindow: Electron.BrowserWindowProxy | null | undefined
+  fullscreenWindow: T extends 'tauri'
+    ? WebviewWindow | null | undefined
+    : Electron.BrowserWindowProxy | null | undefined
   setFullscreenWindow: Dispatch<
-    SetStateAction<Electron.BrowserWindowProxy | null | undefined>
+    SetStateAction<
+      T extends 'tauri'
+        ? WebviewWindow | null | undefined
+        : Electron.BrowserWindowProxy | null | undefined
+    >
   >
 }
 
-const SharedContext = createContext<SharedState | null>(null)
+// We make it non-generic at creation, then cast on use
+const SharedContext = createContext<SharedState<'browser'> | null>(null)
 
 export function SharedProvider({ children }: { children: ReactNode }) {
   const [currentTimer, setCurrentTimer] = useState<Timer | null>()
@@ -42,8 +52,6 @@ export function SharedProvider({ children }: { children: ReactNode }) {
   const [fullscreenWindow, setFullscreenWindow] = useState<
     Electron.BrowserWindowProxy | null | undefined
   >(null)
-
-
 
   return (
     <SharedContext.Provider
@@ -60,8 +68,8 @@ export function SharedProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useShared() {
-  const ctx = useContext(SharedContext)
+export function useShared<T extends 'browser' | 'tauri' = 'browser'>() {
+  const ctx = useContext(SharedContext) as SharedState<T> | null
   if (!ctx) throw new Error('useShared must be used inside SharedProvider')
   return ctx
 }

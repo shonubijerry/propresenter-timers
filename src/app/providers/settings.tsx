@@ -168,7 +168,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-screen text-gray-600'>
+      <div className='flex items-center justify-center h-screen bg-white'>
         <div className='flex items-center gap-3'>
           <Image priority className='w-30 h-15' src={logoSvg} alt='Logo' />
         </div>
