@@ -1,0 +1,10 @@
+D:\a\propresenter-timers\propresenter-timers\tauri\target\release\deps\win7_notifications-09384a8e7c6bcb45.d: C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\lib.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\notification.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\timeout.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\util.rs
+
+D:\a\propresenter-timers\propresenter-timers\tauri\target\release\deps\libwin7_notifications-09384a8e7c6bcb45.rlib: C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\lib.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\notification.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\timeout.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\util.rs
+
+D:\a\propresenter-timers\propresenter-timers\tauri\target\release\deps\libwin7_notifications-09384a8e7c6bcb45.rmeta: C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\lib.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\notification.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\timeout.rs C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\util.rs
+
+C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\lib.rs:
+C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\notification.rs:
+C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\timeout.rs:
+C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\win7-notifications-0.4.5\src\util.rs:

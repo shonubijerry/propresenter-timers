@@ -1,0 +1,2 @@
+cargo:rustc-link-search=native=D:\a\propresenter-timers\propresenter-timers\tauri\target\release\build\webview2-com-sys-85810bf417648646\out\x64
+cargo:rustc-link-lib=advapi32
