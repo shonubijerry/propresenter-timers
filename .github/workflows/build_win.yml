@@ -27,3 +27,18 @@ jobs:
 
       - name: Build For Windows
         run: npm run dist:tauri
+
+      - name: Copy build output
+        run: |
+          mkdir -p build-output
+          xcopy "tauri\\target\\release\\*" "build-output\\" /E /Y
+
+      - name: Commit and push build output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build-output/
+          git commit -m "Add Windows build output [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
