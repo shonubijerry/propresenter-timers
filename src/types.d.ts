@@ -4,7 +4,7 @@ declare global {
   namespace Electron {
     interface BrowserWindowProxy extends Window {
       document: Document
-      // location: Location
+      location: Location
       // navigator: Navigator
     }
   }
