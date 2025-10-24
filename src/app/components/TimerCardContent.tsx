@@ -66,7 +66,7 @@ export function TimerCard({
         <div className='space-y-4'>
           {isActive && (
             <div className='flex items-stretch'>
-              <div className='flex-3 bg-gradient-to-br from-slate-100 to-slate-300/50 rounded-l-xl p-2 border border-slate-200/50'>
+              <div className='flex-3 bg-slate-300 rounded-l-xl p-2 border border-slate-200/50'>
                 <Watch
                   mode='normal'
                   isInjuryTime={
@@ -81,9 +81,9 @@ export function TimerCard({
                 />
               </div>
               <IconButton
-                className='cursor-pointer bg-slate-500 hover:bg-slate-700 rounded-r-xl rounded-l-none transition-colors duration-200 flex-1 min-w-0 flex items-center justify-items-center has-tooltip'
+                className='bg-slate-500 hover:bg-slate-700 rounded-r-xl rounded-l-none flex-1 flex has-tooltip max-w-[60px]'
                 variant='ghost'
-                icon={<BiFullscreen size={40} />}
+                icon={<BiFullscreen size={40} className='inline' />}
                 tooltip='Open fullscreen'
                 tooltipPosition='top'
                 onClick={() => onOpenFullScreen(timer)}

@@ -10,6 +10,7 @@ declare global {
   }
 
   interface Window {
+    isTauri: boolean
     electron?: IElectronAPI
     getScreenDetails: () => Promise<ScreenDetails>
     charCode: string

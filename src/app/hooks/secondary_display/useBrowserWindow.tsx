@@ -2,11 +2,12 @@
 
 import React, { ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { useShared } from '../providers/timer'
+import { useShared } from '../../providers/timer'
+import toast from 'react-simple-toasts'
 
-export default function useSecondScreenDisplay() {
+export default function useBrowserWindow() {
   const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
-  const { fullscreenWindow, setFullscreenWindow } = useShared()
+  const { fullscreenWindow, setFullscreenWindow } = useShared<'browser'>()
 
   useEffect(() => {
     if (!fullscreenWindow || !componentToDisplay) return
@@ -21,7 +22,7 @@ export default function useSecondScreenDisplay() {
     }
   }, [fullscreenWindow, componentToDisplay])
 
-  const openNewWindow = async (componentToDisplay: React.ReactNode) => {
+  const openNewBrowserWindow = async (componentToDisplay?: React.ReactNode) => {
     setComponentToDisplay(componentToDisplay)
     try {
       if ('getScreenDetails' in window) {
@@ -30,7 +31,9 @@ export default function useSecondScreenDisplay() {
         console.log(screenDetails)
 
         const secondaryScreen = screenDetails.screens.find(
-          (screen) => !screen.isPrimary
+          (screen) =>
+            !screen.isPrimary &&
+            screen.left !== screenDetails.currentScreen.left
         )
 
         if (secondaryScreen) {
@@ -40,29 +43,37 @@ export default function useSecondScreenDisplay() {
             width=${secondaryScreen.availWidth},
             height=${secondaryScreen.availHeight},
             popup=true,
-            fullscreen=yes
+            fullscreen=true
           `
 
           if (!fullscreenWindow || fullscreenWindow.closed) {
-            const fs = window.open('', 'screenWindow', windowFeatures)
+            const fs = window.open(
+              '?showTime=true',
+              'screenWindow',
+              windowFeatures
+            )
             setFullscreenWindow(fs)
           } else {
-            fullscreenWindow.focus()
+            fullscreenWindow.open(
+              '?showTime=true',
+              'screenWindow',
+              windowFeatures
+            )
           }
         } else {
-          alert('No extended display found or permission denied.')
+          toast('No extended display found or permission denied.')
         }
       } else {
-        alert('Window Management API not supported in this browser.')
+        toast('Window Management API not supported in this browser.')
       }
     } catch (error) {
-      alert(
+      toast(
         `Could not open a new window. Check your browser permissions. ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }
   }
 
   return {
-    openNewWindow,
+    openNewBrowserWindow,
   }
 }

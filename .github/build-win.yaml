@@ -1,0 +1,30 @@
+name: Setup Update
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'tauri/**'
+      - '.github/workflows/build-win.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-zip:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build For Windows
+      - run: npm run dist:tauri
