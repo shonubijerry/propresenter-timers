@@ -5,7 +5,11 @@ import Button from '../ui/Button'
 import Alert from '../ui/Alert'
 import Modal from './Modal'
 
-export default function SettingsDialog() {
+type Prop = {
+  refreshTimers: () => void
+}
+
+export default function SettingsDialog({ refreshTimers }: Prop) {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
     useSettings()
 
@@ -26,6 +30,7 @@ export default function SettingsDialog() {
 
   const onSubmit = (data: AppSettings) => {
     updateSettings(data)
+    refreshTimers()
     closeSettingsDialog()
   }
 
