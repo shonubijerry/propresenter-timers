@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-zip:
+  build-win:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
