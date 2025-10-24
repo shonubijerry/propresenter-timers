@@ -33,7 +33,7 @@ export default function CreateTimerModal({
   } = useForm<TimerFormData>({
     defaultValues: {
       name: '',
-      duration: '00:05:00', // default 5 minutes
+      duration: '00:10:00', // default 5 minutes
     },
   })
 
