@@ -31,7 +31,7 @@ jobs:
       - name: Copy build output
         run: |
           mkdir -p build-output
-          xcopy "tauri\\target\\release\\*" "build-output\\" /E /Y
+          xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
 
       - name: Commit and push build output
         run: |
