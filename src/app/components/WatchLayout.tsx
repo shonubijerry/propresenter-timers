@@ -69,7 +69,7 @@ export default function WatchLayoutWithProps({
         </div>
 
         <div className='text-5xl font-bold text-gray-600 mt-5'>
-          <span className='text-slate-500'>Duration:</span>
+          <span className='text-slate-500'>Event Duration:</span>
           <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
             {formatSecondsToTime(duration)}
           </span>

@@ -10,7 +10,10 @@
     "core:webview:allow-create-webview-window",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "$APPDATA/*" }]
+      "allow": [
+        { "path": "$APPDATA/*" },
+        { "path": "$APPLOCALDATA/*" }
+      ]
     },
     "fs:allow-app-meta",
     "fs:allow-app-meta-recursive",

@@ -41,7 +41,9 @@ export default function Home() {
   const setApiError = useCallback(
     (err: unknown, fallback = 'An error occurred') => {
       const message = err instanceof Error ? err.message : fallback
-      console.error(`${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`)
+      console.error(
+        `${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+      )
       toast(message)
     },
     []
@@ -159,8 +161,8 @@ export default function Home() {
         await setAllTimersOperationApi(proPresenterUrl, action)
         await fetchTimers()
         setCurrentTimer(null)
-        localTimer.overtime.reset(undefined, false)
         localTimer.handleLocalTimer('reset')
+        localTimer.overtime.reset(undefined, false)
       }, 'Failed to reset timers')
     },
     [proPresenterUrl, runOperation, setCurrentTimer, localTimer, fetchTimers]
@@ -212,15 +214,14 @@ export default function Home() {
 
         if (action === 'reset') {
           setCurrentTimer(null)
-          localTimer.handleLocalTimer('reset')
+          localTimer.handleLocalTimer('reset', timer.countdown?.duration)
         } else {
           setCurrentTimer(timer)
           localTimer.handleLocalTimer(action, timer.remainingSeconds)
         }
 
-        // Refresh timers after operation
         await fetchTimers()
-      }, 'Failed to perform timer operation')
+      }, `Failed to ${action} timer`)
     },
     [proPresenterUrl, runOperation, localTimer, setCurrentTimer, fetchTimers]
   )
@@ -285,10 +286,6 @@ export default function Home() {
     }
   }, [proPresenterUrl, setApiError, fetchTimers])
 
-  const updateTimers = useCallback(async () => {
-    await refreshTimers()
-  }, [refreshTimers])
-
   if (isLoading) {
     return (
       <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70 flex items-center justify-center'>
@@ -333,17 +330,17 @@ export default function Home() {
           <CreateTimerModal
             open={isCreateTimerModalOpen}
             onClose={() => setIsCreateTimerModalOpen(false)}
-            onCreated={updateTimers}
+            onCreated={refreshTimers}
           />
 
           <EditTimerModal
             timer={timerToEdit}
             open={isEditTimerModalOpen}
             onClose={handleCloseEdit}
-            onUpdated={updateTimers}
+            onUpdated={refreshTimers}
           />
 
-          <SettingsDialog />
+          <SettingsDialog refreshTimers={refreshTimers} />
         </>
       ) : (
         <WatchLayoutWithProps

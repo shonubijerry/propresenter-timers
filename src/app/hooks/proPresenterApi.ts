@@ -66,7 +66,7 @@ export const createTimerApi = (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         allows_overrun: true,
-        countdown: { duration: duration * 60 },
+        countdown: { duration },
         name,
       }),
     },
@@ -88,7 +88,7 @@ export const editTimerApi = (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         allows_overrun: true,
-        countdown: { duration: duration * 60 },
+        countdown: { duration },
         id: {
           name,
         },

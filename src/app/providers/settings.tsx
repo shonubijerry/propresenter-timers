@@ -49,7 +49,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [proPresenterUrl, setProPresenterUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 🔹 Fetch settings for either Electron or Tauri
   const getProdSettings = async (): Promise<AppSettings> => {
     if (typeof window === 'undefined') return defaultSettings
 
@@ -100,17 +99,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return window.electron.getSettings()
     }
 
-    // Default fallback
     return defaultSettings
   }
 
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const loadedSettings =
-          process.env.NODE_ENV !== 'development'
-            ? defaultSettings
-            : await getProdSettings()
+        const loadedSettings = await getProdSettings()
 
         setSettings(loadedSettings)
         if (loadedSettings?.address && loadedSettings?.port) {

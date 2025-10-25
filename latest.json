@@ -1,0 +1,14 @@
+{
+  "version": "1.0.6",
+  "notes": "Upgrade note",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://raw.githubusercontent.com/shonubijerry/propresenter-timers/master/build-output/bundle/nsis/AGC%20Timer%20Control_1.0.6_x64-setup.exe"
+    },
+    "darwin-x86_64": {
+      "signature": "",
+      "url": ""
+    }
+  }
+}

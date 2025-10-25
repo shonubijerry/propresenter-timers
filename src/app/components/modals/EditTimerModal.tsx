@@ -7,6 +7,8 @@ import Button from '../ui/Button'
 import { editTimerApi } from '../../hooks/proPresenterApi'
 import { useSettings } from '../../providers/settings'
 import Modal from './Modal'
+import { formatSecondsToTime } from '@/lib/formatter'
+import toast from 'react-simple-toasts'
 
 interface CreateTimerModalProps {
   timer: Timer | null
@@ -17,7 +19,7 @@ interface CreateTimerModalProps {
 
 interface TimerFormData {
   name: string
-  duration: number
+  duration: string
 }
 
 export default function EditTimerModal({
@@ -36,7 +38,7 @@ export default function EditTimerModal({
   } = useForm<TimerFormData>({
     defaultValues: {
       name: timer?.id.name ?? '',
-      duration: timer?.countdown?.duration ?? 5,
+      duration: formatSecondsToTime(timer?.countdown?.duration ?? 5),
     },
   })
 
@@ -46,8 +48,8 @@ export default function EditTimerModal({
       reset({
         name: timer.id.name,
         duration: timer.countdown?.duration
-          ? timer.countdown?.duration / 60
-          : 5,
+          ? formatSecondsToTime(timer.countdown?.duration)
+          : '00:05:00',
       })
     }
   }, [timer, reset])
@@ -56,9 +58,20 @@ export default function EditTimerModal({
 
   const onSubmit = async (data: TimerFormData) => {
     try {
+      const [hours = 0, minutes = 0, seconds = 0] = data.duration
+        .split(':')
+        .map(Number)
+
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds
+
+      if (totalSeconds < 60) {
+        toast('Duration must be at least 1 minute')
+        return
+      }
+
       const resp = await editTimerApi(
         proPresenterUrl,
-        data.duration,
+        totalSeconds,
         data.name,
         timer?.id.uuid
       )
@@ -90,18 +103,24 @@ export default function EditTimerModal({
         </div>
         <div className='sm:col-span-4'>
           <label className='block mb-2 font-medium text-gray-600'>
-            Duration (minutes)
+            Duration (hh:mm:ss)
           </label>
           <input
-            type='number'
+            type='time'
+            step='1'
             className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
             {...register('duration', {
               required: 'Duration is required',
-              min: {
-                value: 1,
-                message: 'Duration must be at least 1 minute',
+              validate: (value) => {
+                const [hours = 0, minutes = 0, seconds = 0] = value
+                  .split(':')
+                  .map(Number)
+                const totalSeconds = hours * 3600 + minutes * 60 + seconds
+                if (totalSeconds < 60) {
+                  return 'Duration must be at least 1 minute'
+                }
+                return true
               },
-              valueAsNumber: true,
             })}
           />
           {errors.duration && (
