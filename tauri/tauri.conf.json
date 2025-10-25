@@ -27,6 +27,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",
     "icon": [
@@ -36,5 +37,17 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "windows": {
+        "installMode": "passive"
+      },
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyM0QwRDBGNEVFNkRCRUYKUldUdjIrWk9EdzA5MHBjdHRRTS9ITkdjc2YzdGtjOHRIb0NwbE5hM2MrKzlXT1AwOEtuT1piRGQK",
+      "endpoints": [
+        "https://raw.githubusercontent.com/shonubijerry/propresenter-timers/master/latest.json",
+        "https://github.com/shonubijerry/propresenter-timers/master/latest.json"
+      ]
+    }
   }
 }

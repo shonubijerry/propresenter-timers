@@ -33,6 +33,14 @@ jobs:
           mkdir -p build-output
           xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
 
+      - name: Inject signature into latest.json
+        run: |
+          $sig = Get-Content "build-output/nsis/AGC Timer Control.exe.sig" -Raw
+          $json = Get-Content "latest.json" | ConvertFrom-Json
+          $json.platforms."windows-x86_64".signature = $sig
+          $json | ConvertTo-Json -Depth 5 | Out-File "latest.json" -Encoding UTF8
+        shell: pwsh
+
       - name: Commit and push build output
         run: |
           git config user.name "github-actions[bot]"
