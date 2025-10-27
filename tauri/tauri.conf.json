@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "AGC Timer Control",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "amazingrace.timer",
   "build": {
     "frontendDist": "../out",
@@ -29,7 +29,7 @@
   "bundle": {
     "createUpdaterArtifacts": true,
     "active": true,
-    "targets": "all",
+    "targets": "nsis",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,8 +45,7 @@
       },
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyM0QwRDBGNEVFNkRCRUYKUldUdjIrWk9EdzA5MHBjdHRRTS9ITkdjc2YzdGtjOHRIb0NwbE5hM2MrKzlXT1AwOEtuT1piRGQK",
       "endpoints": [
-        "https://raw.githubusercontent.com/shonubijerry/propresenter-timers/master/latest.json",
-        "https://github.com/shonubijerry/propresenter-timers/master/latest.json"
+        "https://github.com/shonubijerry/propresenter-timers/releases/download/app-v0.2.0/latest.json"
       ]
     }
   }
