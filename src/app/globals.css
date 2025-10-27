@@ -115,9 +115,6 @@ body {
   width: -webkit-max-content;
   width: -moz-max-content;
   transform: translateX(-50%);
-  padding: 8px 12px;
-  border-radius: 8px;
-  background-color: #1f2937;
   width: max-content;
   max-width: 90%;
   -webkit-transition: opacity 0.3s, -webkit-transform 0.3s;

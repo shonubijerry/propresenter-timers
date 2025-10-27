@@ -19,7 +19,7 @@ import {
 import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
 import useSecondScreenDisplay from './hooks/secondary_display/useSecondaryDisplay'
-import toast from 'react-simple-toasts'
+import { toastError, toastSuccess } from '@/lib/toastUtils'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -44,7 +44,7 @@ export default function Home() {
       console.error(
         `${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
       )
-      toast(message)
+      toastError(message)
     },
     []
   )
@@ -70,7 +70,7 @@ export default function Home() {
   // Fetch timers from API and update local state
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
     if (!proPresenterUrl) {
-      toast('ProPresenter URL not configured')
+      toastError('ProPresenter URL not configured')
       return []
     }
 
@@ -153,7 +153,7 @@ export default function Home() {
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
       if (!proPresenterUrl) {
-        toast('ProPresenter URL not configured')
+        toastError('ProPresenter URL not configured')
         return
       }
 
@@ -164,6 +164,7 @@ export default function Home() {
         localTimer.handleLocalTimer('reset')
         localTimer.overtime.reset(undefined, false)
       }, 'Failed to reset timers')
+      toastSuccess('Operation successful')
     },
     [proPresenterUrl, runOperation, setCurrentTimer, localTimer, fetchTimers]
   )
@@ -172,7 +173,7 @@ export default function Home() {
   const handleDelete = useCallback(
     async (uuid: string) => {
       if (!proPresenterUrl) {
-        toast('ProPresenter URL not configured')
+        toastError('ProPresenter URL not configured')
         return
       }
 
@@ -187,6 +188,7 @@ export default function Home() {
           localTimer.overtime.reset(undefined, false)
         }
       }, 'Failed to delete timer')
+      toastSuccess('Event deleted')
     },
     [
       proPresenterUrl,
@@ -201,7 +203,7 @@ export default function Home() {
   const handleOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
       if (!proPresenterUrl) {
-        toast('ProPresenter URL not configured')
+        toastError('ProPresenter URL not configured')
         return
       }
 
@@ -241,7 +243,7 @@ export default function Home() {
     try {
       await openNewWindow()
     } catch (err) {
-      toast(
+      toastError(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
       )
     }
@@ -255,6 +257,7 @@ export default function Home() {
     if (fullscreenWindow && !fullscreenWindow.closed) {
       fullscreenWindow.close()
     }
+    toastSuccess('External screen closed')
   }, [fullscreenWindow, closeTauriWindow])
 
   const onSearch = useCallback(
@@ -266,21 +269,26 @@ export default function Home() {
       }
       const lowered = trimmed.toLowerCase()
       setSearchableTimers(
-        timers.filter((item) => item.id.name.toLowerCase().includes(lowered))
+        timers.filter(
+          (item) =>
+            item.id.name.toLowerCase().includes(lowered) ||
+            item.id.uuid === currentTimer?.id.uuid
+        )
       )
     },
-    [timers]
+    [timers, currentTimer]
   )
 
   const refreshTimers = useCallback(async () => {
     if (!proPresenterUrl) {
-      toast('ProPresenter URL not configured')
+      toastError('ProPresenter URL not configured')
       return
     }
 
     try {
       setSearchableTimers([])
       await fetchTimers()
+      toastSuccess('Timers refreshed')
     } catch (err) {
       setApiError(err, 'Failed to refresh timers')
     }

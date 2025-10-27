@@ -6,7 +6,7 @@ import Alert from '../ui/Alert'
 import Modal from './Modal'
 
 type Prop = {
-  refreshTimers: () => void
+  refreshTimers: () => Promise<void>
 }
 
 export default function SettingsDialog({ refreshTimers }: Prop) {
@@ -28,9 +28,9 @@ export default function SettingsDialog({ refreshTimers }: Prop) {
     reset(settings)
   }, [settings, isDialogOpen, reset])
 
-  const onSubmit = (data: AppSettings) => {
+  const onSubmit = async (data: AppSettings) => {
     updateSettings(data)
-    refreshTimers()
+    await refreshTimers()
     closeSettingsDialog()
   }
 
