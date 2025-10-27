@@ -14,7 +14,7 @@
     "build:electron": "npm run build:next && tsc -p tsconfig.electron.json && npm run build:electron",
     "dist:electron": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
     "dist:tauri": "tauri build",
-    "tauri": "tauri",
+    "build:tauri": "tauri",
     "clean": "rimraf release out .next tauri/target",
     "lint": "eslint",
     "prepare": "husky"
