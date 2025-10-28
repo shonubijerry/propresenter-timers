@@ -34,6 +34,7 @@ jobs:
 
       - name: Copy build output
         run: |
+          if exist build-output rmdir /s /q build-output
           mkdir -p build-output
           xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
 
