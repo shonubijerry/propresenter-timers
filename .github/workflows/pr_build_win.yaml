@@ -1,12 +1,12 @@
 name: Build Windows
 on:
-  push:
+  pull_request:
     branches:
       - master
     paths:
       - 'src/**'
       - 'tauri/**'
-      - '.github/workflows/build_win.yml'
+      - '.github/workflows/pr_build_win.yml'
   workflow_dispatch:
 
 permissions:

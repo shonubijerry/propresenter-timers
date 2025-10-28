@@ -17,6 +17,7 @@ import {
   readTextFile,
   writeTextFile,
 } from '@tauri-apps/plugin-fs'
+import { checkUpdate } from '@/lib/update'
 
 export interface AppSettings {
   address: string
@@ -54,6 +55,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     // 🟢 TAURI
     if (window.isTauri !== undefined) {
+      await checkUpdate()
       try {
         const appDirExists = await exists('', {
           baseDir: BaseDirectory.AppData,

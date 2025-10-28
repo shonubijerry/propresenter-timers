@@ -21,6 +21,10 @@ const fetchJson = async <T>(
     })
     .finally(() => clearTimeout(id))
 
+  if (resp.status === 204) {
+    return {} as T
+  }
+
   const data = await resp.json().catch((e) => console.log(e))
 
   if (!resp.ok) {
