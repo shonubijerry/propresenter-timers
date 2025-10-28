@@ -47,6 +47,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
       - name: Copy build output
+        shell: cmd
         run: |
           if exist build-output rmdir /s /q build-output
           mkdir -p build-output
