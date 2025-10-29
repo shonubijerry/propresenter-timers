@@ -53,6 +53,20 @@ jobs:
           mkdir -p build-output
           xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
 
+      - name: Normalize signature filename
+        shell: pwsh
+        run: |
+          # Normalize .exe and .sig filenames (remove version suffix)
+          $nsisPath = "build-output\nsis"
+          $exeFile = Get-ChildItem $nsisPath -Filter "*.exe" | Select-Object -First 1
+          $sigFile = Get-ChildItem $nsisPath -Filter "*.exe.sig" | Select-Object -First 1
+
+          if (-not $exeFile) { throw "No .exe file found in $nsisPath" }
+          if (-not $sigFile) { throw "No .sig file found in $nsisPath" }
+
+          Rename-Item $exeFile.FullName "AGC Timer Control.exe" -Force
+          Rename-Item $sigFile.FullName "AGC Timer Control.exe.sig" -Force
+
       - name: Inject signature into latest.json
         run: |
           $sig = Get-Content "build-output/nsis/AGC Timer Control.exe.sig" -Raw
