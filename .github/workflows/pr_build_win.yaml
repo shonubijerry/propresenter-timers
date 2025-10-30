@@ -75,16 +75,12 @@ jobs:
           $json | ConvertTo-Json -Depth 5 | Out-File "latest.json" -Encoding UTF8
         shell: pwsh
 
-      - name: Commit and push build output
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add build-output/
-          git commit -m "Add Windows build output [skip ci]" || echo "No changes to commit"
-
-          BRANCH="${{ github.head_ref || github.ref_name }}"
-          echo "Pushing to branch: $BRANCH"
-
-          git push origin HEAD:$BRANCH
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Commit and push build output
+      #   run: |
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git add build-output/
+      #     git commit -m "Add Windows build output [skip ci]" || echo "No changes to commit"
+      #     git push origin ${{ github.head_ref || github.ref_name }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
