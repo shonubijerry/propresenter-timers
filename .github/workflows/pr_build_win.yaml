@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'tauri/**'
-      - '.github/workflows/pr_build_win.yml'
+      - '.github/workflows/pr_build_win.yaml'
   workflow_dispatch:
 
 permissions:
