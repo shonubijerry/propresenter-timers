@@ -49,7 +49,7 @@ jobs:
   #           return data.id
 
   build-tauri:
-    needs: create-release
+    # needs: create-release
     permissions:
       contents: write
     strategy:
