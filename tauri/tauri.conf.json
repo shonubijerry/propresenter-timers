@@ -45,7 +45,7 @@
       },
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyM0QwRDBGNEVFNkRCRUYKUldUdjIrWk9EdzA5MHBjdHRRTS9ITkdjc2YzdGtjOHRIb0NwbE5hM2MrKzlXT1AwOEtuT1piRGQK",
       "endpoints": [
-        "https://github.com/shonubijerry/propresenter-timers/releases/download/app-v0.2.0/latest.json"
+        "https://github.com/shonubijerry/propresenter-timers/releases/download/app-v0.2.2/latest.json"
       ]
     }
   }
