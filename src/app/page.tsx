@@ -20,6 +20,7 @@ import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
 import useSecondScreenDisplay from './hooks/secondary_display/useSecondaryDisplay'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
+import About from './components/modals/About'
 
 export default function Home() {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
@@ -294,6 +295,11 @@ export default function Home() {
     }
   }, [proPresenterUrl, setApiError, fetchTimers])
 
+  const [openAbout, setOpenAbout] =  useState(false);
+  const toggleAboutModal = () => {
+    setOpenAbout(!openAbout);
+  };
+
   if (isLoading) {
     return (
       <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70 flex items-center justify-center'>
@@ -313,6 +319,7 @@ export default function Home() {
             resetAllTimers={resetAllTimers}
             refreshTimers={refreshTimers}
             onSearch={onSearch}
+            toggleAboutModal={toggleAboutModal}
           />
           <div className='max-w-6xl mx-auto px-6 py-8'>
             {searchableTimers.length === 0 ? (
@@ -349,6 +356,8 @@ export default function Home() {
           />
 
           <SettingsDialog refreshTimers={refreshTimers} />
+
+          <About open={openAbout} onClose={toggleAboutModal} />
         </>
       ) : (
         <WatchLayoutWithProps

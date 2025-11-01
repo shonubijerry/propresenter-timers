@@ -8,6 +8,7 @@ import { TimerActions } from '@/app/hooks/timer'
 import { AiOutlineFullscreenExit } from 'react-icons/ai'
 import IconButton from './IconButton'
 import { RiRefreshLine } from 'react-icons/ri'
+import { FiInfo } from 'react-icons/fi'
 
 export function Header({
   setIsModalOpen,
@@ -16,6 +17,7 @@ export function Header({
   resetAllTimers,
   refreshTimers,
   onSearch,
+  toggleAboutModal
 }: {
   setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
@@ -23,6 +25,7 @@ export function Header({
   resetAllTimers: (action: TimerActions) => Promise<void>
   refreshTimers: () => void
   onSearch: (term: string) => void
+  toggleAboutModal: () => void
 }) {
   return (
     <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
@@ -82,6 +85,13 @@ export function Header({
               tooltip='Settings'
               tooltipPosition='bottom'
               onClick={openSettings}
+            />
+            <IconButton
+              variant='primary'
+              icon={<FiInfo size={40} />}
+              tooltip='About'
+              tooltipPosition='bottom'
+              onClick={toggleAboutModal}
             />
           </div>
         </div>
