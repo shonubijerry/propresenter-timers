@@ -86,6 +86,7 @@ jobs:
       #     args: ${{ matrix.args }}
 
       - name: Update Tauri updater endpoint dynamically
+        shell: bash  # ✅ Force bash shell so jq + Unix syntax work properly
         run: |
           VERSION=$(node -p "require('./tauri/tauri.conf.json').version")
           NEW_ENDPOINT="https://github.com/${{ github.repository }}/releases/download/app-v${VERSION}/latest.json"
