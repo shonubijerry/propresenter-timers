@@ -35,13 +35,6 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # 🧠 Smart automatic caching for Cargo dependencies and target builds
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: |
-            tauri -> target  # point to your tauri app’s target folder
-
       - name: Install dependencies
         run: npm ci
 
