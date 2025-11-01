@@ -1,4 +1,5 @@
 name: Build Windows
+
 on:
   pull_request:
     branches:
@@ -15,31 +16,36 @@ permissions:
 jobs:
   build-win:
     runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v3
+    env:
+      CARGO_TARGET_DIR: target  # ensures consistent build dir for caching
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      # 🧠 Smart automatic caching for Cargo dependencies and target builds
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            tauri/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          workspaces: |
+            tauri -> target  # point to your tauri app’s target folder
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build For Windows
+      - name: Build for Windows
         run: npm run dist:tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,13 +56,12 @@ jobs:
         shell: cmd
         run: |
           if exist build-output rmdir /s /q build-output
-          mkdir -p build-output
+          mkdir build-output
           xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
 
       - name: Normalize signature filename
         shell: pwsh
         run: |
-          # Normalize .exe and .sig filenames (remove version suffix)
           $nsisPath = "build-output\nsis"
           $exeFile = Get-ChildItem $nsisPath -Filter "*.exe" | Select-Object -First 1
           $sigFile = Get-ChildItem $nsisPath -Filter "*.exe.sig" | Select-Object -First 1
@@ -68,12 +73,12 @@ jobs:
           Rename-Item $sigFile.FullName "AGC Timer Control.exe.sig" -Force
 
       - name: Inject signature into latest.json
+        shell: pwsh
         run: |
           $sig = Get-Content "build-output/nsis/AGC Timer Control.exe.sig" -Raw
           $json = Get-Content "latest.json" | ConvertFrom-Json
           $json.platforms."windows-x86_64".signature = $sig
           $json | ConvertTo-Json -Depth 5 | Out-File "latest.json" -Encoding UTF8
-        shell: pwsh
 
       - name: Commit and push build output
         run: |
