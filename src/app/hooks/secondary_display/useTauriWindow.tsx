@@ -1,11 +1,11 @@
 'use client'
 
+import { toastError, toastInfo } from '@/lib/toastUtils'
 import {
   getAllWebviewWindows,
   WebviewWindow,
 } from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
-import toast from 'react-simple-toasts'
 
 export default function useTauriWindow() {
   const closeTauriWindow = async (view = 'second-screen') => {
@@ -25,7 +25,7 @@ export default function useTauriWindow() {
       )
 
       if (!secondaryMonitor) {
-        toast('No secondary display found.')
+        toastInfo('No secondary display found.')
         return
       }
 
@@ -51,12 +51,12 @@ export default function useTauriWindow() {
       })
 
       webview.once('tauri://error', (e) => {
-        toast(
+        toastError(
           `Failed to create window: ${JSON.stringify(e, Object.getOwnPropertyNames(e))}`
         )
       })
     } catch (error) {
-      toast(
+      toastError(
         `Could not open a new window: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }

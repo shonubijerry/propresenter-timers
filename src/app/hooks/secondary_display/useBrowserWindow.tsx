@@ -3,7 +3,7 @@
 import React, { ReactNode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useShared } from '../../providers/timer'
-import toast from 'react-simple-toasts'
+import { toastError } from '@/lib/toastUtils'
 
 export default function useBrowserWindow() {
   const [componentToDisplay, setComponentToDisplay] = useState<ReactNode>()
@@ -61,13 +61,13 @@ export default function useBrowserWindow() {
             )
           }
         } else {
-          toast('No extended display found or permission denied.')
+          toastError('No extended display found or permission denied.')
         }
       } else {
-        toast('Window Management API not supported in this browser.')
+        toastError('Window Management API not supported in this browser.')
       }
     } catch (error) {
-      toast(
+      toastError(
         `Could not open a new window. Check your browser permissions. ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
       )
     }

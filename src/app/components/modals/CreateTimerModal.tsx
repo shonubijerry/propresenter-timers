@@ -6,7 +6,7 @@ import Button from '../ui/Button'
 import Modal from './Modal'
 import { createTimerApi } from '../../hooks/proPresenterApi'
 import { useSettings } from '../../providers/settings'
-import toast from 'react-simple-toasts'
+import { toastError } from '@/lib/toastUtils'
 
 interface CreateTimerModalProps {
   open: boolean
@@ -46,7 +46,7 @@ export default function CreateTimerModal({
       const totalSeconds = hours * 3600 + minutes * 60 + seconds
 
       if (totalSeconds < 60) {
-        toast('Duration must be at least 1 minute')
+        toastError('Duration must be at least 1 minute')
         return
       }
 
