@@ -114,3 +114,23 @@ jobs:
               draft: false,
               prerelease: false
             })
+
+      - name: Update Tauri updater endpoint dynamically
+        run: |
+          VERSION=$(node -p "require('./tauri/tauri.conf.json').version")
+          NEW_ENDPOINT="https://github.com/${{ github.repository }}/releases/download/app-v${VERSION}/latest.json"
+          echo "Updating Tauri endpoint to: $NEW_ENDPOINT"
+          jq --arg new_endpoint "$NEW_ENDPOINT" \
+             '.plugins.updater.endpoints = [$new_endpoint]' \
+             tauri/tauri.conf.json > tmp.$$.json && mv tmp.$$.json tauri/tauri.conf.json
+          cat tauri/tauri.conf.json  # optional, for debugging
+
+      - name: Commit and push tauri.conf.json update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tauri/tauri.conf.json
+          git commit -m "Update config latest.json [skip ci]" || echo "No changes to commit"
+          git push origin ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
