@@ -42,4 +42,3 @@ next-env.d.ts
 dist
 out
 release
-build-output

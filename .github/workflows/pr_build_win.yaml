@@ -1,0 +1,84 @@
+name: Build Windows
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'tauri/**'
+      - '.github/workflows/pr_build_win.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+
+    env:
+      CARGO_TARGET_DIR: target  # ensures consistent build dir for caching
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Windows
+        run: npm run dist:tauri
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+
+      - name: Copy build output
+        shell: cmd
+        run: |
+          if exist build-output rmdir /s /q build-output
+          mkdir build-output
+          xcopy "tauri\\target\\release\\bundle\\*" "build-output\\" /E /Y
+
+      - name: Normalize signature filename
+        shell: pwsh
+        run: |
+          $nsisPath = "build-output\nsis"
+          $exeFile = Get-ChildItem $nsisPath -Filter "*.exe" | Select-Object -First 1
+          $sigFile = Get-ChildItem $nsisPath -Filter "*.exe.sig" | Select-Object -First 1
+
+          if (-not $exeFile) { throw "No .exe file found in $nsisPath" }
+          if (-not $sigFile) { throw "No .sig file found in $nsisPath" }
+
+          Rename-Item $exeFile.FullName "AGC Timer Control.exe" -Force
+          Rename-Item $sigFile.FullName "AGC Timer Control.exe.sig" -Force
+
+      - name: Inject signature into latest.json
+        shell: pwsh
+        run: |
+          $sig = Get-Content "build-output/nsis/AGC Timer Control.exe.sig" -Raw
+          $json = Get-Content "latest.json" | ConvertFrom-Json
+          $json.platforms."windows-x86_64".signature = $sig
+          $json | ConvertTo-Json -Depth 5 | Out-File "latest.json" -Encoding UTF8
+
+      - name: Commit and push build output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build-output/
+          git commit -m "Add Windows build output [skip ci]" || echo "No changes to commit"
+          git push origin ${{ github.head_ref || github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
