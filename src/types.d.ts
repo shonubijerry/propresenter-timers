@@ -1,27 +1,11 @@
-import { AppSettings } from './app/providers/settings'
+export {}
 
 declare global {
-  namespace Electron {
-    interface BrowserWindowProxy extends Window {
-      document: Document
-      location: Location
-      // navigator: Navigator
-    }
-  }
 
   interface Window {
     isTauri: boolean
-    electron?: IElectronAPI
     getScreenDetails: () => Promise<ScreenDetails>
     charCode: string
-  }
-
-  interface IElectronAPI {
-    getSettings: () => Promise<AppSettings>
-    saveSettings: (
-      settings: AppSettings
-    ) => Promise<{ success: boolean; error?: string }>
-    onSettingsUpdate: (callback: (settings: AppSettings) => void) => void
   }
 
   interface ScreenDetails {

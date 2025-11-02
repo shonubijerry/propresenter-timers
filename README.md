@@ -1,162 +1,114 @@
-# ProPresenter Timer Control
+# ProPresenter Timers
 
-A desktop application built with Next.js and Electron for managing ProPresenter timers with a dedicated fullscreen display for timer projection.
+A cross-platform desktop timer app paired with ProPresenter. The project uses a Next.js + TypeScript frontend and a Tauri desktop wrapper for native multi-screen and fullscreen control.
 
-## Overview
+This repo provides presenter-facing watch views and fullscreen timer projection to external displays. It is designed to be run as a desktop app (Tauri) but the frontend can also be developed using the Next.js dev server.
 
-ProPresenter Timer Control provides a user-friendly interface to manage timers in ProPresenter through its API. The application allows you to create, edit, start, stop, delete, and reset timers, as well as project a selected timer to an external display in fullscreen mode.
+## Key features
 
-## Features
+- Clean React/Next UI for creating, editing and running timers
+- Presenter/watch view with simplified UI for on-stage use
+- Fullscreen projection to a selected display (multi-screen support)
+- Native integration via Tauri: screen metadata access and platform packaging
 
-- **Timer Management**
-  - Create new timers with custom durations
-  - Edit existing timer configurations
-  - Start and stop timers remotely
-  - Reset timers to initial values
-  - Delete timers when no longer needed
+The Tauri integration surface (available when running the desktop app) exposes a few useful helpers on `window`:
 
-- **External Display Projection**
-  - Project selected timer clock to external display
-  - Fullscreen mode for optimal visibility
-  - Real-time timer updates
+- `window.isTauri: boolean` — whether the app is running inside the Tauri wrapper
+- `window.getScreenDetails(): Promise<ScreenDetails>` — returns screen metadata and the current screen
+- `window.charCode: string` — helper for shortcut handling
 
-- **ProPresenter Integration**
-  - Direct integration with ProPresenter API
-  - Real-time communication with ProPresenter
+## Requirements
 
-## Tech Stack
+- Node.js (16+ recommended)
+- A package manager: npm / yarn / pnpm
+- Rust toolchain (for Tauri builds): install via https://rustup.rs
 
-- **Frontend**: Next.js 15.5.3, React 19, TailwindCSS 4
-- **Desktop**: Electron 38
-- **Form Handling**: React Hook Form
-- **Timer Logic**: React Timer Hook
-- **Fullscreen**: React Full Screen
-- **Icons**: React Icons
+If you only want to run the frontend in a browser (development), the Rust toolchain is not required.
 
-## Prerequisites
+## Install
 
-- Node.js (v18 or higher recommended)
-- ProPresenter with API access enabled
-
-## Installation
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd propresenter-timers
-```
-
-2. Install dependencies:
-```bash
+# from the repository root
 npm install
-```
-
-3. Configure environment variables:
-Create a `.env` file in the root directory with your ProPresenter API configuration:
-```env
-NEXT_PUBLIC_PROPRESENTER_HOST=<your-propresenter-host>
-NEXT_PUBLIC_PROPRESENTER_PORT=<api-port>
-NEXT_PUBLIC_PROPRESENTER_API_KEY=<your-api-key>
+# or: pnpm install
 ```
 
 ## Development
 
-Run the application in development mode:
+1. Start the Next.js dev server (frontend):
 
 ```bash
 npm run dev
 ```
 
-This will:
-- Start the Next.js development server on port 3000
-- Launch the Electron application
-- Enable hot-reload for both frontend and Electron
+2. To run the desktop app (Tauri), open a terminal and run the Tauri dev command. Example:
 
-### Individual Development Commands
+```bash
+cd tauri
+cargo tauri dev
+```
 
-- `npm run dev:next` - Run Next.js dev server only
-- `npm run dev:electron` - Run Electron only
-- `npm run build:electron` - Compile Electron TypeScript files
+Note: some repositories include npm scripts that wrap Tauri commands (e.g. `npm run tauri:dev`). Check `package.json` for script names used in this repo.
 
-## Building for Production
+## Build / Production
 
-### Build the application:
+1. Build the frontend:
+
 ```bash
 npm run build
 ```
 
-This command will:
-1. Clean previous builds
-2. Build the Next.js application
-3. Compile Electron TypeScript files
+2. Build the Tauri native bundle (from the `tauri` folder):
 
-### Create distributable packages:
 ```bash
-npm run dist
+cd tauri
+cargo tauri build
 ```
 
-This will generate platform-specific installers in the `release` directory:
-- **Windows**: NSIS installer and portable executable
-- **macOS**: DMG image
-- **Linux**: AppImage
+This produces native installers/bundles for the host platform.
 
-## Project Structure
+## Project layout (high level)
 
-```
-propresenter-timers/
-├── electron/          # Electron main process files
-│   ├── /          # TypeScript source files
-│   └── dist/         # Compiled JavaScript files
-├── out/              # Next.js static export
-├── assets/           # Application icons
-├── public/           # Static assets
-├── src/              # Next.js source files
-│   ├── app/         # Next.js app directory
-│   └── components/  # React components
-└── release/         # Built application packages
-```
+- `src/` — Next.js application source (app routes, components, hooks)
+- `src/types.d.ts` — global types (includes `Window` extensions and `ScreenDetails` shape)
+- `public/` & `assets/` — static assets
+- `tauri/` — Tauri Rust project (native code, config, icons)
 
-## Application Details
+## How this integrates with ProPresenter
 
-- **App ID**: com.amazingrace.timer
-- **Product Name**: AGC Timer Control
-- **Author**: Oluwakorede Shonubi
+The app provides timers which can be shown fullscreen on a chosen display. It is intended to be used alongside ProPresenter where the ProPresenter stage output and the timer projection may share or use different displays.
 
-## Scripts Reference
+Typical usage:
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development environment |
-| `npm run build` | Build for production |
-| `npm run dist` | Create distributable packages |
-| `npm run clean` | Remove build artifacts |
-| `npm run lint` | Run ESLint |
+- Run the desktop app on the machine attached to presentation displays
+- Use the screen selection options to choose which display shows the fullscreen timer
 
-## Configuration
+The exact ProPresenter integration points (if any) may vary depending on your environment; consult the project code for any API usage or platform-specific hooks.
 
-The application uses environment variables for ProPresenter API configuration. Ensure your `.env` file is properly configured before running the application.
+## Contributing
 
-### Windows Build Options
-- Supports both 64-bit and 32-bit architectures
-- NSIS installer with customization options
-- Portable executable available
-- Desktop and Start Menu shortcuts
+Contributions and improvements are welcome. Helpful contributions:
 
-### macOS Build Options
-- DMG distribution format
-- Code signing disabled by default (set `identity: null`)
+- Fixes or improvements to multi-screen detection and fullscreen behavior
+- Keyboard shortcut support for presenter control
+- Accessibility and presentation-friendly styling
 
-### Linux Build Options
-- AppImage format for universal compatibility
+If you want me to update the README with exact script names or add screenshots, I can inspect `package.json` and the `tauri` config and adjust accordingly.
+
+## Troubleshooting
+
+- Screen detection and projection are only available when running inside the Tauri desktop wrapper — the browser dev server will not provide native screen APIs (`window.isTauri` can be used to gate behavior).
+- If the Tauri build fails, ensure the Rust toolchain is installed and up-to-date.
 
 ## License
 
-Private - Not for public distribution
-
-## Support
-
-For issues and feature requests, please contact the developer.
+Add a `LICENSE` file to the repository if you plan to publish or share the project. If this project is private, note the intended distribution policy in repo settings or documentation.
 
 ---
 
-Built with ❤️ using Next.js and Electron
+If you want, I can now:
+- adjust the README to include exact npm/tauri script names after checking `package.json`
+- add short screenshots or a short GIF to the `public/` folder and reference them here
+- add a CONTRIBUTING.md and PR template
+
+Tell me which follow-up you'd like and I'll proceed.
