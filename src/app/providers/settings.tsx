@@ -53,7 +53,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const getProdSettings = async (): Promise<AppSettings> => {
     if (typeof window === 'undefined') return defaultSettings
 
-    // 🟢 TAURI
     if (window.isTauri !== undefined) {
       await checkUpdate()
       try {
@@ -96,11 +95,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 🟠 ELECTRON
-    if (window.electron?.getSettings) {
-      return window.electron.getSettings()
-    }
-
     return defaultSettings
   }
 
@@ -114,20 +108,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setProPresenterUrl(`${loadedSettings.address}:${loadedSettings.port}`)
         }
 
-        // Listen for updates (Electron only)
-        const cleanup = window.electron?.onSettingsUpdate?.(
-          (updatedSettings) => {
-            setSettings(updatedSettings)
-            if (updatedSettings?.address && updatedSettings?.port) {
-              setProPresenterUrl(
-                `${updatedSettings.address}:${updatedSettings.port}`
-              )
-            }
-          }
-        )
-
         setIsLoading(false)
-        return cleanup
       } catch (err) {
         console.error('Failed to load settings:', err)
         setIsLoading(false)
@@ -152,8 +133,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           JSON.stringify(updatedSettings, null, 2),
           { baseDir: BaseDirectory.AppLocalData }
         )
-      } else if (window.electron?.saveSettings) {
-        await window.electron.saveSettings(updatedSettings)
       }
     } catch (err) {
       console.error('Failed to save settings:', err)

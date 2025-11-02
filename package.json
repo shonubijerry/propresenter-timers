@@ -8,10 +8,7 @@
   "scripts": {
     "dev:next": "next dev -p 3000",
     "dev:tauri": "tauri dev",
-    "dev:electron": "npm run build:electron && concurrently --kill-others \"npm run dev:next\" \"wait-on http-get://localhost:3000/ && NODE_ENV=development electron .\"",
     "build:next": "npm run clean && next build",
-    "build:electron": "npm run build:next && tsc -p tsconfig.electron.json && npm run build:electron",
-    "dist:electron": "CSC_IDENTITY_AUTO_DISCOVERY=false npm run build && electron-builder",
     "dist:tauri": "tauri build",
     "build:tauri": "tauri",
     "clean": "rimraf release out .next tauri/target",
@@ -40,82 +37,19 @@
     "@tailwindcss/postcss": "^4",
     "@tauri-apps/cli": "^2.8.4",
     "@types/adm-zip": "^0.5.7",
-    "@types/electron": "^1.4.38",
     "@types/node": "^20.19.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "concurrently": "^9.2.1",
-    "electron": "^38.1.2",
-    "electron-builder": "^26.0.12",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
     "prettier": "^3.6.2",
+    "rimraf": "^6.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wait-on": "^9.0.1"
-  },
-  "main": "electron/dist/main.js",
-  "build": {
-    "appId": "com.amazingrace.timer",
-    "productName": "AGC Timer Control",
-    "asar": false,
-    "compression": "maximum",
-    "files": [
-      ".env",
-      "out/**/*",
-      "electron/dist/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "version.json",
-        "to": "app/out/version.json"
-      }
-    ],
-    "mac": {
-      "target": "dmg",
-      "icon": "assets/icon.icns",
-      "identity": null
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "assets/icon.png"
-    },
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ],
-      "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "asInvoker"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
-      "createDesktopShortcut": "always",
-      "createStartMenuShortcut": true,
-      "shortcutName": "AGC Timer Control",
-      "uninstallDisplayName": "AGC Timer Control Unistall",
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico",
-      "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true,
-      "menuCategory": false,
-      "include": "build.win.nsh"
-    },
-    "directories": {
-      "output": "release",
-      "buildResources": "assets"
-    }
   }
 }

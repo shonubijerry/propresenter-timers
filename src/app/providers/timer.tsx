@@ -23,7 +23,7 @@ export type LocalTime = {
   overtime: ReactHookTimerType
 }
 
-export type FullScreenWindow = Electron.BrowserWindowProxy | WebviewWindow
+export type FullScreenWindow = Window | WebviewWindow
 
 type SharedState<T extends 'browser' | 'tauri'> = {
   currentTimer: Timer | null | undefined
@@ -31,12 +31,12 @@ type SharedState<T extends 'browser' | 'tauri'> = {
   localTimer: LocalTime
   fullscreenWindow: T extends 'tauri'
     ? WebviewWindow | null | undefined
-    : Electron.BrowserWindowProxy | null | undefined
+    : Window | null | undefined
   setFullscreenWindow: Dispatch<
     SetStateAction<
       T extends 'tauri'
         ? WebviewWindow | null | undefined
-        : Electron.BrowserWindowProxy | null | undefined
+        : Window | null | undefined
     >
   >
 }
@@ -50,7 +50,7 @@ export function SharedProvider({ children }: { children: ReactNode }) {
     expiryTimestamp: new Date().valueOf(),
   })
   const [fullscreenWindow, setFullscreenWindow] = useState<
-    Electron.BrowserWindowProxy | null | undefined
+    Window | null | undefined
   >(null)
 
   return (
