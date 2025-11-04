@@ -33,30 +33,54 @@ export function TimerCard({
 }: TimerCardProps) {
   return (
     <div
-      className={`bg-white rounded-2xl p-6 shadow-sm border transition-all duration-300 hover:shadow-lg ${
-        isActive
-          ? 'border-blue-300 bg-gradient-to-br from-blue-50/50 to-white shadow-lg shadow-blue-100/50'
-          : 'border-slate-200/50 hover:border-slate-300/50'
-      }`}
+      className={
+        'rounded-2xl p-6 shadow-sm border transition-all duration-300 hover:shadow-lg'
+      }
+      style={{
+        background: 'var(--card)',
+        border: isActive
+          ? '1.5px solid var(--ring)'
+          : '1.5px solid var(--border)',
+        boxShadow: isActive
+          ? '0 3px 14px 0 var(--ring), 0 1px 4px 0 var(--ring)'
+          : undefined,
+      }}
     >
       {/* Timer Header */}
       <div className='flex items-start justify-between mb-4'>
         <div className='flex-1'>
-          <h2 className='text-lg font-semibold text-slate-900 mb-1'>
+          <h2
+            className='text-lg font-semibold mb-1'
+            style={{ color: 'var(--card-foreground)' }}
+          >
             {timer.id.name}
           </h2>
           {timer.countdown && (
             <div className='flex items-center gap-2'>
-              <span className='text-sm text-slate-500'>Duration:</span>
-              <span className='text-sm font-mono bg-slate-100 px-2 py-1 rounded-lg text-slate-800'>
+              <span className='text-sm' style={{ color: 'var(--muted-foreground)' }}>
+                Duration:
+              </span>
+              <span
+                className='text-sm font-mono px-2 py-1 rounded-lg'
+                style={{
+                  background: 'var(--muted)',
+                  color: 'var(--foreground)',
+                }}
+              >
                 {formatSecondsToTime(timer.countdown.duration)}
               </span>
             </div>
           )}
         </div>
         {isActive && (
-          <div className='flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium'>
-            <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
+          <div
+            className='flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium'
+            style={{
+              background: 'var(--green)',
+              color: 'var(--card)',
+            }}
+          >
+            <div className='w-2 h-2 rounded-full animate-pulse' style={{ background: 'var(--card)' }}></div>
             Active
           </div>
         )}
@@ -66,7 +90,13 @@ export function TimerCard({
         <div className='space-y-4'>
           {isActive && (
             <div className='flex items-stretch'>
-              <div className='flex-3 bg-slate-300 rounded-l-xl p-2 border border-slate-200/50'>
+              <div
+                className='flex-3 rounded-l-xl p-2 border'
+                style={{
+                  background: 'var(--accent)',
+                  border: '1.5px solid var(--border)',
+                }}
+              >
                 <Watch
                   mode='normal'
                   isInjuryTime={
@@ -81,8 +111,8 @@ export function TimerCard({
                 />
               </div>
               <IconButton
-                className='bg-slate-500 hover:bg-slate-700 rounded-r-xl rounded-l-none flex-1 flex has-tooltip max-w-[60px]'
-                variant='ghost'
+                className='rounded-r-xl rounded-l-none flex-1 flex has-tooltip max-w-[60px]'
+                style={{ color: 'var(--ring)', background: 'var(--slate)' }}
                 icon={<BiFullscreen size={40} className='inline' />}
                 tooltip='Open fullscreen'
                 tooltipPosition='top'
@@ -95,7 +125,7 @@ export function TimerCard({
           <div className='flex gap-8 flex-wrap'>
             <IconButton
               disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              variant='success'
+              style={{ color: 'var(--green)' }}
               icon={<IoPlayOutline size={30} />}
               tooltip='Start'
               tooltipPosition='top'
@@ -106,7 +136,7 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              variant='warning'
+              style={{ color: 'var(--orange)' }}
               icon={<IoStopOutline size={30} />}
               tooltip='Stop'
               tooltipPosition='top'
@@ -117,7 +147,7 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              variant='primary'
+              style={{ color: 'var(--ring)' }}
               icon={<LuTimerReset size={30} />}
               tooltip='Reset'
               tooltipPosition='top'
@@ -128,14 +158,14 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 isActive
               }
-              variant='primary'
+              style={{ color: 'var(--ring)' }}
               icon={<AiOutlineEdit size={30} />}
               tooltip='Edit'
               tooltipPosition='top'
               onClick={() => onEdit(timer)}
             />
             <IconButton
-              variant='error'
+              style={{ color: 'var(--destructive)' }}
               icon={<MdOutlineDelete size={30} />}
               tooltip='Delete'
               tooltipPosition='top'
@@ -145,7 +175,10 @@ export function TimerCard({
         </div>
       ) : (
         <div className='text-center py-6'>
-          <p className='text-sm text-slate-500 font-medium'>
+          <p
+            className='text-sm font-medium'
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             Timer Config Not Supported
           </p>
         </div>

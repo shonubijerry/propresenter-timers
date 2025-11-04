@@ -17,7 +17,7 @@ export function Header({
   resetAllTimers,
   refreshTimers,
   onSearch,
-  toggleAboutModal
+  toggleAboutModal,
 }: {
   setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
@@ -28,66 +28,81 @@ export function Header({
   toggleAboutModal: () => void
 }) {
   return (
-    <div className='bg-white/70 backdrop-blur-sm border-b border-slate-200/50 sticky top-0 z-10'>
+    <div
+      className='sticky top-0 z-10 backdrop-blur-sm'
+      style={{
+        background: 'var(--card)',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
       <div className='max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-6'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
             <Image
+              style={{ color: 'var(--foreground)' }}
               priority={true}
               className='w-20 h-10 sm:w-30 sm:h-15 text-center flex-shrink-0'
               src={logoSvg}
               alt='Logo'
             />
-            <p className='text-sm sm:text-xl md:text-2xl font-bold text-slate-600 mt-1 truncate'>
+            <p
+              className='text-sm sm:text-xl md:text-2xl font-bold mt-1 truncate'
+              style={{ color: 'var(--foreground)' }}
+            >
               AGC Timer Control
             </p>
           </div>
           <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
             <input
-              className='w-full px-4 py-2.5 text-slate-700 placeholder:text-slate-400 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 hover:border-slate-300'
-              type='text'
+              className='w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200'
+              style={{
+                color: 'var(--foreground)',
+                background: 'var(--background)',
+                border: '1px solid var(--border)',
+                boxShadow: 'none',
+              }}
               placeholder='Search...'
               onChange={(e) => onSearch(e.target.value)}
             />
           </div>
           <div className='flex items-center gap-2 sm:gap-4 flex-shrink-0'>
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<RiRefreshLine size={40} />}
               tooltip='Refresh'
               tooltipPosition='bottom'
               onClick={refreshTimers}
             />
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<TbLayoutGridAdd size={40} />}
               tooltip='Create Timer'
               tooltipPosition='bottom'
               onClick={() => setIsModalOpen(true)}
             />
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<AiOutlineFullscreenExit size={40} />}
               tooltip='Close External Screen'
               tooltipPosition='bottom'
               onClick={onExitFullscreen}
             />
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<LuTimerReset size={40} />}
               tooltip='Reset all timers'
               tooltipPosition='bottom'
               onClick={() => resetAllTimers('reset')}
             />
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<DiAptana size={40} />}
               tooltip='Settings'
               tooltipPosition='bottom'
               onClick={openSettings}
             />
             <IconButton
-              variant='primary'
+              style={{ color: 'var(--icon)' }}
               icon={<FiInfo size={40} />}
               tooltip='About'
               tooltipPosition='bottom'

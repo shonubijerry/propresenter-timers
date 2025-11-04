@@ -18,16 +18,20 @@ import {
   writeTextFile,
 } from '@tauri-apps/plugin-fs'
 import { checkUpdate } from '@/lib/update'
+import { toastInfo } from '@/lib/toastUtils'
+
+export type ThemeMode = 'light' | 'dark' | 'system'
 
 export interface AppSettings {
   address: string
   port: number
+  theme?: ThemeMode
 }
 
 const SettingsContext = createContext<{
   proPresenterUrl: string | null
   settings?: AppSettings
-  updateSettings: (newSettings: AppSettings) => void
+  updateSettings: (newSettings: AppSettings) => Promise<void>
   isDialogOpen: boolean
   openSettingsDialog: () => void
   closeSettingsDialog: () => void
@@ -42,98 +46,115 @@ export const useSettings = () => {
   return context
 }
 
-const defaultSettings = { address: 'http://192.168.1.103', port: 58000 }
+const defaultSettings = {
+  address: 'http://192.168.1.103',
+  port: 58000,
+  theme: 'dark' as ThemeMode,
+}
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [proPresenterUrl, setProPresenterUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const getProdSettings = async (): Promise<AppSettings> => {
+  async function getProdSettings(): Promise<AppSettings> {
     if (typeof window === 'undefined') return defaultSettings
 
-    if (window.isTauri !== undefined) {
-      await checkUpdate()
-      try {
-        const appDirExists = await exists('', {
-          baseDir: BaseDirectory.AppData,
-        })
-
-        if (!appDirExists) {
-          await mkdir(await appDataDir())
-        }
-
-        const fileExists = await exists('settings.json', {
-          baseDir: BaseDirectory.AppData,
-        })
-
-        if (!fileExists) {
-          const file = await create('settings.json', {
-            baseDir: BaseDirectory.AppLocalData,
+    try {
+      // Try Tauri first
+      if (window.isTauri !== undefined) {
+        await checkUpdate()
+        try {
+          const appDirExists = await exists('', {
+            baseDir: BaseDirectory.AppData,
           })
-          console.log(await file.stat())
 
-          await writeTextFile(
-            'settings.json',
-            JSON.stringify(defaultSettings, null, 2),
-            { baseDir: BaseDirectory.AppLocalData }
+          if (!appDirExists) {
+            await mkdir(await appDataDir())
+          }
+
+          const fileExists = await exists('settings.json', {
+            baseDir: BaseDirectory.AppData,
+          })
+
+          if (!fileExists) {
+            await create('settings.json', {
+              baseDir: BaseDirectory.AppLocalData,
+            })
+
+            await writeTextFile(
+              'settings.json',
+              JSON.stringify(defaultSettings, null, 2),
+              { baseDir: BaseDirectory.AppLocalData }
+            )
+          } else {
+            const data = await readTextFile('settings.json', {
+              baseDir: BaseDirectory.AppLocalData,
+            })
+            return JSON.parse(data) as AppSettings
+          }
+        } catch (err) {
+          console.error(
+            'Failed to read Tauri settings:',
+            JSON.stringify(err, Object.getOwnPropertyNames(err))
           )
-          return defaultSettings
+          toastInfo('Tauri => Default settings being used')
         }
-
-        const data = await readTextFile('settings.json', {
-          baseDir: BaseDirectory.AppLocalData,
-        })
-        return JSON.parse(data) as AppSettings
-      } catch (err) {
-        console.error(
-          'Failed to read Tauri settings:',
-          JSON.stringify(err, Object.getOwnPropertyNames(err))
-        )
-        return defaultSettings
       }
-    }
 
-    return defaultSettings
+      const savedSettings = localStorage.getItem('app-settings')
+      if (savedSettings) {
+        try {
+          const parsedSettings = JSON.parse(savedSettings) as AppSettings
+          if (parsedSettings.address && parsedSettings.port) {
+            return parsedSettings
+          }
+        } catch (err) {
+          console.error(
+            'Failed to parse local settings:',
+            JSON.stringify(err, Object.getOwnPropertyNames(err))
+          )
+          toastInfo('Local => Default settings being used')
+        }
+      }
+
+      return defaultSettings
+    } catch (err) {
+      console.error(
+        'Failed to get settings:',
+        JSON.stringify(err, Object.getOwnPropertyNames(err))
+      )
+      return defaultSettings
+    }
   }
 
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const loadedSettings = await getProdSettings()
-
-        setSettings(loadedSettings)
-        if (loadedSettings?.address && loadedSettings?.port) {
-          setProPresenterUrl(`${loadedSettings.address}:${loadedSettings.port}`)
-        }
-
-        setIsLoading(false)
-      } catch (err) {
-        console.error('Failed to load settings:', err)
-        setIsLoading(false)
-      }
-    }
-
-    loadSettings()
+    setIsLoading(true)
+    getProdSettings().then((loadedSettings) => {
+      setSettings(loadedSettings)
+      setIsLoading(false)
+    })
   }, [])
 
-  // 🔹 Save settings for both Electron and Tauri
-  const updateSettings = async (newSettings: AppSettings) => {
+  async function updateSettings(newSettings: AppSettings): Promise<void> {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
-    if (updatedSettings?.address && updatedSettings?.port) {
-      setProPresenterUrl(`${updatedSettings.address}:${updatedSettings.port}`)
-    }
 
     try {
       if (window.isTauri) {
-        await writeTextFile(
-          'settings.json',
-          JSON.stringify(updatedSettings, null, 2),
-          { baseDir: BaseDirectory.AppLocalData }
-        )
+        try {
+          await writeTextFile(
+            'settings.json',
+            JSON.stringify(updatedSettings, null, 2),
+            { baseDir: BaseDirectory.AppLocalData }
+          )
+          return
+        } catch (err) {
+          console.error('Failed to save Tauri settings:', err)
+        }
       }
+
+      localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
     } catch (err) {
       console.error('Failed to save settings:', err)
     }
@@ -144,7 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-screen bg-white'>
+      <div className='flex items-center justify-center h-screen bg-background'>
         <div className='flex items-center gap-3'>
           <Image priority className='w-30 h-15' src={logoSvg} alt='Logo' />
         </div>
@@ -152,10 +173,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  const computedProPresenterUrl = settings?.address && settings?.port
+    ? `${settings.address}:${settings.port}`
+    : null
+
   return (
     <SettingsContext.Provider
       value={{
-        proPresenterUrl,
+        proPresenterUrl: computedProPresenterUrl,
         settings,
         updateSettings,
         isDialogOpen,

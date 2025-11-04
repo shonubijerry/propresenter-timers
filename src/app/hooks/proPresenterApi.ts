@@ -2,7 +2,7 @@ import { convertTimeToSeconds } from '@/lib/formatter'
 import { Timer } from '../interfaces/time'
 import { TimerActions } from './timer'
 
-const fetchJson = async <T>(
+export const fetchJson = async <T>(
   url: string,
   options?: RequestInit,
   errorMessage = 'Request failed',
