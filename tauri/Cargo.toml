@@ -1,6 +1,6 @@
 [package]
 name = "agc_timer_control"
-version = "0.2.8"
+version = "0.2.9"
 description = "AGC timer control"
 authors = ["you"]
 license = ""
