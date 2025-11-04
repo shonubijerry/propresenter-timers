@@ -9,6 +9,7 @@ interface ModalProps {
   closeOnBackdrop?: boolean
   closeOnEscape?: boolean
   showCloseButton?: boolean
+  actions?: ReactNode
 }
 
 const sizeClasses = {
@@ -27,6 +28,7 @@ export default function Modal({
   closeOnBackdrop = true,
   closeOnEscape = true,
   showCloseButton = false,
+  actions,
 }: ModalProps) {
   useEffect(() => {
     if (!closeOnEscape) return
@@ -52,20 +54,32 @@ export default function Modal({
   return (
     <div
       onClick={handleBackdropClick}
-      className='fixed inset-0 bg-black/60 flex items-center justify-center z-50'
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      className='fixed inset-0 flex items-center justify-center z-50'
     >
       <div
-        className={`bg-white rounded-2xl shadow-xl p-6 w-90 ${sizeClasses[size]} border border-gray-200`}
+        style={{
+          backgroundColor: 'var(--card)',
+          color: 'var(--card-foreground)',
+          borderColor: 'var(--border)'
+        }}
+        className={`rounded-2xl shadow-xl w-90 ${sizeClasses[size]} border flex flex-col`}
       >
+        {/* Header */}
         {(title || showCloseButton) && (
-          <div className='flex items-center justify-between mb-4'>
+          <div className='flex items-center justify-between p-6 pb-0'>
             {title && (
-              <h2 className='text-xl font-bold text-gray-900'>{title}</h2>
+              <h2 style={{ color: 'var(--foreground)' }} className='text-xl font-bold'>{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className='text-gray-400 hover:text-gray-600 transition-colors'
+                style={{
+                  color: 'var(--muted-foreground)',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--foreground)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--muted-foreground)'}
                 aria-label='Close modal'
               >
                 <svg
@@ -85,7 +99,11 @@ export default function Modal({
             )}
           </div>
         )}
-        {children}
+
+        {/* Content */}
+        <div className='flex-1 p-6 overflow-y-auto'>
+          {children}
+        </div>
       </div>
     </div>
   )

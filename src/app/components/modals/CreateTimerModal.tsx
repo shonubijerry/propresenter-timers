@@ -118,6 +118,11 @@ export default function CreateTimerModal({
             variant='primary'
             type='submit'
             disabled={isSubmitting}
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+              border: 'none'
+            }}
           >
             {isSubmitting ? 'Creating...' : 'Create'}
           </Button>
@@ -126,6 +131,11 @@ export default function CreateTimerModal({
             onClick={onClose}
             className='mb-6'
             type='button'
+            style={{
+              backgroundColor: 'var(--secondary)',
+              color: 'var(--secondary-foreground)',
+              border: 'none'
+            }}
           >
             Cancel
           </Button>

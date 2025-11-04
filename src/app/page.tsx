@@ -295,21 +295,31 @@ export default function Home() {
     }
   }, [proPresenterUrl, setApiError, fetchTimers])
 
-  const [openAbout, setOpenAbout] =  useState(false);
+  const [openAbout, setOpenAbout] = useState(false)
   const toggleAboutModal = () => {
-    setOpenAbout(!openAbout);
-  };
+    setOpenAbout(!openAbout)
+  }
 
   if (isLoading) {
     return (
-      <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70 flex items-center justify-center'>
-        <div className='text-xl text-blue-600'>Loading...</div>
+      <main
+        className='min-h-screen justify-center'
+        style={{
+          background: 'var(--background-gradient)',
+        }}
+      >
+        <div className='text-xl'>Loading...</div>
       </main>
     )
   }
 
   return (
-    <main className='min-h-screen bg-gradient-to-br from-blue-100 via-blue-200 to-blue-100/70'>
+    <main
+      className='min-h-screen'
+      style={{
+        background: 'var(--background-gradient)',
+      }}
+    >
       {!showTime ? (
         <>
           <Header

@@ -6,27 +6,43 @@ import {
   MdOutlineWarningAmber,
 } from 'react-icons/md'
 
-// Define base colors and icons for different alert types
+// Define styles and icons for different alert types
 const alertStyles = {
   success: {
-    base: 'bg-green-50 text-green-800 border-green-200',
-    icon: <BsCheckCircle className='w-5 h-5 text-green-500' />,
-    button: 'text-green-600 hover:bg-green-100',
+    styles: {
+      background: 'rgba(34, 197, 94, 0.1)',
+      color: 'var(--foreground)',
+      borderColor: '#22c55e',
+      iconColor: '#22c55e',
+    },
+    icon: <BsCheckCircle className='w-5 h-5' />,
   },
   warning: {
-    base: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    icon: <MdOutlineWarningAmber className='w-5 h-5 text-yellow-500' />,
-    button: 'text-yellow-600 hover:bg-yellow-100',
+    styles: {
+      background: 'rgba(234, 179, 8, 0.1)',
+      color: 'var(--foreground)',
+      borderColor: '#eab308',
+      iconColor: '#eab308',
+    },
+    icon: <MdOutlineWarningAmber className='w-5 h-5' />,
   },
   error: {
-    base: 'bg-red-50 text-red-800 border-red-200',
-    icon: <MdErrorOutline className='w-5 h-5 text-red-500' />,
-    button: 'text-red-600 hover:bg-red-100',
+    styles: {
+      background: 'rgba(220, 38, 38, 0.1)',
+      color: 'var(--foreground)',
+      borderColor: 'var(--destructive)',
+      iconColor: 'var(--destructive)',
+    },
+    icon: <MdErrorOutline className='w-5 h-5' />,
   },
   info: {
-    base: 'bg-blue-50 text-blue-800 border-blue-200',
-    icon: <MdInfoOutline className='w-5 h-5 text-blue-500' />,
-    button: 'text-blue-600 hover:bg-blue-100',
+    styles: {
+      background: 'rgba(59, 131, 246, 0.216)',
+      color: 'var(--foreground)',
+      borderColor: 'var(--primary)',
+      iconColor: 'var(--primary)',
+    },
+    icon: <MdInfoOutline className='w-5 h-5' />,
   },
 }
 
@@ -43,11 +59,21 @@ export default function Alert({ type, title, message, onClose }: Props) {
   return (
     <div
       role='alert'
-      className={`relative p-4 mb-4 border-l-4 rounded-lg shadow-md transition-opacity duration-300 ease-out ${styles.base}`}
+      className='relative p-4 mb-4 border-l-4 rounded-lg shadow-md transition-opacity duration-300 ease-out'
+      style={{
+        background: styles.styles.background,
+        color: styles.styles.color,
+        borderColor: styles.styles.borderColor,
+      }}
     >
       <div className='flex items-start'>
         {/* Icon */}
-        <div className='flex-shrink-0 pt-0.5'>{styles.icon}</div>
+        <div
+          className='flex-shrink-0 pt-0.5'
+          style={{ color: styles.styles.iconColor }}
+        >
+          {styles.icon}
+        </div>
 
         {/* Content */}
         <div className='ml-3 flex-1'>
@@ -61,7 +87,10 @@ export default function Alert({ type, title, message, onClose }: Props) {
             <button
               onClick={onClose}
               type='button'
-              className={`p-1 -m-1 rounded-md transition-colors duration-150 ${styles.button}`}
+              className='p-1 -m-1 rounded-md transition-colors duration-150'
+              style={{
+                color: styles.styles.iconColor,
+              }}
               aria-label='Close'
             >
               <MdErrorOutline className='w-4 h-4' />

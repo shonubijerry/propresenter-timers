@@ -135,6 +135,11 @@ export default function EditTimerModal({
             variant='primary'
             type='submit'
             disabled={isSubmitting}
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'var(--primary-foreground)',
+              border: 'none'
+            }}
           >
             {isSubmitting ? 'Updating...' : 'Update'}
           </Button>
@@ -143,6 +148,11 @@ export default function EditTimerModal({
             onClick={onClose}
             className='mb-6'
             type='button'
+            style={{
+              backgroundColor: 'var(--secondary)',
+              color: 'var(--secondary-foreground)',
+              border: 'none'
+            }}
           >
             Cancel
           </Button>
