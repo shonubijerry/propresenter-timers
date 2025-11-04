@@ -34,7 +34,8 @@ export default function Home() {
   const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
     useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
-  const { openSettingsDialog, proPresenterUrl, isLoading } = useSettings()
+  const { openSettingsDialog, proPresenterUrl, isLoading, settings } =
+    useSettings()
 
   const operationInProgress = useRef(false)
 
@@ -70,13 +71,18 @@ export default function Home() {
 
   // Fetch timers from API and update local state
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
-    if (!proPresenterUrl) {
+    const computedProPresenterUrl =
+      settings?.address && settings?.port
+        ? `${settings.address}:${settings.port}`
+        : null
+
+    if (!computedProPresenterUrl) {
       toastError('ProPresenter URL not configured')
       return []
     }
 
     try {
-      const data = await fetchTimersApi(proPresenterUrl)
+      const data = await fetchTimersApi(computedProPresenterUrl)
       setTimers(data)
       setSearchableTimers(data)
       return data
@@ -84,7 +90,7 @@ export default function Home() {
       setApiError(err, 'Failed to fetch timers')
       return []
     }
-  }, [proPresenterUrl, setApiError])
+  }, [setApiError, settings])
 
   // Load initial timers and sync running state with local timer
   useEffect(() => {
@@ -92,12 +98,10 @@ export default function Home() {
 
     let mounted = true
 
-    ;(async () => {
-      try {
-        const fetched = await fetchTimers()
-
+    fetchTimers()
+      .then((fetched) => {
         if (!mounted) return
-
+        // If there's a running timer from initial fetch, sync it
         const runningTimer = fetched.find((d) =>
           ['running', 'overrunning'].includes(d.state)
         )
@@ -115,12 +119,11 @@ export default function Home() {
             )
           }
         }
-      } catch (err) {
-        setApiError(err, 'Failed to initialize timers')
-      } finally {
+      })
+      .catch((err) => setApiError(err, 'Failed to initialize timers'))
+      .finally(() => {
         if (mounted) setIsInitialized(true)
-      }
-    })()
+      })
 
     return () => {
       mounted = false

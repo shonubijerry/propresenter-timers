@@ -23,7 +23,7 @@ export default function Watch({
   if (mode === 'fullscreen' && !fullscreen) return
 
   const textSize = fullscreen
-    ? 'font-bold text-[20vw] tracking-wider'
+    ? 'font-bold text-[18vw] tracking-wider'
     : 'text-2xl'
 
   const textColor = isInjuryTime

@@ -55,7 +55,6 @@ const defaultSettings = {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [proPresenterUrl, setProPresenterUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   async function getProdSettings(): Promise<AppSettings> {
@@ -133,9 +132,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     getProdSettings().then((loadedSettings) => {
       setSettings(loadedSettings)
-      if (loadedSettings?.address && loadedSettings?.port) {
-        setProPresenterUrl(`${loadedSettings.address}:${loadedSettings.port}`)
-      }
       setIsLoading(false)
     })
   }, [])
@@ -143,12 +139,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   async function updateSettings(newSettings: AppSettings): Promise<void> {
     const updatedSettings = { ...settings, ...newSettings }
     setSettings(updatedSettings)
-    if (updatedSettings?.address && updatedSettings?.port) {
-      setProPresenterUrl(`${updatedSettings.address}:${updatedSettings.port}`)
-    }
 
     try {
-      // Try to save to Tauri first
       if (window.isTauri) {
         try {
           await writeTextFile(
@@ -156,14 +148,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             JSON.stringify(updatedSettings, null, 2),
             { baseDir: BaseDirectory.AppLocalData }
           )
-          return // Successfully saved to Tauri
+          return
         } catch (err) {
           console.error('Failed to save Tauri settings:', err)
-          // Don't return, try localStorage next
         }
       }
 
-      // Save to localStorage if Tauri fails or isn't available
       localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
     } catch (err) {
       console.error('Failed to save settings:', err)
@@ -183,10 +173,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     )
   }
 
+  const computedProPresenterUrl = settings?.address && settings?.port
+    ? `${settings.address}:${settings.port}`
+    : null
+
   return (
     <SettingsContext.Provider
       value={{
-        proPresenterUrl,
+        proPresenterUrl: computedProPresenterUrl,
         settings,
         updateSettings,
         isDialogOpen,

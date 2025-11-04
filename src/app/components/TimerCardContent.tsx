@@ -112,7 +112,7 @@ export function TimerCard({
               </div>
               <IconButton
                 className='rounded-r-xl rounded-l-none flex-1 flex has-tooltip max-w-[60px]'
-                style={{ color: 'var(--ring)', background: 'var(--background)' }}
+                style={{ color: 'var(--ring)', background: 'var(--slate)' }}
                 icon={<BiFullscreen size={40} className='inline' />}
                 tooltip='Open fullscreen'
                 tooltipPosition='top'
