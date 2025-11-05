@@ -32,9 +32,9 @@
   .dark {
     --background-gradient: #080f1e;
     --background: #080f1e;
-    --foreground: #f8fafc;
+    --foreground: #ced2d3;
     --card: #0f1729;
-    --card-foreground: #f8fafc;
+    --card-foreground: #d0d1d2;
     --popover: #222d46;
     --popover-foreground: #f8fafc;
     --primary: #5794f7;

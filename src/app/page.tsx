@@ -3,12 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
-import CreateTimerModal from './components/modals/CreateTimerModal'
-import { TimerCard } from './components/TimerCardContent'
-import { Header } from './components/ui/Header'
-import EmptyTimer from './components/EmptyTimer'
-import WatchLayoutWithProps from './components/WatchLayout'
-import EditTimerModal from './components/modals/EditTimerModal'
+import HomeMain from './components/HomeMain'
+import WatchMain from './components/WatchMain'
 import { useShared } from './providers/timer'
 import {
   deleteTimerApi,
@@ -16,25 +12,18 @@ import {
   setAllTimersOperationApi,
   setTimerOperationApi,
 } from './hooks/proPresenterApi'
-import SettingsDialog from './components/modals/SettingsDialog'
 import { useSettings } from './providers/settings'
-import useSecondScreenDisplay from './hooks/secondary_display/useSecondaryDisplay'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
-import About from './components/modals/About'
 
 export default function Home() {
-  const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
-  const [isEditTimerModalOpen, setIsEditTimerModalOpen] = useState(false)
-  const [timerToEdit, setTimerToEdit] = useState<Timer | null>(null)
   const [timers, setTimers] = useState<Timer[]>([])
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  const { currentTimer, setCurrentTimer, localTimer, fullscreenWindow } =
+  const { currentTimer, setCurrentTimer, localTimer } =
     useShared()
-  const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
-  const { openSettingsDialog, proPresenterUrl, isLoading, settings } =
+  const { proPresenterUrl, isLoading, settings } =
     useSettings()
 
   const operationInProgress = useRef(false)
@@ -144,15 +133,6 @@ export default function Home() {
     setShowTime(urlParams.get('showTime') === 'true')
   }, [])
 
-  // Cleanup fullscreen window on unmount
-  useEffect(() => {
-    return () => {
-      if (fullscreenWindow && !fullscreenWindow.closed) {
-        fullscreenWindow.close()
-      }
-    }
-  }, [fullscreenWindow])
-
   // Reset all timers (start/stop/reset for all)
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
@@ -232,38 +212,6 @@ export default function Home() {
     [proPresenterUrl, runOperation, localTimer, setCurrentTimer, fetchTimers]
   )
 
-  const handleEdit = useCallback((timer: Timer) => {
-    setTimerToEdit(timer)
-    setIsEditTimerModalOpen(true)
-  }, [])
-
-  const handleCloseEdit = useCallback(() => {
-    setTimerToEdit(null)
-    setIsEditTimerModalOpen(false)
-  }, [])
-
-  // Open the fullscreen window with the watch layout
-  const handleOpenFullScreen = useCallback(async () => {
-    try {
-      await openNewWindow()
-    } catch (err) {
-      toastError(
-        `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
-      )
-    }
-  }, [openNewWindow])
-
-  const handleExitFullscreen = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.isTauri) {
-      await closeTauriWindow()
-    }
-
-    if (fullscreenWindow && !fullscreenWindow.closed) {
-      fullscreenWindow.close()
-    }
-    toastSuccess('External screen closed')
-  }, [fullscreenWindow, closeTauriWindow])
-
   const onSearch = useCallback(
     (term: string) => {
       const trimmed = term.trim()
@@ -298,11 +246,6 @@ export default function Home() {
     }
   }, [proPresenterUrl, setApiError, fetchTimers])
 
-  const [openAbout, setOpenAbout] = useState(false)
-  const toggleAboutModal = () => {
-    setOpenAbout(!openAbout)
-  }
-
   if (isLoading) {
     return (
       <main
@@ -319,70 +262,23 @@ export default function Home() {
   return (
     <main
       className='min-h-screen'
-      style={{
-        background: 'var(--background-gradient)',
-      }}
+      style={{ background: 'var(--background-gradient)' }}
     >
       {!showTime ? (
-        <>
-          <Header
-            setIsModalOpen={setIsCreateTimerModalOpen}
-            openSettings={openSettingsDialog}
-            onExitFullscreen={handleExitFullscreen}
-            resetAllTimers={resetAllTimers}
-            refreshTimers={refreshTimers}
-            onSearch={onSearch}
-            toggleAboutModal={toggleAboutModal}
-          />
-          <div className='max-w-6xl mx-auto px-6 py-8'>
-            {searchableTimers.length === 0 ? (
-              <EmptyTimer openSettings={openSettingsDialog} />
-            ) : (
-              <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-                {searchableTimers.map((timer) => (
-                  <TimerCard
-                    key={timer.id.uuid}
-                    timer={timer}
-                    isActive={currentTimer?.id?.uuid === timer.id.uuid}
-                    localTimer={localTimer}
-                    onOperation={handleOperation}
-                    onDelete={handleDelete}
-                    onOpenFullScreen={handleOpenFullScreen}
-                    onEdit={() => handleEdit(timer)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <CreateTimerModal
-            open={isCreateTimerModalOpen}
-            onClose={() => setIsCreateTimerModalOpen(false)}
-            onCreated={refreshTimers}
-          />
-
-          <EditTimerModal
-            timer={timerToEdit}
-            open={isEditTimerModalOpen}
-            onClose={handleCloseEdit}
-            onUpdated={refreshTimers}
-          />
-
-          <SettingsDialog refreshTimers={refreshTimers} />
-
-          <About open={openAbout} onClose={toggleAboutModal} />
-        </>
-      ) : (
-        <WatchLayoutWithProps
+        <HomeMain
+          searchableTimers={searchableTimers}
+          currentTimer={currentTimer}
           localTimer={localTimer}
-          fullscreen={true}
-          duration={currentTimer?.countdown?.duration ?? 0}
-          description={currentTimer?.id.name}
-          timeTracker={localTimer.overtime.isRunning ? 'Time Up' : 'Time Left'}
-          isInjuryTime={
-            localTimer.totalSeconds <
-            (currentTimer?.countdown?.duration ?? 0) * 0.2
-          }
+          handleOperation={handleOperation}
+          handleDelete={handleDelete}
+          resetAllTimers={resetAllTimers}
+          refreshTimers={refreshTimers}
+          onSearch={onSearch}
+        />
+      ) : (
+        <WatchMain
+          localTimer={localTimer}
+          currentTimer={currentTimer ?? null}
         />
       )}
     </main>

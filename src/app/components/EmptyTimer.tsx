@@ -8,11 +8,19 @@ export default function EmptyTimer({
   return (
     <>
       <div className='text-center py-16'>
-        <div className='bg-white rounded-2xl p-12 shadow-sm border border-slate-200/50'>
-          <h3 className='text-xl font-semibold text-slate-900 mb-2'>
+        <div
+          className='rounded-2xl p-12 shadow-sm border border-slate-200/50'
+          style={{
+            background: 'var(--background)',
+            color: 'var(--foreground)',
+          }}
+        >
+          <h3 className='text-xl font-semibold mb-2' style={{
+            color: 'var(--foreground)',
+          }}>
             No timers Listed?
           </h3>
-          <p className='text-slate-600 mb-6'>
+          <p className='mb-6'>
             Check that your settings are correct
           </p>
           <Button

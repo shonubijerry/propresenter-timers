@@ -85,14 +85,18 @@ export default function EditTimerModal({
 
   return (
     <Modal open={open} onClose={onClose} title='Edit Timer'>
-      <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className='space-y-4'
+        style={{
+          color: 'var(--foreground)',
+        }}
+      >
         <div className='sm:col-span-4'>
-          <label className='block mb-2 font-medium text-gray-600'>
-            Timer Name
-          </label>
+          <label className='block mb-2 font-medium'>Timer Name</label>
           <input
             type='text'
-            className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+            className='w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
             {...register('name', {
               required: 'Timer name is required',
             })}
@@ -102,13 +106,11 @@ export default function EditTimerModal({
           )}
         </div>
         <div className='sm:col-span-4'>
-          <label className='block mb-2 font-medium text-gray-600'>
-            Duration (hh:mm:ss)
-          </label>
+          <label className='block mb-2 font-medium'>Duration (hh:mm:ss)</label>
           <input
             type='time'
             step='1'
-            className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+            className=' w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
             {...register('duration', {
               required: 'Duration is required',
               validate: (value) => {
@@ -138,7 +140,7 @@ export default function EditTimerModal({
             style={{
               backgroundColor: 'var(--primary)',
               color: 'var(--primary-foreground)',
-              border: 'none'
+              border: 'none',
             }}
           >
             {isSubmitting ? 'Updating...' : 'Update'}
@@ -151,7 +153,7 @@ export default function EditTimerModal({
             style={{
               backgroundColor: 'var(--secondary)',
               color: 'var(--secondary-foreground)',
-              border: 'none'
+              border: 'none',
             }}
           >
             Cancel

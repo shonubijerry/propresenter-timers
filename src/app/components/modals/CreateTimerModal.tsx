@@ -66,15 +66,19 @@ export default function CreateTimerModal({
 
   return (
     <Modal open={open} onClose={onClose} title='Create New Timer'>
-      <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className='space-y-4'
+        style={{
+          color: 'var(--foreground)',
+        }}
+      >
         {/* Timer Name */}
         <div className='sm:col-span-4'>
-          <label className='block mb-2 font-medium text-gray-600'>
-            Timer Name
-          </label>
+          <label className='block mb-2 font-medium'>Timer Name</label>
           <input
             type='text'
-            className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+            className=' w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
             {...register('name', { required: 'Timer name is required' })}
           />
           {errors.name && (
@@ -83,13 +87,11 @@ export default function CreateTimerModal({
         </div>
 
         <div className='sm:col-span-4'>
-          <label className='block mb-2 font-medium text-gray-600'>
-            Duration (hh:mm:ss)
-          </label>
+          <label className='block mb-2 font-medium '>Duration (hh:mm:ss)</label>
           <input
             type='time'
             step='1'
-            className='text-gray-600 w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+            className=' w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
             {...register('duration', {
               required: 'Duration is required',
               validate: (value) => {
@@ -121,7 +123,7 @@ export default function CreateTimerModal({
             style={{
               backgroundColor: 'var(--primary)',
               color: 'var(--primary-foreground)',
-              border: 'none'
+              border: 'none',
             }}
           >
             {isSubmitting ? 'Creating...' : 'Create'}
@@ -134,7 +136,7 @@ export default function CreateTimerModal({
             style={{
               backgroundColor: 'var(--secondary)',
               color: 'var(--secondary-foreground)',
-              border: 'none'
+              border: 'none',
             }}
           >
             Cancel
