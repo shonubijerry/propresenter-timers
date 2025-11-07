@@ -25,7 +25,7 @@ export type ThemeMode = 'light' | 'dark' | 'system'
 export interface AppSettings {
   address: string
   port: number
-  theme?: ThemeMode
+  theme: ThemeMode
 }
 
 const SettingsContext = createContext<{
@@ -49,7 +49,7 @@ export const useSettings = () => {
 const defaultSettings = {
   address: 'http://192.168.1.103',
   port: 58000,
-  theme: 'dark' as ThemeMode,
+  theme: 'system' as const,
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -165,7 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-screen bg-background'>
+      <div className='flex items-center justify-center h-screen' style={{ background: 'var(--background)' }}>
         <div className='flex items-center gap-3'>
           <Image priority className='w-30 h-15' src={logoSvg} alt='Logo' />
         </div>
