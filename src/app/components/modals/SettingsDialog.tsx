@@ -8,11 +8,7 @@ import { RadioGroup } from '@headlessui/react'
 import { cn } from '@/lib/cn'
 import { fetchJson } from '@/app/hooks/proPresenterApi'
 
-type Prop = {
-  refreshTimers: () => Promise<void>
-}
-
-export default function SettingsDialog({ refreshTimers }: Prop) {
+export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
     useSettings()
   const [connectionOk, setConnectionOk] = useState<boolean>(false)
@@ -47,16 +43,16 @@ export default function SettingsDialog({ refreshTimers }: Prop) {
       .catch((e) => {
         const errorMsg = e instanceof Error ? e.message : 'Connection failed'
         console.error(errorMsg)
-
-        // toastError('Connection is not properly configured')
         setConnectionOk(false)
       })
   }, [settings?.address, settings?.port, isDialogOpen])
 
   const onSubmit = async (data: AppSettings) => {
     await updateSettings(data)
-    await refreshTimers()
     closeSettingsDialog()
+    if (window !== undefined) {
+      window.location.reload()
+    }
   }
 
   if (!isDialogOpen) return null

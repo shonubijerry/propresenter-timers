@@ -129,7 +129,7 @@ export default function HomeMain({
         onClose={handleCloseEdit}
         onUpdated={refreshTimers}
       />
-      <SettingsDialog refreshTimers={refreshTimers} />
+      <SettingsDialog />
       <About open={openAbout} onClose={toggleAboutModal} />
     </>
   )

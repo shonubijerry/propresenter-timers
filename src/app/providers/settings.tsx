@@ -165,7 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className='flex items-center justify-center h-screen' style={{ background: 'var(--background)' }}>
+      <div className='flex items-center justify-center h-screen bg-white dark:bg-gray-900'>
         <div className='flex items-center gap-3'>
           <Image priority className='w-30 h-15' src={logoSvg} alt='Logo' />
         </div>
@@ -173,9 +173,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const computedProPresenterUrl = settings?.address && settings?.port
-    ? `${settings.address}:${settings.port}`
-    : null
+  const computedProPresenterUrl =
+    settings?.address && settings?.port
+      ? `${settings.address}:${settings.port}`
+      : null
 
   return (
     <SettingsContext.Provider
