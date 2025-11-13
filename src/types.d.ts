@@ -6,6 +6,13 @@ declare global {
     isTauri: boolean
     getScreenDetails: () => Promise<ScreenDetails>
     charCode: string
+    __TAURI_INTERNALS__: {
+      metadata: {
+        currentWebview: {
+          label: string
+        }
+      }
+    }
   }
 
   interface ScreenDetails {

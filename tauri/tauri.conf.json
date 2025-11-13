@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "AGC Timer Control",
-  "version": "0.2.11",
-  "identifier": "amazingrace.timer",
+  "productName": "AGCTimerControl",
+  "version": "0.2.12",
+  "identifier": "AGCTimerControl",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "AGC Timer Control",
         "width": 800,
         "height": 600,
