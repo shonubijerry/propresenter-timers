@@ -11,14 +11,13 @@ import React, {
 import logoSvg from '../../../public/logo.svg'
 import { appDataDir, BaseDirectory } from '@tauri-apps/api/path'
 import {
-  create,
   exists,
   mkdir,
   readTextFile,
   writeTextFile,
 } from '@tauri-apps/plugin-fs'
 import { checkUpdate } from '@/lib/update'
-import { toastInfo } from '@/lib/toastUtils'
+import { toastError, toastInfo } from '@/lib/toastUtils'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -65,7 +64,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       try {
         const appDirExists = await exists('', {
-          baseDir: BaseDirectory.AppData,
+          baseDir: BaseDirectory.AppLocalData,
         })
 
         if (!appDirExists) {
@@ -73,14 +72,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
 
         const fileExists = await exists('settings.json', {
-          baseDir: BaseDirectory.AppData,
+          baseDir: BaseDirectory.AppLocalData,
         })
 
         if (!fileExists) {
-          await create('settings.json', {
-            baseDir: BaseDirectory.AppLocalData,
-          })
-
           await writeTextFile(
             'settings.json',
             JSON.stringify(defaultSettings, null, 2),
@@ -142,13 +137,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           )
           return
         } catch (err) {
-          console.error('Failed to save Tauri settings:', err)
+          toastError(
+            `Failed to save Tauri settings: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+          )
         }
       }
 
       localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
     } catch (err) {
-      console.error('Failed to save settings:', err)
+      console.error(
+        `Failed to save settings: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+      )
     }
   }
 
@@ -165,15 +164,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  const computedProPresenterUrl =
-    settings?.address && settings?.port
-      ? `${settings.address}:${settings.port}`
-      : null
-
   return (
     <SettingsContext.Provider
       value={{
-        proPresenterUrl: computedProPresenterUrl,
+        proPresenterUrl:
+          settings?.address && settings?.port
+            ? `${settings.address}:${settings.port}`
+            : null,
         settings,
         updateSettings,
         isDialogOpen,
