@@ -25,6 +25,8 @@ import useSecondScreenDisplay from '../hooks/secondary_display/useSecondaryDispl
 import { useSettings } from '../providers/settings'
 import { TimerActions } from '../hooks/timer'
 import { TimerCardEdit } from './timer_card/TimerCardEdit'
+import { BiPlus } from 'react-icons/bi'
+import IconButton from './ui/IconButton'
 
 export default function HomeMain({
   searchableTimers,
@@ -90,7 +92,6 @@ export default function HomeMain({
   return (
     <>
       <Header
-        setIsModalOpen={() => setIsCreatingTimer(true)}
         openSettings={openSettingsDialog}
         onExitFullscreen={handleExitFullscreen}
         resetAllTimers={resetAllTimers}
@@ -140,6 +141,12 @@ export default function HomeMain({
       </div>
       <SettingsDialog />
       <About open={openAbout} onClose={toggleAboutModal} />
+      <IconButton
+        className='fixed bottom-10 right-14 z-50 hover:bg-blue-600 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200'
+        style={{ color: 'var(--destructive-foreground)', background: 'var(--primary)' }}
+        icon={<BiPlus size={40} />}
+        onClick={() => setIsCreatingTimer(true)}
+      />
     </>
   )
 }

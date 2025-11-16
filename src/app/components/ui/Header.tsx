@@ -1,8 +1,6 @@
-import { Dispatch, SetStateAction } from 'react'
 import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
 import { DiAptana } from 'react-icons/di'
-import { TbLayoutGridAdd } from 'react-icons/tb'
 import { LuTimerReset } from 'react-icons/lu'
 import { TimerActions } from '@/app/hooks/timer'
 import { AiOutlineFullscreenExit } from 'react-icons/ai'
@@ -11,7 +9,6 @@ import { RiRefreshLine } from 'react-icons/ri'
 import { FiInfo } from 'react-icons/fi'
 
 export function Header({
-  setIsModalOpen,
   openSettings,
   onExitFullscreen,
   resetAllTimers,
@@ -19,7 +16,6 @@ export function Header({
   onSearch,
   toggleAboutModal,
 }: {
-  setIsModalOpen: Dispatch<SetStateAction<boolean>>
   openSettings: () => void
   onExitFullscreen: () => void
   resetAllTimers: (action: TimerActions) => Promise<void>
@@ -72,13 +68,6 @@ export function Header({
               tooltip='Refresh'
               tooltipPosition='bottom'
               onClick={refreshTimers}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<TbLayoutGridAdd size={40} />}
-              tooltip='Create Timer'
-              tooltipPosition='bottom'
-              onClick={() => setIsModalOpen(true)}
             />
             <IconButton
               style={{ color: 'var(--icon)' }}
