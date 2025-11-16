@@ -13,15 +13,9 @@ import { BiFullscreen, BiSave } from 'react-icons/bi'
 import IconButton from './ui/IconButton'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import {
-  editTimerApi,
-  setTimerUpdateOperationApi,
-} from '../hooks/proPresenterApi'
+import { setTimerUpdateOperationApi } from '../hooks/proPresenterApi'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useSettings } from '../providers/settings'
-import { FcCancel } from 'react-icons/fc'
-import { GiCancel } from 'react-icons/gi'
-import { ImCancelCircle } from 'react-icons/im'
 
 interface TimerCardProps {
   timer: Timer
@@ -54,7 +48,7 @@ export function TimerCard({
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<TimerFormData>({
     defaultValues: {
       name: timer?.id.name ?? '',
