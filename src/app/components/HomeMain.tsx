@@ -2,12 +2,11 @@
 
 import { Header } from './ui/Header'
 import EmptyTimer from './EmptyTimer'
-import { TimerCard } from './TimerCardContent'
-import CreateTimerModal from './modals/CreateTimerModal'
+import { TimerCardContainer } from './timer_card/TimerCardContainer'
 import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
 import { Timer } from '../interfaces/time'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface HomeMainProps {
   searchableTimers: Timer[]
@@ -25,6 +24,7 @@ import { toastError, toastSuccess } from '@/lib/toastUtils'
 import useSecondScreenDisplay from '../hooks/secondary_display/useSecondaryDisplay'
 import { useSettings } from '../providers/settings'
 import { TimerActions } from '../hooks/timer'
+import { TimerCardEdit } from './timer_card/TimerCardEdit'
 
 export default function HomeMain({
   searchableTimers,
@@ -37,11 +37,13 @@ export default function HomeMain({
   updateTimerInList,
   onSearch,
 }: HomeMainProps) {
-  const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
+  const [isCreatingTimer, setIsCreatingTimer] = useState(false)
   const [openAbout, setOpenAbout] = useState(false)
   const { fullscreenWindow } = useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
   const { openSettingsDialog } = useSettings()
+
+  const createTimerRef = useRef(null as unknown as HTMLElement)
 
   useEffect(() => {
     return () => {
@@ -50,6 +52,15 @@ export default function HomeMain({
       }
     }
   }, [fullscreenWindow])
+
+  useEffect(() => {
+    if (isCreatingTimer && createTimerRef.current) {
+      createTimerRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    }
+  }, [isCreatingTimer])
 
   const handleOpenFullScreen = useCallback(async () => {
     try {
@@ -79,7 +90,7 @@ export default function HomeMain({
   return (
     <>
       <Header
-        setIsModalOpen={setIsCreateTimerModalOpen}
+        setIsModalOpen={() => setIsCreatingTimer(true)}
         openSettings={openSettingsDialog}
         onExitFullscreen={handleExitFullscreen}
         resetAllTimers={resetAllTimers}
@@ -93,7 +104,7 @@ export default function HomeMain({
         ) : (
           <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
             {searchableTimers.map((timer: Timer) => (
-              <TimerCard
+              <TimerCardContainer
                 key={timer.id.uuid}
                 timer={timer}
                 isActive={currentTimer?.id?.uuid === timer.id.uuid}
@@ -104,14 +115,29 @@ export default function HomeMain({
                 onEdit={updateTimerInList}
               />
             ))}
+            {isCreatingTimer && (
+              <span ref={createTimerRef}>
+                <TimerCardEdit
+                  timer={{
+                    id: { index: searchableTimers.length, uuid: '', name: '' },
+                    countdown: { duration: 300 },
+                    allows_overrun: true,
+                    state: 'stopped',
+                    time: 'new',
+                    remainingSeconds: 300,
+                  }}
+                  isActive={false}
+                  onCancel={() => setIsCreatingTimer(false)}
+                  onSave={(createdTimer) => {
+                    setIsCreatingTimer(false)
+                    updateTimerInList(createdTimer)
+                  }}
+                />
+              </span>
+            )}
           </div>
         )}
       </div>
-      <CreateTimerModal
-        open={isCreateTimerModalOpen}
-        onClose={() => setIsCreateTimerModalOpen(false)}
-        onCreated={updateTimerInList}
-      />
       <SettingsDialog />
       <About open={openAbout} onClose={toggleAboutModal} />
     </>

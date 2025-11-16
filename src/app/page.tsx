@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Timer } from './interfaces/time'
 import { TimerActions } from './hooks/timer'
 import HomeMain from './components/HomeMain'
-import WatchMain from './components/WatchMain'
+import WatchMain from './components/watch/WatchMain'
 import { useShared } from './providers/timer'
 import {
   deleteTimerApi,
@@ -245,10 +245,14 @@ export default function Home() {
   }, [proPresenterUrl, setApiError, fetchTimers])
 
   const updateTimerInList = (timer: Timer) => {
+    if (!timers.find((t) => t.id.uuid === timer.id.uuid)) {
+      // append newly created timer to list
+      setTimers((prev) => [...prev, timer])
+      setSearchableTimers((prev) => [...prev, timer])
+      return
+    }
+
     const isActiveTimer = currentTimer && currentTimer.id.uuid === timer.id.uuid
-    console.log(timer)
-    timer.remainingSeconds = timer.countdown!.duration
-    timer.state = isActiveTimer ? 'running' : 'stopped'
 
     const updateTimers = (list: Timer[]) =>
       list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
@@ -262,7 +266,7 @@ export default function Home() {
       const timestamp = Date.now()
       localTimer.overtime.reset(
         new Date(timestamp + (timer.countdown?.duration ?? 0) * 1000),
-        true
+        false
       )
     }
   }

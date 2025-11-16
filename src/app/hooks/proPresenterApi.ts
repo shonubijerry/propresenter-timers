@@ -40,7 +40,7 @@ export const fetchJson = async <T>(
 
 // --- Timers ---
 export const fetchTimersApi = async (baseUrl: string): Promise<Timer[]> => {
-  const [allTimers, currentTimers] = await Promise.all([
+  const [all, current] = await Promise.all([
     fetchJson<Timer[]>(
       `${baseUrl}/v1/timers?chunked=false`,
       undefined,
@@ -53,13 +53,15 @@ export const fetchTimersApi = async (baseUrl: string): Promise<Timer[]> => {
     ),
   ])
 
-  const currentMap = new Map<string, Timer>()
-  currentTimers.forEach((timer) => {
-    timer.remainingSeconds = convertTimeToSeconds(timer.time)
-    currentMap.set(timer.id.uuid, timer)
-  })
+  const map = new Map(
+    current.map(t => [
+      t.id.uuid,
+      { ...t, remainingSeconds: convertTimeToSeconds(t.time) }
+    ])
+  )
 
-  return allTimers.map((t) => ({ ...t, ...currentMap.get(t.id.uuid) }))
+  return all
+    .map(t => ({ ...t, ...map.get(t.id.uuid) }))
 }
 
 export const createTimerApi = (

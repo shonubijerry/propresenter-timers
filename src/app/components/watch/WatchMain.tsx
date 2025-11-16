@@ -1,7 +1,7 @@
 import WatchLayoutWithProps from './WatchLayout'
 import React from 'react'
-import { Timer } from '../interfaces/time'
-import { LocalTime } from '../providers/timer'
+import { Timer } from '../../interfaces/time'
+import { LocalTime } from '../../providers/timer'
 
 export default function WatchMain({
   localTimer,

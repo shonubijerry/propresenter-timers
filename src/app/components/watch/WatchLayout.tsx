@@ -1,9 +1,9 @@
 import Image from 'next/image'
-import logoSvg from '../../../public/logo.svg'
+import logoSvg from '../../../../public/logo.svg'
 import { useTime } from 'react-timer-hook'
 import { formatSecondsToTime, formatTime } from '@/lib/formatter'
 import Watch from './Watch'
-import { LocalTime } from '../providers/timer'
+import { LocalTime } from '../../providers/timer'
 
 export default function WatchLayoutWithProps({
   isInjuryTime,
