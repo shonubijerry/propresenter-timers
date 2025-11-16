@@ -21,10 +21,8 @@ export default function Home() {
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
-  const { currentTimer, setCurrentTimer, localTimer } =
-    useShared()
-  const { proPresenterUrl, isLoading, settings } =
-    useSettings()
+  const { currentTimer, setCurrentTimer, localTimer } = useShared()
+  const { proPresenterUrl, isLoading, settings } = useSettings()
 
   const operationInProgress = useRef(false)
 
@@ -246,6 +244,29 @@ export default function Home() {
     }
   }, [proPresenterUrl, setApiError, fetchTimers])
 
+  const updateTimerInList = (timer: Timer) => {
+    const isActiveTimer = currentTimer && currentTimer.id.uuid === timer.id.uuid
+    console.log(timer)
+    timer.remainingSeconds = timer.countdown!.duration
+    timer.state = isActiveTimer ? 'running' : 'stopped'
+
+    const updateTimers = (list: Timer[]) =>
+      list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
+
+    setTimers((prev) => updateTimers(prev))
+    setSearchableTimers((prev) => updateTimers(prev))
+    if (isActiveTimer) {
+      setCurrentTimer((prev) => (prev ? { ...prev, ...timer } : prev))
+      localTimer.handleLocalTimer('start', timer.countdown?.duration)
+    } else {
+      const timestamp = Date.now()
+      localTimer.overtime.reset(
+        new Date(timestamp + (timer.countdown?.duration ?? 0) * 1000),
+        true
+      )
+    }
+  }
+
   if (isLoading) {
     return (
       <main
@@ -273,6 +294,7 @@ export default function Home() {
           handleDelete={handleDelete}
           resetAllTimers={resetAllTimers}
           refreshTimers={refreshTimers}
+          updateTimerInList={updateTimerInList}
           onSearch={onSearch}
         />
       ) : (

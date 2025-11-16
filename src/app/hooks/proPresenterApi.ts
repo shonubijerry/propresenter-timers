@@ -12,7 +12,11 @@ export const fetchJson = async <T>(
   const id = setTimeout(() => controller.abort(), timeout)
   const resp = await fetch(url, {
     cache: 'no-store',
-    headers: { accept: 'application/json', ...options?.headers },
+    headers: {
+      accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     ...options,
     signal: controller.signal,
   })
@@ -67,7 +71,6 @@ export const createTimerApi = (
     `${baseUrl}/v1/timers`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         allows_overrun: true,
         countdown: { duration },
@@ -89,7 +92,6 @@ export const editTimerApi = (
     `${baseUrl}/v1/timer/${id}`,
     {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         allows_overrun: true,
         countdown: { duration },
@@ -110,7 +112,7 @@ export const deleteTimerApi = async (
 
   await fetchJson<void>(
     `${baseUrl}/v1/timer/${id}`,
-    { method: 'DELETE', headers: { 'Content-Type': 'application/json' } },
+    { method: 'DELETE' },
     'Failed to delete timer'
   )
 }
@@ -124,8 +126,33 @@ export const setTimerOperationApi = async (
 
   await fetchJson<void>(
     `${baseUrl}/v1/timer/${id}/${operation}`,
-    { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-    `Failed to perform operation: ${operation}`
+    { method: 'GET' },
+    `Failed: ${operation}`
+  )
+}
+
+export const setTimerUpdateOperationApi = async (
+  baseUrl: string | null,
+  duration: number,
+  name: string,
+  operation: string,
+  id?: string
+) => {
+  if (!id) throw new Error('Id not set for operation')
+
+  return fetchJson<Timer>(
+    `${baseUrl}/v1/timer/${id}/${operation}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        allows_overrun: true,
+        countdown: { duration },
+        id: {
+          name,
+        },
+      }),
+    },
+    `Failed to update timer and ${operation} it`
   )
 }
 
@@ -135,7 +162,7 @@ export const setAllTimersOperationApi = async (
 ): Promise<void> => {
   await fetchJson<void>(
     `${baseUrl}/v1/timers/${operation}`,
-    { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+    { method: 'GET' },
     `Failed to perform operation: ${operation}`
   )
 }

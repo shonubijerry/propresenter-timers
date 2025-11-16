@@ -4,7 +4,6 @@ import { Header } from './ui/Header'
 import EmptyTimer from './EmptyTimer'
 import { TimerCard } from './TimerCardContent'
 import CreateTimerModal from './modals/CreateTimerModal'
-import EditTimerModal from './modals/EditTimerModal'
 import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
 import { Timer } from '../interfaces/time'
@@ -14,10 +13,11 @@ interface HomeMainProps {
   searchableTimers: Timer[]
   currentTimer?: Timer | null
   localTimer: LocalTime
-  handleOperation:  (timer: Timer, action: TimerActions) => Promise<void>
+  handleOperation: (timer: Timer, action: TimerActions) => Promise<void>
   handleDelete: (uuid: string) => Promise<void>
   resetAllTimers: (action: TimerActions) => Promise<void>
   refreshTimers: () => Promise<void>
+  updateTimerInList: (timer: Timer) => void
   onSearch: (term: string) => void
 }
 import { LocalTime, useShared } from '../providers/timer'
@@ -34,11 +34,10 @@ export default function HomeMain({
   handleDelete,
   resetAllTimers,
   refreshTimers,
+  updateTimerInList,
   onSearch,
 }: HomeMainProps) {
   const [isCreateTimerModalOpen, setIsCreateTimerModalOpen] = useState(false)
-  const [isEditTimerModalOpen, setIsEditTimerModalOpen] = useState(false)
-  const [timerToEdit, setTimerToEdit] = useState<Timer | null>(null)
   const [openAbout, setOpenAbout] = useState(false)
   const { fullscreenWindow } = useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
@@ -77,16 +76,6 @@ export default function HomeMain({
     setOpenAbout(!openAbout)
   }
 
-  const handleEdit = (timer: Timer) => {
-    setTimerToEdit(timer)
-    setIsEditTimerModalOpen(true)
-  }
-
-  const handleCloseEdit = () => {
-    setTimerToEdit(null)
-    setIsEditTimerModalOpen(false)
-  }
-
   return (
     <>
       <Header
@@ -112,7 +101,7 @@ export default function HomeMain({
                 onOperation={handleOperation}
                 onDelete={handleDelete}
                 onOpenFullScreen={handleOpenFullScreen}
-                onEdit={() => handleEdit(timer)}
+                onEdit={updateTimerInList}
               />
             ))}
           </div>
@@ -121,13 +110,7 @@ export default function HomeMain({
       <CreateTimerModal
         open={isCreateTimerModalOpen}
         onClose={() => setIsCreateTimerModalOpen(false)}
-        onCreated={refreshTimers}
-      />
-      <EditTimerModal
-        timer={timerToEdit}
-        open={isEditTimerModalOpen}
-        onClose={handleCloseEdit}
-        onUpdated={refreshTimers}
+        onCreated={updateTimerInList}
       />
       <SettingsDialog />
       <About open={openAbout} onClose={toggleAboutModal} />

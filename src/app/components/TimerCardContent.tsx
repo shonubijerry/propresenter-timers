@@ -7,10 +7,21 @@ import Watch from './Watch'
 import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
-import { MdOutlineDelete } from 'react-icons/md'
+import { MdCancel, MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../providers/timer'
-import { BiFullscreen } from 'react-icons/bi'
+import { BiFullscreen, BiSave } from 'react-icons/bi'
 import IconButton from './ui/IconButton'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import {
+  editTimerApi,
+  setTimerUpdateOperationApi,
+} from '../hooks/proPresenterApi'
+import { toastError, toastSuccess } from '@/lib/toastUtils'
+import { useSettings } from '../providers/settings'
+import { FcCancel } from 'react-icons/fc'
+import { GiCancel } from 'react-icons/gi'
+import { ImCancelCircle } from 'react-icons/im'
 
 interface TimerCardProps {
   timer: Timer
@@ -22,6 +33,11 @@ interface TimerCardProps {
   onEdit: (timer: Timer) => void
 }
 
+interface TimerFormData {
+  name: string
+  duration: string
+}
+
 export function TimerCard({
   timer,
   isActive,
@@ -31,6 +47,77 @@ export function TimerCard({
   onOpenFullScreen,
   onEdit,
 }: TimerCardProps) {
+  const [isEditMode, setIsEditMode] = useState<boolean>(false)
+  const { proPresenterUrl } = useSettings()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TimerFormData>({
+    defaultValues: {
+      name: timer?.id.name ?? '',
+      duration: formatSecondsToTime(timer?.countdown?.duration ?? 5),
+    },
+  })
+
+  const onSubmit = async (data: TimerFormData) => {
+    try {
+      const [hours = 0, minutes = 0, seconds = 0] = data.duration
+        .split(':')
+        .map(Number)
+
+      const totalSeconds = hours * 3600 + minutes * 60 + seconds
+
+      if (totalSeconds < 60) {
+        toastError('Duration must be at least 1 minute')
+        return
+      }
+
+      await setTimerUpdateOperationApi(
+        proPresenterUrl,
+        totalSeconds,
+        data.name,
+        isActive ? 'start' : 'reset',
+        timer?.id.uuid
+      )
+
+      // Exit edit mode after successful save
+      setIsEditMode(false)
+
+      onEdit({
+        ...timer,
+        id: {
+          ...timer.id,
+          name: data.name,
+        },
+        countdown: {
+          ...timer.countdown,
+          duration: totalSeconds,
+        },
+      })
+
+      // Show success message
+      toastSuccess('Timer updated successfully')
+    } catch (e) {
+      console.error('Error updating timer:', e)
+      toastError('Failed to update timer')
+    }
+  }
+
+  const handleEditClick = () => {
+    if (isEditMode) {
+      setIsEditMode(false)
+      reset({
+        name: timer?.id.name ?? '',
+        duration: formatSecondsToTime(timer?.countdown?.duration ?? 5),
+      })
+    } else {
+      setIsEditMode(true)
+    }
+  }
+
   return (
     <div
       className={
@@ -49,26 +136,89 @@ export function TimerCard({
       {/* Timer Header */}
       <div className='flex items-start justify-between mb-4'>
         <div className='flex-1'>
-          <h2
-            className='text-lg font-semibold mb-1'
-            style={{ color: 'var(--card-foreground)' }}
-          >
-            {timer.id.name}
-          </h2>
+          {isEditMode ? (
+            <div className='mb-2'>
+              <input
+                type='text'
+                className='w-full text-lg font-semibold mb-1 p-2 rounded'
+                style={{
+                  border: '1.5px solid var(--border)',
+                  background: 'var(--card)',
+                  color: 'var(--card-foreground)',
+                }}
+                {...register('name', {
+                  required: 'Name is required',
+                  minLength: {
+                    value: 1,
+                    message: 'Name must be at least 1 character',
+                  },
+                })}
+              />
+              {errors.name && (
+                <span className='text-xs text-red-500'>
+                  {errors.name.message}
+                </span>
+              )}
+            </div>
+          ) : (
+            <h2
+              className='text-lg font-semibold mb-1'
+              style={{ color: 'var(--card-foreground)' }}
+            >
+              {timer.id.name}
+            </h2>
+          )}
           {timer.countdown && (
-            <div className='flex items-center gap-2'>
-              <span className='text-sm' style={{ color: 'var(--muted-foreground)' }}>
+            <div className='flex items-center gap-2 flex-wrap'>
+              <span
+                className='text-sm'
+                style={{ color: 'var(--muted-foreground)' }}
+              >
                 Duration:
               </span>
-              <span
-                className='text-sm font-mono px-2 py-1 rounded-lg'
-                style={{
-                  background: 'var(--muted)',
-                  color: 'var(--foreground)',
-                }}
-              >
-                {formatSecondsToTime(timer.countdown.duration)}
-              </span>
+              {isEditMode ? (
+                <div className='flex-1 min-w-[150px]'>
+                  <input
+                    type='time'
+                    step='1'
+                    className='w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
+                    style={{
+                      border: '1.5px solid var(--border)',
+                      background: 'var(--card)',
+                      color: 'var(--card-foreground)',
+                    }}
+                    {...register('duration', {
+                      required: 'Duration is required',
+                      validate: (value) => {
+                        const [hours = 0, minutes = 0, seconds = 0] = value
+                          .split(':')
+                          .map(Number)
+                        const totalSeconds =
+                          hours * 3600 + minutes * 60 + seconds
+                        if (totalSeconds < 60) {
+                          return 'Duration must be at least 1 minute'
+                        }
+                        return true
+                      },
+                    })}
+                  />
+                  {errors.duration && (
+                    <span className='text-xs text-red-500 block mt-1'>
+                      {errors.duration.message}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span
+                  className='text-sm font-mono px-2 py-1 rounded-lg'
+                  style={{
+                    background: 'var(--muted)',
+                    color: 'var(--foreground)',
+                  }}
+                >
+                  {formatSecondsToTime(timer.countdown.duration)}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -80,7 +230,10 @@ export function TimerCard({
               color: 'var(--card)',
             }}
           >
-            <div className='w-2 h-2 rounded-full animate-pulse' style={{ background: 'var(--card)' }}></div>
+            <div
+              className='w-2 h-2 rounded-full animate-pulse'
+              style={{ background: 'var(--card)' }}
+            ></div>
             Active
           </div>
         )}
@@ -125,7 +278,10 @@ export function TimerCard({
           <div className='flex gap-8 flex-wrap'>
             <IconButton
               disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              style={{ color: 'var(--green)' }}
+              style={{
+                color: 'var(--green)',
+                display: isEditMode ? 'none' : 'inherit',
+              }}
               icon={<IoPlayOutline size={30} />}
               tooltip='Start'
               tooltipPosition='top'
@@ -136,7 +292,10 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              style={{ color: 'var(--orange)' }}
+              style={{
+                color: 'var(--orange)',
+                display: isEditMode ? 'none' : 'inherit',
+              }}
               icon={<IoStopOutline size={30} />}
               tooltip='Stop'
               tooltipPosition='top'
@@ -147,7 +306,10 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 !isActive
               }
-              style={{ color: 'var(--ring)' }}
+              style={{
+                color: 'var(--ring)',
+                display: isEditMode ? 'none' : 'inherit',
+              }}
               icon={<LuTimerReset size={30} />}
               tooltip='Reset'
               tooltipPosition='top'
@@ -158,14 +320,34 @@ export function TimerCard({
                 (localTimer.isRunning || localTimer.overtime.isRunning) &&
                 isActive
               }
-              style={{ color: 'var(--ring)' }}
-              icon={<AiOutlineEdit size={30} />}
-              tooltip='Edit'
+              style={{
+                color: isEditMode ? 'var(--muted-foreground)' : 'var(--ring)',
+              }}
+              icon={
+                isEditMode ? (
+                  <MdCancel size={30} />
+                ) : (
+                  <AiOutlineEdit size={30} />
+                )
+              }
+              tooltip={isEditMode ? 'Cancel Edit' : 'Edit'}
               tooltipPosition='top'
-              onClick={() => onEdit(timer)}
+              onClick={handleEditClick}
             />
+            {isEditMode && (
+              <IconButton
+                style={{ color: 'var(--ring)' }}
+                icon={<BiSave size={30} />}
+                tooltip='Save Changes'
+                tooltipPosition='top'
+                onClick={() => handleSubmit(onSubmit)()}
+              />
+            )}
             <IconButton
-              style={{ color: 'var(--destructive)' }}
+              style={{
+                color: 'var(--destructive)',
+                display: isEditMode ? 'none' : 'inherit',
+              }}
               icon={<MdOutlineDelete size={30} />}
               tooltip='Delete'
               tooltipPosition='top'
