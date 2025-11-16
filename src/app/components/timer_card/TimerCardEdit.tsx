@@ -117,6 +117,7 @@ export function TimerCardEdit({
         <div className='flex-1'>
           <div className='mb-2'>
             <input
+              placeholder='Enter timer name'
               type='text'
               className='w-full text-lg font-semibold mb-1 p-2 rounded'
               style={{
