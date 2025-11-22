@@ -6,12 +6,9 @@ import { MdCancel } from 'react-icons/md'
 import { BiSave } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
 import { useForm } from 'react-hook-form'
-import {
-  createTimerApi,
-  setTimerUpdateOperationApi,
-} from '../../hooks/proPresenterApi'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useSettings } from '../../providers/settings'
+import { useTimersApi } from '@/app/hooks/useTimerApi'
 
 interface TimerCardEditProps {
   timer: Timer
@@ -31,7 +28,7 @@ export function TimerCardEdit({
   onCancel,
   onSave,
 }: TimerCardEditProps) {
-  const { proPresenterUrl } = useSettings()
+  const { createTimer, setTimerUpdateOperation } = useTimersApi()
 
   const {
     register,
@@ -59,11 +56,7 @@ export function TimerCardEdit({
 
       if (timer.time === 'new') {
         // Creating a new timer
-        const resp = await createTimerApi(
-          proPresenterUrl,
-          totalSeconds,
-          data.name
-        )
+        const resp = await createTimer(totalSeconds, data.name)
         onSave({
           ...resp,
           remainingSeconds: totalSeconds,
@@ -74,8 +67,7 @@ export function TimerCardEdit({
         return
       }
 
-      await setTimerUpdateOperationApi(
-        proPresenterUrl,
+      await setTimerUpdateOperation(
         totalSeconds,
         data.name,
         isActive ? 'start' : 'reset',

@@ -125,6 +125,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (!window.isTauri) return
+
     invoke('create_timer', {
       timer: {
         uuid: '123e4567-e89b-12d3-a456-426614174000',

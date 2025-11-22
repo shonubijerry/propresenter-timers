@@ -6,23 +6,27 @@ import { TimerActions } from './hooks/timer'
 import HomeMain from './components/HomeMain'
 import WatchMain from './components/watch/WatchMain'
 import { useShared } from './providers/timer'
-import {
-  deleteTimerApi,
-  fetchTimersApi,
-  setAllTimersOperationApi,
-  setTimerOperationApi,
-} from './hooks/proPresenterApi'
 import { useSettings } from './providers/settings'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
+import { useTimersApi } from './hooks/useTimerApi'
 
 export default function Home() {
-  const [timers, setTimers] = useState<Timer[]>([])
+  const {
+    timers,
+    isLoading: timerApiLoading,
+    error,
+    refetchTimers,
+    deleteTimer,
+    setTimerOperation,
+    setAllTimersOperation,
+    updateTimers,
+  } = useTimersApi()
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
   const { currentTimer, setCurrentTimer, localTimer } = useShared()
-  const { proPresenterUrl, isLoading, settings } = useSettings()
+  const {  isLoading } = useSettings()
 
   const operationInProgress = useRef(false)
 
@@ -30,9 +34,10 @@ export default function Home() {
   const setApiError = useCallback(
     (err: unknown, fallback = 'An error occurred') => {
       const message = err instanceof Error ? err.message : fallback
-      console.error(
-        `${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
-      )
+      if (err && typeof err === 'object')
+        console.error(
+          `${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+        )
       toastError(message)
     },
     []
@@ -56,73 +61,46 @@ export default function Home() {
     [setApiError]
   )
 
-  // Fetch timers from API and update local state
-  const fetchTimers = useCallback(async (): Promise<Timer[]> => {
-    const computedProPresenterUrl =
-      settings?.address && settings?.port
-        ? `${settings.address}:${settings.port}`
-        : null
+  useEffect(() => {
+    setApiError(error)
+  }, [error, setApiError])
 
-    if (!computedProPresenterUrl) {
-      toastError('ProPresenter URL not configured')
-      return []
-    }
-
-    try {
-      const data = await fetchTimersApi(computedProPresenterUrl)
-      setTimers(data)
-      setSearchableTimers(data)
-      return data
-    } catch (err) {
-      setApiError(err, 'Failed to fetch timers')
-      return []
-    }
-  }, [setApiError, settings])
+  useEffect(() => {
+    setSearchableTimers(timers)
+  }, [timers, setSearchableTimers])
 
   // Load initial timers and sync running state with local timer
   useEffect(() => {
-    if (isInitialized || !proPresenterUrl) return
+    if (!isInitialized) return
 
     let mounted = true
 
-    fetchTimers()
-      .then((fetched) => {
-        if (!mounted) return
-        // If there's a running timer from initial fetch, sync it
-        const runningTimer = fetched.find((d) =>
-          ['running', 'overrunning'].includes(d.state)
+    if (!mounted) return
+    // If there's a running timer from initial fetch, sync it
+    const runningTimer = searchableTimers.find((d) =>
+      ['running', 'overrunning'].includes(d.state)
+    )
+
+    if (runningTimer) {
+      setCurrentTimer(runningTimer)
+
+      if (runningTimer.state === 'running') {
+        localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
+      } else if (runningTimer.state === 'overrunning') {
+        const timestamp = Date.now()
+        localTimer.overtime.reset(
+          new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
+          true
         )
+      }
+    }
 
-        if (runningTimer) {
-          setCurrentTimer(runningTimer)
-
-          if (runningTimer.state === 'running') {
-            localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
-          } else if (runningTimer.state === 'overrunning') {
-            const timestamp = Date.now()
-            localTimer.overtime.reset(
-              new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
-              true
-            )
-          }
-        }
-      })
-      .catch((err) => setApiError(err, 'Failed to initialize timers'))
-      .finally(() => {
-        if (mounted) setIsInitialized(true)
-      })
+    if (mounted) setIsInitialized(true)
 
     return () => {
       mounted = false
     }
-  }, [
-    proPresenterUrl,
-    isInitialized,
-    setCurrentTimer,
-    localTimer,
-    setApiError,
-    fetchTimers,
-  ])
+  }, [isInitialized, setCurrentTimer, localTimer, searchableTimers])
 
   // URL param handling (client-only)
   useEffect(() => {
@@ -134,34 +112,30 @@ export default function Home() {
   // Reset all timers (start/stop/reset for all)
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
-      if (!proPresenterUrl) {
-        toastError('ProPresenter URL not configured')
-        return
-      }
-
       await runOperation(async () => {
-        await setAllTimersOperationApi(proPresenterUrl, action)
-        await fetchTimers()
+        await setAllTimersOperation(action)
+        await refetchTimers()
         setCurrentTimer(null)
         localTimer.handleLocalTimer('reset')
         localTimer.overtime.reset(undefined, false)
       }, 'Failed to reset timers')
       toastSuccess('Operation successful')
     },
-    [proPresenterUrl, runOperation, setCurrentTimer, localTimer, fetchTimers]
+    [
+      runOperation,
+      setCurrentTimer,
+      localTimer,
+      refetchTimers,
+      setAllTimersOperation,
+    ]
   )
 
   // Delete a timer
   const handleDelete = useCallback(
     async (uuid: string) => {
-      if (!proPresenterUrl) {
-        toastError('ProPresenter URL not configured')
-        return
-      }
-
       await runOperation(async () => {
-        await deleteTimerApi(proPresenterUrl, uuid)
-        setTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
+        await deleteTimer(uuid)
+        updateTimers(timers.filter((t) => t.id.uuid !== uuid))
         setSearchableTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
 
         if (currentTimer?.id.uuid === uuid) {
@@ -173,28 +147,25 @@ export default function Home() {
       toastSuccess('Event deleted')
     },
     [
-      proPresenterUrl,
       runOperation,
       currentTimer?.id.uuid,
       setCurrentTimer,
       localTimer,
+      deleteTimer,
+      timers,
+      updateTimers,
     ]
   )
 
   // Perform operation on a single timer (start/stop/reset)
   const handleOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
-      if (!proPresenterUrl) {
-        toastError('ProPresenter URL not configured')
-        return
-      }
-
       await runOperation(async () => {
         if (localTimer.isRunning && action === 'start') return
         if (!localTimer.isRunning && action === 'stop') return
 
         localTimer.overtime.reset(undefined, false)
-        await setTimerOperationApi(proPresenterUrl, action, timer.id.uuid)
+        await setTimerOperation(action, timer.id.uuid)
 
         if (action === 'reset') {
           setCurrentTimer(null)
@@ -203,11 +174,9 @@ export default function Home() {
           setCurrentTimer(timer)
           localTimer.handleLocalTimer(action, timer.remainingSeconds)
         }
-
-        await fetchTimers()
       }, `Failed to ${action} timer`)
     },
-    [proPresenterUrl, runOperation, localTimer, setCurrentTimer, fetchTimers]
+    [runOperation, localTimer, setCurrentTimer, setTimerOperation]
   )
 
   const onSearch = useCallback(
@@ -230,35 +199,30 @@ export default function Home() {
   )
 
   const refreshTimers = useCallback(async () => {
-    if (!proPresenterUrl) {
-      toastError('ProPresenter URL not configured')
-      return
-    }
-
     try {
       setSearchableTimers([])
-      await fetchTimers()
+      await refetchTimers()
       toastSuccess('Timers refreshed')
     } catch (err) {
       setApiError(err, 'Failed to refresh timers')
     }
-  }, [proPresenterUrl, setApiError, fetchTimers])
+  }, [setApiError, refetchTimers])
 
   const updateTimerInList = (timer: Timer) => {
     if (!timers.find((t) => t.id.uuid === timer.id.uuid)) {
       // append newly created timer to list
-      setTimers((prev) => [...prev, timer])
+      updateTimers([...timers, timer])
       setSearchableTimers((prev) => [...prev, timer])
       return
     }
 
     const isActiveTimer = currentTimer && currentTimer.id.uuid === timer.id.uuid
 
-    const updateTimers = (list: Timer[]) =>
+    const updateTimersArray = (list: Timer[]) =>
       list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
 
-    setTimers((prev) => updateTimers(prev))
-    setSearchableTimers((prev) => updateTimers(prev))
+    updateTimers((timers))
+    setSearchableTimers((prev) => updateTimersArray(prev))
     if (isActiveTimer) {
       setCurrentTimer((prev) => (prev ? { ...prev, ...timer } : prev))
       localTimer.handleLocalTimer('start', timer.countdown?.duration)

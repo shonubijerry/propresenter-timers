@@ -6,7 +6,7 @@ import Alert from '../ui/Alert'
 import Modal from './Modal'
 import { RadioGroup } from '@headlessui/react'
 import { cn } from '@/lib/cn'
-import { fetchJson } from '@/app/hooks/proPresenterApi'
+import { fetchJson } from '@/app/hooks/client'
 
 export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
