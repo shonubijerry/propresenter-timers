@@ -13,7 +13,6 @@ import { useTimersApi } from './hooks/useTimerApi'
 export default function Home() {
   const {
     timers,
-    isLoading: timerApiLoading,
     error,
     refetchTimers,
     deleteTimer,

@@ -7,7 +7,6 @@ import { BiSave } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
 import { useForm } from 'react-hook-form'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
-import { useSettings } from '../../providers/settings'
 import { useTimersApi } from '@/app/hooks/useTimerApi'
 
 interface TimerCardEditProps {
