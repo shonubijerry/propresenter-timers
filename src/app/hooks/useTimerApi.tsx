@@ -9,7 +9,7 @@ interface TimersApiHook {
   timers: Timer[]
   isLoading: boolean
   error: Error | null
-  refetchTimers: () => Promise<void>
+  refetch: () => Promise<void>
   createTimer: (duration: number, name: string) => Promise<Timer>
   editTimer: (duration: number, name: string, id?: string) => Promise<Timer>
   deleteTimer: (id?: string) => Promise<void>
@@ -22,6 +22,7 @@ interface TimersApiHook {
   ) => Promise<Timer>
   setAllTimersOperation: (operation: TimerActions) => Promise<void>
   updateTimers: (data: Timer[]) => void
+  fetchTimers: () => Promise<Timer[]>
 }
 
 /**
@@ -69,7 +70,7 @@ export const useTimersApi = (): TimersApiHook => {
   }, [baseUrl])
 
   // --- Data Fetch Effect ---
-  const refetchTimers = useCallback(async () => {
+  const refetch = useCallback(async () => {
     if (!baseUrl) return
 
     setIsLoading(true)
@@ -85,8 +86,8 @@ export const useTimersApi = (): TimersApiHook => {
   }, [baseUrl, fetchTimers])
 
   useEffect(() => {
-    refetchTimers()
-  }, [refetchTimers])
+    refetch()
+  }, [refetch])
 
   // --- API Mutation Functions (Wrappers for original functions) ---
 
@@ -208,15 +209,16 @@ export const useTimersApi = (): TimersApiHook => {
   // --- Return values ---
   return {
     timers,
+    fetchTimers,
     isLoading,
     error,
-    refetchTimers,
+    refetch,
     createTimer,
     editTimer,
     deleteTimer,
     setTimerOperation,
     setTimerUpdateOperation,
     setAllTimersOperation,
-    updateTimers
+    updateTimers,
   }
 }

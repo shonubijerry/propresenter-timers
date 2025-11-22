@@ -13,8 +13,8 @@ import { useTimersApi } from './hooks/useTimerApi'
 export default function Home() {
   const {
     timers,
-    error,
-    refetchTimers,
+    fetchTimers,
+    refetch,
     deleteTimer,
     setTimerOperation,
     setAllTimersOperation,
@@ -25,7 +25,7 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false)
 
   const { currentTimer, setCurrentTimer, localTimer } = useShared()
-  const {  isLoading } = useSettings()
+  const { isLoading } = useSettings()
 
   const operationInProgress = useRef(false)
 
@@ -37,6 +37,7 @@ export default function Home() {
         console.error(
           `${fallback}: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
         )
+      else console.error('raw error', err)
       toastError(message)
     },
     []
@@ -61,45 +62,46 @@ export default function Home() {
   )
 
   useEffect(() => {
-    setApiError(error)
-  }, [error, setApiError])
-
-  useEffect(() => {
     setSearchableTimers(timers)
-  }, [timers, setSearchableTimers])
+  }, [timers])
 
   // Load initial timers and sync running state with local timer
   useEffect(() => {
-    if (!isInitialized) return
+    if (isInitialized) return
 
     let mounted = true
 
-    if (!mounted) return
-    // If there's a running timer from initial fetch, sync it
-    const runningTimer = searchableTimers.find((d) =>
-      ['running', 'overrunning'].includes(d.state)
-    )
-
-    if (runningTimer) {
-      setCurrentTimer(runningTimer)
-
-      if (runningTimer.state === 'running') {
-        localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
-      } else if (runningTimer.state === 'overrunning') {
-        const timestamp = Date.now()
-        localTimer.overtime.reset(
-          new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
-          true
+    fetchTimers()
+      .then((fetched) => {
+        if (!mounted) return
+        // If there's a running timer from initial fetch, sync it
+        const runningTimer = fetched.find((d) =>
+          ['running', 'overrunning'].includes(d.state)
         )
-      }
-    }
 
-    if (mounted) setIsInitialized(true)
+        if (runningTimer) {
+          setCurrentTimer(runningTimer)
+
+          if (runningTimer.state === 'running') {
+            localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
+          } else if (runningTimer.state === 'overrunning') {
+            const timestamp = Date.now()
+            localTimer.overtime.reset(
+              new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
+              true
+            )
+          }
+        }
+      })
+      .catch((err) => setApiError(err, 'Failed to initialize timers'))
+      .finally(() => {
+        if (mounted) setIsInitialized(true)
+      })
 
     return () => {
       mounted = false
     }
-  }, [isInitialized, setCurrentTimer, localTimer, searchableTimers])
+  }, [isInitialized, setCurrentTimer, localTimer, setApiError, fetchTimers])
 
   // URL param handling (client-only)
   useEffect(() => {
@@ -111,31 +113,29 @@ export default function Home() {
   // Reset all timers (start/stop/reset for all)
   const resetAllTimers = useCallback(
     async (action: TimerActions) => {
-      await runOperation(async () => {
+      const success = await runOperation(async () => {
         await setAllTimersOperation(action)
-        await refetchTimers()
+        await refetch()
         setCurrentTimer(null)
         localTimer.handleLocalTimer('reset')
         localTimer.overtime.reset(undefined, false)
       }, 'Failed to reset timers')
-      toastSuccess('Operation successful')
+
+      if (success) {
+        toastSuccess('Operation successful')
+      }
     },
-    [
-      runOperation,
-      setCurrentTimer,
-      localTimer,
-      refetchTimers,
-      setAllTimersOperation,
-    ]
+    [runOperation, setCurrentTimer, localTimer, refetch, setAllTimersOperation]
   )
 
   // Delete a timer
   const handleDelete = useCallback(
     async (uuid: string) => {
-      await runOperation(async () => {
+      const success = await runOperation(async () => {
         await deleteTimer(uuid)
-        updateTimers(timers.filter((t) => t.id.uuid !== uuid))
-        setSearchableTimers((prev) => prev.filter((t) => t.id.uuid !== uuid))
+        const filteredTimers = timers.filter((t) => t.id.uuid !== uuid)
+        updateTimers(filteredTimers)
+        setSearchableTimers(filteredTimers)
 
         if (currentTimer?.id.uuid === uuid) {
           setCurrentTimer(null)
@@ -143,7 +143,10 @@ export default function Home() {
           localTimer.overtime.reset(undefined, false)
         }
       }, 'Failed to delete timer')
-      toastSuccess('Event deleted')
+
+      if (success) {
+        toastSuccess('Event deleted')
+      }
     },
     [
       runOperation,
@@ -173,9 +176,16 @@ export default function Home() {
           setCurrentTimer(timer)
           localTimer.handleLocalTimer(action, timer.remainingSeconds)
         }
+        refetch()
       }, `Failed to ${action} timer`)
     },
-    [runOperation, localTimer, setCurrentTimer, setTimerOperation]
+    [
+      runOperation,
+      localTimer,
+      setCurrentTimer,
+      setTimerOperation,
+      refetch,
+    ]
   )
 
   const onSearch = useCallback(
@@ -200,44 +210,58 @@ export default function Home() {
   const refreshTimers = useCallback(async () => {
     try {
       setSearchableTimers([])
-      await refetchTimers()
+      await refetch()
       toastSuccess('Timers refreshed')
     } catch (err) {
       setApiError(err, 'Failed to refresh timers')
     }
-  }, [setApiError, refetchTimers])
+  }, [setApiError, refetch])
 
-  const updateTimerInList = (timer: Timer) => {
-    if (!timers.find((t) => t.id.uuid === timer.id.uuid)) {
-      // append newly created timer to list
-      updateTimers([...timers, timer])
-      setSearchableTimers((prev) => [...prev, timer])
-      return
-    }
+  const updateTimerInList = useCallback(
+    (timer: Timer) => {
+      const existingTimer = timers.find((t) => t.id.uuid === timer.id.uuid)
 
-    const isActiveTimer = currentTimer && currentTimer.id.uuid === timer.id.uuid
+      if (!existingTimer) {
+        // Append newly created timer to list
+        const newTimers = [...timers, timer]
+        updateTimers(newTimers)
+        setSearchableTimers((prev) => [...prev, timer])
+        return
+      }
 
-    const updateTimersArray = (list: Timer[]) =>
-      list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
+      const isActiveTimer = currentTimer?.id.uuid === timer.id.uuid
 
-    updateTimers((timers))
-    setSearchableTimers((prev) => updateTimersArray(prev))
-    if (isActiveTimer) {
-      setCurrentTimer((prev) => (prev ? { ...prev, ...timer } : prev))
-      localTimer.handleLocalTimer('start', timer.countdown?.duration)
-    } else {
-      const timestamp = Date.now()
-      localTimer.overtime.reset(
-        new Date(timestamp + (timer.countdown?.duration ?? 0) * 1000),
-        false
-      )
-    }
-  }
+      const updateTimersArray = (list: Timer[]) =>
+        list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
+
+      updateTimers(updateTimersArray(timers))
+      setSearchableTimers((prev) => updateTimersArray(prev))
+
+      if (isActiveTimer) {
+        setCurrentTimer((prev) => (prev ? { ...prev, ...timer } : prev))
+
+        // Update local timer based on timer state
+        if (timer.state === 'running' && timer.remainingSeconds !== undefined) {
+          localTimer.handleLocalTimer('start', timer.remainingSeconds)
+        } else if (
+          timer.state === 'overrunning' &&
+          timer.remainingSeconds !== undefined
+        ) {
+          const timestamp = Date.now()
+          localTimer.overtime.reset(
+            new Date(timestamp + timer.remainingSeconds * 1000),
+            true
+          )
+        }
+      }
+    },
+    [timers, currentTimer, updateTimers, setCurrentTimer, localTimer]
+  )
 
   if (isLoading) {
     return (
       <main
-        className='min-h-screen justify-center'
+        className='min-h-screen flex items-center justify-center'
         style={{
           background: 'var(--background-gradient)',
         }}

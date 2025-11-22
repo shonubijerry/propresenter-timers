@@ -26,6 +26,7 @@ export interface AppSettings {
   address: string
   port: number
   theme: ThemeMode
+  datastore: 'proPresenter' | 'localDb'
 }
 
 const SettingsContext = createContext<{
@@ -50,6 +51,7 @@ const defaultSettings = {
   address: 'http://192.168.1.103',
   port: 58000,
   theme: 'system' as const,
+  datastore: 'proPresenter' as const
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {

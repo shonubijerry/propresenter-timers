@@ -18,19 +18,28 @@ export default function SettingsDialog() {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm({
     defaultValues: settings,
     mode: 'onChange',
   })
+
+  // Watch datastore value to conditionally show/hide ProPresenter settings
+  const datastore = watch('datastore')
 
   // Reset form when settings change or dialog opens
   useEffect(() => {
     reset(settings)
   }, [settings, isDialogOpen, reset])
 
-  // Connection test effect
+  // Connection test effect - only run for proPresenter datastore
   useEffect(() => {
     if (!isDialogOpen) return
+    if (datastore !== 'proPresenter') {
+      setConnectionOk(true)
+      return
+    }
+
     setConnectionOk(false)
     if (!settings?.address || !settings?.port) return
     fetchJson(
@@ -45,14 +54,11 @@ export default function SettingsDialog() {
         console.error(errorMsg)
         setConnectionOk(false)
       })
-  }, [settings?.address, settings?.port, isDialogOpen])
+  }, [settings?.address, settings?.port, isDialogOpen, datastore])
 
   const onSubmit = async (data: AppSettings) => {
     await updateSettings(data)
     closeSettingsDialog()
-    if (window !== undefined) {
-      window.location.reload()
-    }
   }
 
   if (!isDialogOpen) return null
@@ -61,56 +67,123 @@ export default function SettingsDialog() {
     <Modal open={isDialogOpen} onClose={closeSettingsDialog} title='Settings'>
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className='space-y-6'>
-          {!connectionOk && (
-            <Alert
-              type='info'
-              title='Action needed'
-              message={
-                <>
-                  You need to go in - <br />
-                  ProPresenter =&gt; Settings =&gt; Network
-                  <br /> Copy the IP Address and Port into this form
-                </>
-              }
-            />
-          )}
+          {/* Datastore Toggle */}
           <div>
-            <label className='block mb-1 font-medium'>ProPresenter URL</label>
-            <input
-              placeholder='http://127.0.0.1'
-              type='url'
-              {...register('address', {
-                required: 'Propresenter url is required',
-                pattern: {
-                  value:
-                    /^http:\/\/(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
-                  message: 'URL must start with http:// followed by IP address',
-                },
-              })}
-              className='w-full p-2 border rounded-lg bg-background border-input placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
-            />
-            {errors.address && (
-              <p className='text-sm text-destructive'>
-                {errors.address.message}
-              </p>
-            )}
+            <h3 className='text-lg font-medium mb-4'>Data Source</h3>
+            <RadioGroup
+              value={datastore || 'proPresenter'}
+              onChange={async (value) => {
+                await updateSettings({
+                  ...settings!,
+                  datastore: value as 'proPresenter' | 'localDb',
+                })
+              }}
+            >
+              <RadioGroup.Label className='sr-only'>Datastore</RadioGroup.Label>
+              <div className='grid grid-cols-2 gap-3'>
+                {[
+                  { value: 'proPresenter', label: 'ProPresenter' },
+                  { value: 'localDb', label: 'Local Database' },
+                ].map((option) => (
+                  <RadioGroup.Option
+                    key={option.value}
+                    value={option.value}
+                    className={({ active, checked }) =>
+                      cn(
+                        'cursor-pointer focus:outline-none transition-colors',
+                        active &&
+                          'ring-2 ring-offset-2 ring-ring ring-offset-background',
+                        checked
+                          ? 'bg-primary border-transparent text-primary-foreground hover:bg-primary/90'
+                          : 'bg-background border-border hover:bg-accent hover:text-accent-foreground',
+                        'border rounded-lg py-3 px-3 flex items-center justify-center text-sm font-medium'
+                      )
+                    }
+                  >
+                    <RadioGroup.Label as='span'>
+                      {option.label}
+                    </RadioGroup.Label>
+                  </RadioGroup.Option>
+                ))}
+              </div>
+            </RadioGroup>
           </div>
 
-          <div>
-            <label className='block mb-1 font-medium'>ProPresenter Port</label>
-            <input
-              type='number'
-              {...register('port', {
-                required: 'Port is required',
-                min: { value: 1, message: 'Port must be > 0' },
-                max: { value: 65535, message: 'Port must be ≤ 65535' },
-              })}
-              className='w-full p-2 border rounded-lg bg-background border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
+          {/* ProPresenter Settings - Only show when proPresenter is selected */}
+          {datastore === 'proPresenter' && (
+            <>
+              {!connectionOk && (
+                <Alert
+                  type='info'
+                  title='Action needed'
+                  message={
+                    <>
+                      You need to go in - <br />
+                      ProPresenter =&gt; Settings =&gt; Network
+                      <br /> Copy the IP Address and Port into this form
+                    </>
+                  }
+                />
+              )}
+              <div>
+                <label className='block mb-1 font-medium'>
+                  ProPresenter URL
+                </label>
+                <input
+                  placeholder='http://127.0.0.1'
+                  type='url'
+                  {...register('address', {
+                    required:
+                      datastore === 'proPresenter'
+                        ? 'Propresenter url is required'
+                        : false,
+                    pattern: {
+                      value:
+                        /^http:\/\/(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
+                      message:
+                        'URL must start with http:// followed by IP address',
+                    },
+                  })}
+                  className='w-full p-2 border rounded-lg bg-background border-input placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
+                />
+                {errors.address && (
+                  <p className='text-sm text-destructive'>
+                    {errors.address.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className='block mb-1 font-medium'>
+                  ProPresenter Port
+                </label>
+                <input
+                  type='number'
+                  {...register('port', {
+                    required:
+                      datastore === 'proPresenter' ? 'Port is required' : false,
+                    min: { value: 1, message: 'Port must be > 0' },
+                    max: { value: 65535, message: 'Port must be ≤ 65535' },
+                  })}
+                  className='w-full p-2 border rounded-lg bg-background border-input focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
+                />
+                {errors.port && (
+                  <p className='text-sm text-destructive'>
+                    {errors.port.message}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Local Database Info */}
+          {datastore === 'localDb' && (
+            <Alert
+              type='info'
+              title='Local Database Mode'
+              message='Using local database for song storage. Songs will be managed independently from ProPresenter.'
             />
-            {errors.port && (
-              <p className='text-sm text-destructive'>{errors.port.message}</p>
-            )}
-          </div>
+          )}
 
           <div>
             <h3 className='text-lg font-medium'>Appearance</h3>
