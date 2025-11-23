@@ -41,7 +41,7 @@ export default function WatchLayoutWithProps({
 
         {/* Time tracker label (center) */}
         <div
-          className={`text-9xl font-bold text-gray-800 text-center flex-1 ${timeupStyle}`}
+          className={`text-7xl font-bold text-gray-800 text-center flex-1 ${timeupStyle}`}
         >
           {timeTracker}
         </div>
@@ -64,11 +64,11 @@ export default function WatchLayoutWithProps({
           overtime={localTimer.overtime}
         />
 
-        <div className='w-screen text-8xl font-bold text-gray-600 p-5'>
+        <div className='w-screen text-6xl font-bold text-gray-600 p-5'>
           {description}
         </div>
 
-        <div className='text-5xl font-bold text-gray-600 mt-5'>
+        <div className='text-4xl font-bold text-gray-600 mt-5'>
           <span className='text-slate-500'>Event Duration:</span>
           <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
             {formatSecondsToTime(duration)}

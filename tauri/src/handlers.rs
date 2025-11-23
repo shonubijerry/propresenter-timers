@@ -1,5 +1,5 @@
 use crate::database::Database;
-use crate::database::Timer;
+use crate::database::{PartialTimer, Timer};
 use tauri::State;
 
 #[tauri::command]
@@ -18,7 +18,7 @@ pub fn list_timers(db: State<Database>) -> Result<Vec<Timer>, String> {
 }
 
 #[tauri::command]
-pub fn update_timer(db: State<Database>, timer: Timer) -> Result<(), String> {
+pub fn update_timer(db: State<Database>, timer: PartialTimer) -> Result<(), String> {
   db.update(&timer).map_err(|e| e.to_string())
 }
 
@@ -28,7 +28,11 @@ pub fn delete_timer(db: State<Database>, uuid: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn list_timers_paginated(db: State<Database>, limit: i32, offset: i32) -> Result<Vec<Timer>, String> {
+pub fn list_timers_paginated(
+  db: State<Database>,
+  limit: i32,
+  offset: i32,
+) -> Result<Vec<Timer>, String> {
   db.list_paginated(limit, offset).map_err(|e| e.to_string())
 }
 

@@ -4,6 +4,15 @@ import { convertTimeToSeconds } from '@/lib/formatter'
 import { useSettings } from '../providers/settings'
 import { fetchJson } from './client'
 import { TimerActions } from './timer'
+import {
+  fetchTimersFromDb,
+  createTimerInDb,
+  editTimerInDb,
+  deleteTimerFromDb,
+  setTimerOperationInDb,
+  setTimerUpdateOperationInDb,
+  setAllTimersOperationInDb,
+} from '../../lib/localDb'
 
 interface TimersApiHook {
   timers: Timer[]
@@ -26,17 +35,25 @@ interface TimersApiHook {
 }
 
 /**
- * Custom React Hook to manage Timer API operations.
- * @param baseUrl The base URL for the API.
+ * Custom React Hook to manage Timer operations.
+ * Supports both ProPresenter API and local SQLite database.
+ * @returns TimersApiHook interface with all timer operations
  */
 export const useTimersApi = (): TimersApiHook => {
   const [timers, setTimers] = useState<Timer[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
-  const { proPresenterUrl: baseUrl } = useSettings()
+  const { proPresenterUrl: baseUrl, settings } = useSettings()
 
-  // --- Core Fetch Function (from fetchTimersApi) ---
+  const isLocalDb = settings?.datastore === 'localDb'
+
+  // --- Core Fetch Function ---
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
+    if (isLocalDb) {
+      return await fetchTimersFromDb()
+    }
+
+    // Use ProPresenter API
     if (!baseUrl) {
       throw new Error('Base URL not set')
     }
@@ -67,11 +84,11 @@ export const useTimersApi = (): TimersApiHook => {
         setError(err)
         return []
       })
-  }, [baseUrl])
+  }, [baseUrl, isLocalDb])
 
   // --- Data Fetch Effect ---
   const refetch = useCallback(async () => {
-    if (!baseUrl) return
+    if (!isLocalDb && !baseUrl) return
 
     setIsLoading(true)
     setError(null)
@@ -83,16 +100,20 @@ export const useTimersApi = (): TimersApiHook => {
     } finally {
       setIsLoading(false)
     }
-  }, [baseUrl, fetchTimers])
+  }, [baseUrl, isLocalDb, fetchTimers])
 
   useEffect(() => {
     refetch()
   }, [refetch])
 
-  // --- API Mutation Functions (Wrappers for original functions) ---
+  // --- API Mutation Functions ---
 
   const createTimer = useCallback(
-    (duration: number, name: string): Promise<Timer> => {
+    async (duration: number, name: string): Promise<Timer> => {
+      if (isLocalDb) {
+        return await createTimerInDb(duration, name)
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
       return fetchJson<Timer>(
         `${baseUrl}/v1/timers`,
@@ -107,11 +128,15 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to create timer'
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const editTimer = useCallback(
-    (duration: number, name: string, id?: string): Promise<Timer> => {
+    async (duration: number, name: string, id?: string): Promise<Timer> => {
+      if (isLocalDb) {
+        return await editTimerInDb(duration, name, id)
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
       if (!id) throw new Error('Id not set for update')
 
@@ -123,18 +148,23 @@ export const useTimersApi = (): TimersApiHook => {
             allows_overrun: true,
             countdown: { duration },
             id: {
-              name, // Assuming this should be 'name' as per original
+              name,
             },
           }),
         },
         'Failed to update timer'
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const deleteTimer = useCallback(
     async (id?: string): Promise<void> => {
+      if (isLocalDb) {
+        await deleteTimerFromDb(id)
+        return
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
       if (!id) throw new Error('Id not set for delete')
 
@@ -144,11 +174,16 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to delete timer'
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const setTimerOperation = useCallback(
     async (operation: string, id?: string): Promise<void> => {
+      if (isLocalDb) {
+        await setTimerOperationInDb(operation, id)
+        return
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
       if (!id) throw new Error('Id not set for operation')
 
@@ -158,16 +193,20 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed: ${operation}`
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const setTimerUpdateOperation = useCallback(
-    (
+    async (
       duration: number,
       name: string,
       operation: string,
       id?: string
     ): Promise<Timer> => {
+      if (isLocalDb) {
+        return await setTimerUpdateOperationInDb(duration, name, operation, id)
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
       if (!id) throw new Error('Id not set for operation')
 
@@ -186,11 +225,16 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed to update timer and ${operation} it`
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const setAllTimersOperation = useCallback(
     async (operation: TimerActions): Promise<void> => {
+      if (isLocalDb) {
+        await setAllTimersOperationInDb(operation)
+        return
+      }
+
       if (!baseUrl) throw new Error('Base URL not set')
 
       await fetchJson<void>(
@@ -199,7 +243,7 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed to perform operation: ${operation}`
       )
     },
-    [baseUrl]
+    [baseUrl, isLocalDb]
   )
 
   const updateTimers = (data: Timer[]) => {

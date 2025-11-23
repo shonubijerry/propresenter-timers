@@ -126,25 +126,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  useEffect(() => {
-    if (!window.isTauri) return
+  // useEffect(() => {
+  //   if (!window.isTauri) return
 
-    invoke('create_timer', {
-      timer: {
-        uuid: '123e4567-e89b-12d3-a456-426614174000',
-        index_num: 1,
-        name: 'My Timer',
-        allows_overrun: false,
-        countdown_duration: 300.0,
-        state: 'stopped',
-        remaining_seconds: 300.0,
-        started_at: null,
-        created_at: Date.now(),
-        updated_at: Date.now(),
-      },
-    })
-    invoke('list_timers').then(console.log)
-  }, [])
+  //   invoke('create_timer', {
+  //     timer: {
+  //       uuid: '123e4567-e89b-12d3-a456-426614174000',
+  //       index_num: 1,
+  //       name: 'My Timer',
+  //       allows_overrun: false,
+  //       countdown_duration: 300.0,
+  //       state: 'stopped',
+  //       remaining_seconds: 300.0,
+  //       started_at: null,
+  //       created_at: Date.now(),
+  //       updated_at: Date.now(),
+  //     },
+  //   })
+  //   invoke('list_timers').then(console.log)
+  // }, [])
 
   async function updateSettings(newSettings: AppSettings): Promise<void> {
     const updatedSettings = { ...settings, ...newSettings }

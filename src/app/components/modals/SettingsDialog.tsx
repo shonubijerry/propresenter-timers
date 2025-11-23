@@ -181,7 +181,7 @@ export default function SettingsDialog() {
             <Alert
               type='info'
               title='Local Database Mode'
-              message='Using local database for song storage. Songs will be managed independently from ProPresenter.'
+              message='Using local database for timer storage. Timers will be managed independently from ProPresenter.'
             />
           )}
 

@@ -1,7 +1,4 @@
-use tauri::{
-  menu::{Menu, MenuItemBuilder, SubmenuBuilder},
-  Manager,
-};
+use tauri::Manager;
 mod database;
 mod handlers;
 
@@ -23,17 +20,6 @@ pub fn run() {
 
       // Create app data directory if it doesn't exist
       std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
-
-      // ----- Build Menu -----
-      let quit = MenuItemBuilder::new("Quit")
-        .id("quit")
-        .accelerator("CmdOrCtrl+Q")
-        .build(app)?;
-
-      let file_menu = SubmenuBuilder::new(app, "File").item(&quit).build()?;
-
-      let menu = Menu::with_items(app, &[&file_menu])?;
-      app.set_menu(menu)?;
 
       // ----- Plugins -----
       if cfg!(debug_assertions) {
@@ -59,19 +45,6 @@ pub fn run() {
       Ok(())
     })
     .plugin(tauri_plugin_fs::init())
-    // ----- Quit menu -----
-    .on_menu_event(|app_handle, event| {
-      match event.id().as_ref() {
-        "quit" => {
-          // Close all windows in Tauri 2
-          for w in app_handle.webview_windows().values() {
-            let _ = w.close();
-          }
-          std::process::exit(0);
-        }
-        _ => {}
-      }
-    })
     // ----- 🔥 KEY FIX: Close ALL windows on ANY window CloseRequest -----
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {

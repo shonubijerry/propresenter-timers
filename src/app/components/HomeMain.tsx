@@ -143,7 +143,10 @@ export default function HomeMain({
       <About open={openAbout} onClose={toggleAboutModal} />
       <IconButton
         className='fixed bottom-10 right-14 z-50 hover:bg-blue-600 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200'
-        style={{ color: 'var(--destructive-foreground)', background: 'var(--primary)' }}
+        style={{
+          color: 'var(--destructive-foreground)',
+          background: 'var(--primary)',
+        }}
         icon={<BiPlus size={40} />}
         onClick={() => setIsCreatingTimer(true)}
       />

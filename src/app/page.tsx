@@ -11,6 +11,7 @@ import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useTimersApi } from './hooks/useTimerApi'
 
 export default function Home() {
+  const { isLoading } = useSettings()
   const {
     timers,
     fetchTimers,
@@ -25,7 +26,6 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false)
 
   const { currentTimer, setCurrentTimer, localTimer } = useShared()
-  const { isLoading } = useSettings()
 
   const operationInProgress = useRef(false)
 
@@ -82,14 +82,19 @@ export default function Home() {
         if (runningTimer) {
           setCurrentTimer(runningTimer)
 
-          if (runningTimer.state === 'running') {
-            localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
-          } else if (runningTimer.state === 'overrunning') {
+          if (
+            runningTimer.state === 'overrunning' ||
+            runningTimer.remainingSeconds < 0
+          ) {
+            const elapsed = runningTimer.remainingSeconds * -1
+
             const timestamp = Date.now()
             localTimer.overtime.reset(
-              new Date(timestamp + (runningTimer.remainingSeconds ?? 0) * 1000),
+              new Date(timestamp + elapsed * 1000),
               true
             )
+          } else if (runningTimer.state === 'running') {
+            localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
           }
         }
       })
@@ -179,13 +184,7 @@ export default function Home() {
         refetch()
       }, `Failed to ${action} timer`)
     },
-    [
-      runOperation,
-      localTimer,
-      setCurrentTimer,
-      setTimerOperation,
-      refetch,
-    ]
+    [runOperation, localTimer, setCurrentTimer, setTimerOperation, refetch]
   )
 
   const onSearch = useCallback(

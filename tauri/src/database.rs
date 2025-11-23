@@ -18,6 +18,20 @@ pub struct Timer {
   pub updated_at: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PartialTimer {
+  pub uuid: Option<String>,
+  pub index_num: Option<i32>,
+  pub name: Option<String>,
+  pub allows_overrun: Option<bool>,
+  pub countdown_duration: Option<f64>,
+  pub state: Option<String>,
+  pub remaining_seconds: Option<f64>,
+  pub started_at: Option<i64>,
+  pub created_at: Option<i64>,
+  pub updated_at: Option<i64>,
+}
+
 // Database struct to hold the connection
 pub struct Database {
   conn: Mutex<Connection>,
@@ -85,25 +99,24 @@ impl Database {
   }
 
   // Update a timer
-  pub fn update(&self, timer: &Timer) -> Result<(), Error> {
+  pub fn update(&self, timer: &PartialTimer) -> Result<(), Error> {
     let conn = self.conn.lock().unwrap();
+    println!("{:?}", timer);
 
     conn.execute(
       "UPDATE timers SET
-                index_num = ?2,
-                name = ?3,
-                allows_overrun = ?4,
-                countdown_duration = ?5,
-                state = ?6,
-                remaining_seconds = ?7,
-                started_at = ?8,
-                updated_at = ?9
-             WHERE uuid = ?1",
+            name = COALESCE(?2, name),
+            allows_overrun = COALESCE(?3, allows_overrun),
+            countdown_duration = COALESCE(?4, countdown_duration),
+            state = COALESCE(?5, state),
+            remaining_seconds = COALESCE(?6, remaining_seconds),
+            started_at = ?7,
+            updated_at = COALESCE(?8, updated_at)
+         WHERE uuid = ?1",
       params![
         timer.uuid,
-        timer.index_num,
         timer.name,
-        timer.allows_overrun as i32,
+        timer.allows_overrun,
         timer.countdown_duration,
         timer.state,
         timer.remaining_seconds,
