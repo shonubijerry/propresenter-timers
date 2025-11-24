@@ -67,6 +67,7 @@ export default function HomeMain({
   const handleOpenFullScreen = useCallback(async () => {
     try {
       await openNewWindow()
+      toastSuccess('Fullscreen opened')
     } catch (err) {
       toastError(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`

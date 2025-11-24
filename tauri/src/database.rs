@@ -101,7 +101,6 @@ impl Database {
   // Update a timer
   pub fn update(&self, timer: &PartialTimer) -> Result<(), Error> {
     let conn = self.conn.lock().unwrap();
-    println!("{:?}", timer);
 
     conn.execute(
       "UPDATE timers SET
