@@ -7,6 +7,7 @@ import React, {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from 'react'
 import logoSvg from '../../../public/logo.svg'
 import { appDataDir, BaseDirectory } from '@tauri-apps/api/path'
@@ -18,6 +19,7 @@ import {
 } from '@tauri-apps/plugin-fs'
 import { checkUpdate } from '@/lib/update'
 import { toastError, toastInfo } from '@/lib/toastUtils'
+import { invoke } from '@tauri-apps/api/core'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -36,6 +38,8 @@ const SettingsContext = createContext<{
   openSettingsDialog: () => void
   closeSettingsDialog: () => void
   isLoading: boolean
+  fluidTimers: string[]
+  refreshFluidTimers: () => Promise<void>
 } | null>(null)
 
 export const useSettings = () => {
@@ -50,13 +54,14 @@ const defaultSettings = {
   address: 'http://192.168.1.103',
   port: 58000,
   theme: 'system' as const,
-  datastore: 'proPresenter' as const
+  datastore: 'proPresenter' as const,
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [fluidTimers, setfluidTimers] = useState<string[]>([])
 
   async function getProdSettings(): Promise<AppSettings | undefined> {
     if (typeof window !== 'undefined' && window.isTauri) {
@@ -123,6 +128,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setSettings(loadedSettings)
       setIsLoading(false)
     })
+
+    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers').then(
+      (fluids) => setfluidTimers(fluids.map((f) => f.timer_id))
+    )
+  }, [])
+
+  const refreshFluidTimers = useCallback(async () => {
+    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers').then(
+      (fluids) => setfluidTimers(fluids.map((f) => f.timer_id))
+    )
   }, [])
 
   async function updateSettings(newSettings: AppSettings): Promise<void> {
@@ -179,6 +194,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         openSettingsDialog,
         closeSettingsDialog,
         isLoading,
+        fluidTimers,
+        refreshFluidTimers,
       }}
     >
       {children}

@@ -11,6 +11,12 @@ import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
+import { useCallback, useEffect } from 'react'
+import { invoke } from '@tauri-apps/api/core'
+import { useSettings } from '@/app/providers/settings'
+import { CgUnblock } from 'react-icons/cg'
+import { TbLock } from 'react-icons/tb'
+import Alert from '../ui/Alert'
 
 interface TimerCardProps {
   timer: Timer
@@ -31,6 +37,29 @@ export function TimerCard({
   onOpenFullScreen,
   onEditClick,
 }: TimerCardProps) {
+  const { fluidTimers, refreshFluidTimers } = useSettings()
+
+  const addFluidTime = useCallback(
+    async (timer: Timer) => {
+      await invoke('add_fluid_timer', {
+        timerId: timer.id.uuid,
+        createdAt: Date.now(),
+      })
+      refreshFluidTimers()
+    },
+    [refreshFluidTimers]
+  )
+
+  const removeFluidTime = useCallback(
+    async (timer: Timer) => {
+      await invoke('delete_fluid_timer', {
+        timerId: timer.id.uuid,
+      })
+      refreshFluidTimers()
+    },
+    [refreshFluidTimers]
+  )
+
   return (
     <div
       className={
@@ -90,6 +119,15 @@ export function TimerCard({
             Active
           </div>
         )}
+        {fluidTimers.includes(timer.id.uuid) && (
+          <IconButton
+            style={{ color: 'var(--destructive)' }}
+            icon={<CgUnblock size={30} />}
+            tooltip='Unlock for editing'
+            tooltipPosition='top'
+            onClick={() => removeFluidTime(timer)}
+          />
+        )}
       </div>
 
       {timer.countdown ? (
@@ -129,54 +167,74 @@ export function TimerCard({
 
           {/* Action Buttons */}
           <div className='flex gap-8 flex-wrap'>
-            <IconButton
-              disabled={localTimer.isRunning || localTimer.overtime.isRunning}
-              style={{ color: 'var(--green)' }}
-              icon={<IoPlayOutline size={30} />}
-              tooltip='Start'
-              tooltipPosition='top'
-              onClick={() => onOperation(timer, 'start')}
-            />
-            <IconButton
-              disabled={
-                (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                !isActive
-              }
-              style={{ color: 'var(--orange)' }}
-              icon={<IoStopOutline size={30} />}
-              tooltip='Stop'
-              tooltipPosition='top'
-              onClick={() => onOperation(timer, 'stop')}
-            />
-            <IconButton
-              disabled={
-                (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                !isActive
-              }
-              style={{ color: 'var(--ring)' }}
-              icon={<LuTimerReset size={30} />}
-              tooltip='Reset'
-              tooltipPosition='top'
-              onClick={() => onOperation(timer, 'reset')}
-            />
-            <IconButton
-              disabled={
-                (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                isActive
-              }
-              style={{ color: 'var(--ring)' }}
-              icon={<AiOutlineEdit size={30} />}
-              tooltip='Edit'
-              tooltipPosition='top'
-              onClick={onEditClick}
-            />
-            <IconButton
-              style={{ color: 'var(--destructive)' }}
-              icon={<MdOutlineDelete size={30} />}
-              tooltip='Delete'
-              tooltipPosition='top'
-              onClick={() => onDelete(timer.id.uuid)}
-            />
+            {fluidTimers.includes(timer.id.uuid) ? (
+              <Alert
+                title=''
+                type='info'
+                message='This event should remain locked. Modifying it would compromise the integrity of the ProPresenter screen configuration.
+                  It must remain locked for the screens to function correctly. DO NOT DELETE'
+              ></Alert>
+            ) : (
+              <>
+                <IconButton
+                  disabled={
+                    localTimer.isRunning || localTimer.overtime.isRunning
+                  }
+                  style={{ color: 'var(--green)' }}
+                  icon={<IoPlayOutline size={30} />}
+                  tooltip='Start'
+                  tooltipPosition='top'
+                  onClick={() => onOperation(timer, 'start')}
+                />
+                <IconButton
+                  disabled={
+                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                    !isActive
+                  }
+                  style={{ color: 'var(--orange)' }}
+                  icon={<IoStopOutline size={30} />}
+                  tooltip='Stop'
+                  tooltipPosition='top'
+                  onClick={() => onOperation(timer, 'stop')}
+                />
+                <IconButton
+                  disabled={
+                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                    !isActive
+                  }
+                  style={{ color: 'var(--ring)' }}
+                  icon={<LuTimerReset size={30} />}
+                  tooltip='Reset'
+                  tooltipPosition='top'
+                  onClick={() => onOperation(timer, 'reset')}
+                />
+                <IconButton
+                  disabled={
+                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                    isActive
+                  }
+                  style={{ color: 'var(--ring)' }}
+                  icon={<AiOutlineEdit size={30} />}
+                  tooltip='Edit'
+                  tooltipPosition='top'
+                  onClick={onEditClick}
+                />
+                <IconButton
+                  style={{ color: 'var(--destructive)' }}
+                  icon={<TbLock size={30} />}
+                  tooltip='Lock from deleting'
+                  tooltipPosition='top'
+                  onClick={() => addFluidTime(timer)}
+                />
+                <IconButton
+                  style={{ color: 'var(--destructive)' }}
+                  icon={<MdOutlineDelete size={30} />}
+                  tooltip='Delete'
+                  tooltipPosition='top'
+                  onClick={() => onDelete(timer.id.uuid)}
+                />
+              </>
+            )}
           </div>
         </div>
       ) : (

@@ -5,7 +5,7 @@ mod handlers;
 use crate::database::Database;
 use crate::handlers::{
   count_timers, create_timer, delete_timer, get_timer, list_timers, list_timers_paginated,
-  update_timer,
+  update_timer, add_fluid_timer, list_fluid_timers, delete_fluid_timer,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -76,7 +76,10 @@ pub fn run() {
       update_timer,
       delete_timer,
       list_timers_paginated,
-      count_timers
+      count_timers,
+      add_fluid_timer,
+      list_fluid_timers,
+      delete_fluid_timer
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

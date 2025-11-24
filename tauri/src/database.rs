@@ -32,6 +32,13 @@ pub struct PartialTimer {
   pub updated_at: Option<i64>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Type)]
+pub struct FluidTimer {
+  pub id: i32,
+  pub timer_id: String,
+  pub created_at: i64,
+}
+
 // Database struct to hold the connection
 pub struct Database {
   conn: Mutex<Connection>,
@@ -209,6 +216,48 @@ impl Database {
 
     Ok(count)
   }
+
+  pub fn insert_fluid_timer(&self, timer_id: &String, created_at: i64) -> Result<(), Error> {
+    let conn = self.conn.lock().unwrap();
+
+    conn.execute(
+      "INSERT INTO fluid_timers (timer_id, created_at)
+             VALUES (?1, ?2)",
+      params![timer_id, created_at],
+    )?;
+
+    Ok(())
+  }
+
+  pub fn list_fluid(&self) -> Result<Vec<FluidTimer>, Error> {
+    let conn = self.conn.lock().unwrap();
+
+    let mut stmt = conn.prepare("SELECT * FROM fluid_timers")?;
+
+    let fluid_timer_iter = stmt.query_map(params![], |row| {
+      Ok(FluidTimer {
+        id: row.get(0)?,
+        timer_id: row.get(1)?,
+        created_at: row.get(2)?,
+      })
+    })?;
+
+    let mut timers = Vec::new();
+    for timer in fluid_timer_iter {
+      timers.push(timer?);
+    }
+
+    Ok(timers)
+  }
+
+  // Delete a timer by UUID
+  pub fn delete_fluid(&self, timer_id: &str) -> Result<(), Error> {
+    let conn = self.conn.lock().unwrap();
+
+    conn.execute("DELETE FROM fluid_timers WHERE timer_id = ?1", params![timer_id])?;
+
+    Ok(())
+  }
 }
 
 // Your existing init_db function
@@ -227,6 +276,11 @@ fn init_db(path: &str) -> Result<Connection, rusqlite::Error> {
       started_at INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS fluid_timers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timer_id TEXT UNIQUE,
+      created_at INTEGER NOT NULL
     );
     "#,
   )?;

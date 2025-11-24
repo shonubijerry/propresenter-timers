@@ -7,6 +7,7 @@ import Modal from './Modal'
 import { RadioGroup } from '@headlessui/react'
 import { cn } from '@/lib/cn'
 import { fetchJson } from '@/app/hooks/client'
+import { IoMdCheckmarkCircleOutline } from 'react-icons/io'
 
 export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =
@@ -96,10 +97,13 @@ export default function SettingsDialog() {
                         checked
                           ? 'bg-primary border-transparent text-primary-foreground hover:bg-primary/90'
                           : 'bg-background border-border hover:bg-accent hover:text-accent-foreground',
-                        'border rounded-lg py-3 px-3 flex items-center justify-center text-sm font-medium'
+                        'border rounded-lg py-3 px-4 flex items-center justify-center text-sm font-medium relative'
                       )
                     }
                   >
+                    {settings?.datastore === option.value && (
+                      <IoMdCheckmarkCircleOutline className='absolute top-1 right-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer' />
+                    )}
                     <RadioGroup.Label as='span'>
                       {option.label}
                     </RadioGroup.Label>
@@ -211,10 +215,13 @@ export default function SettingsDialog() {
                         checked
                           ? 'bg-primary border-transparent text-primary-foreground hover:bg-primary/90'
                           : 'bg-background border-border hover:bg-accent hover:text-accent-foreground',
-                        'border rounded-lg py-3 px-3 flex items-center justify-center text-sm font-medium uppercase'
+                        'border rounded-lg py-3 px-4 flex items-center justify-center text-sm font-medium capitalize relative'
                       )
                     }
                   >
+                    {settings?.theme === mode && (
+                      <IoMdCheckmarkCircleOutline className='absolute top-1 right-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer' />
+                    )}
                     <RadioGroup.Label as='span'>{mode}</RadioGroup.Label>
                   </RadioGroup.Option>
                 ))}

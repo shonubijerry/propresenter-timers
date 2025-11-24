@@ -7,6 +7,14 @@ import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
 import { Timer } from '../interfaces/time'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LocalTime, useShared } from '../providers/timer'
+import { toastError, toastInfo } from '@/lib/toastUtils'
+import useSecondScreenDisplay from '../hooks/secondary_display/useSecondaryDisplay'
+import { useSettings } from '../providers/settings'
+import { TimerActions } from '../hooks/timer'
+import { TimerCardEdit } from './timer_card/TimerCardEdit'
+import { BiPlus } from 'react-icons/bi'
+import IconButton from './ui/IconButton'
 
 interface HomeMainProps {
   searchableTimers: Timer[]
@@ -19,14 +27,6 @@ interface HomeMainProps {
   updateTimerInList: (timer: Timer) => void
   onSearch: (term: string) => void
 }
-import { LocalTime, useShared } from '../providers/timer'
-import { toastError, toastSuccess } from '@/lib/toastUtils'
-import useSecondScreenDisplay from '../hooks/secondary_display/useSecondaryDisplay'
-import { useSettings } from '../providers/settings'
-import { TimerActions } from '../hooks/timer'
-import { TimerCardEdit } from './timer_card/TimerCardEdit'
-import { BiPlus } from 'react-icons/bi'
-import IconButton from './ui/IconButton'
 
 export default function HomeMain({
   searchableTimers,
@@ -67,7 +67,7 @@ export default function HomeMain({
   const handleOpenFullScreen = useCallback(async () => {
     try {
       await openNewWindow()
-      toastSuccess('Fullscreen opened')
+      toastInfo('External screen opened')
     } catch (err) {
       toastError(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
@@ -83,7 +83,7 @@ export default function HomeMain({
     if (fullscreenWindow && !fullscreenWindow.closed) {
       fullscreenWindow.close()
     }
-    toastSuccess('External screen closed')
+    toastInfo('External screen closed')
   }, [fullscreenWindow, closeTauriWindow])
 
   const toggleAboutModal = () => {
