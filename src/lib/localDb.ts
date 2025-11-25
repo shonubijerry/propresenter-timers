@@ -26,14 +26,6 @@ const getRemainingSeconds = ({
   const remaining = Math.floor(remaining_seconds - elapsedTime)
   const negative = remaining < 0
 
-  console.log({
-    remainingSeconds: remaining,
-    time: negative
-      ? `-${formatSecondsToTime(remaining * -1)}`
-      : formatSecondsToTime(remaining),
-  });
-
-
   return {
     remainingSeconds: remaining,
     time: negative
@@ -229,13 +221,16 @@ export const setTimerUpdateOperationInDb = async (
 
     const sqliteTimer: Partial<SqliteTimer> = {
       uuid: id,
-      name,
       countdown_duration: duration,
       remaining_seconds: duration,
       allows_overrun: true,
       state,
       started_at,
       updated_at: now,
+    }
+
+    if (name.length) {
+      sqliteTimer.name = name
     }
 
     await invoke('update_timer', { timer: sqliteTimer })

@@ -36,6 +36,7 @@ pub struct PartialTimer {
 pub struct FluidTimer {
   pub id: i32,
   pub timer_id: String,
+  pub source: String,
   pub created_at: i64,
 }
 
@@ -217,28 +218,29 @@ impl Database {
     Ok(count)
   }
 
-  pub fn insert_fluid_timer(&self, timer_id: &String, created_at: i64) -> Result<(), Error> {
+  pub fn insert_fluid_timer(&self, timer_id: &String, created_at: i64, source: &String) -> Result<(), Error> {
     let conn = self.conn.lock().unwrap();
 
     conn.execute(
-      "INSERT INTO fluid_timers (timer_id, created_at)
-             VALUES (?1, ?2)",
-      params![timer_id, created_at],
+      "INSERT INTO fluid_timers (timer_id, created_at, source)
+             VALUES (?1, ?2, ?3)",
+      params![timer_id, created_at, source],
     )?;
 
     Ok(())
   }
 
-  pub fn list_fluid(&self) -> Result<Vec<FluidTimer>, Error> {
+  pub fn list_fluid(&self, source: &str) -> Result<Vec<FluidTimer>, Error> {
     let conn = self.conn.lock().unwrap();
 
-    let mut stmt = conn.prepare("SELECT * FROM fluid_timers")?;
+    let mut stmt = conn.prepare("SELECT * FROM fluid_timers WHERE source = (?1)")?;
 
-    let fluid_timer_iter = stmt.query_map(params![], |row| {
+    let fluid_timer_iter = stmt.query_map(params![source], |row| {
       Ok(FluidTimer {
         id: row.get(0)?,
         timer_id: row.get(1)?,
-        created_at: row.get(2)?,
+        source: row.get(2)?,
+        created_at: row.get(3)?,
       })
     })?;
 
@@ -280,6 +282,7 @@ fn init_db(path: &str) -> Result<Connection, rusqlite::Error> {
     CREATE TABLE IF NOT EXISTS fluid_timers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timer_id TEXT UNIQUE,
+      "source"	TEXT,
       created_at INTEGER NOT NULL
     );
     "#,

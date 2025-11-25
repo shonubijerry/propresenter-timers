@@ -42,13 +42,13 @@ pub fn count_timers(db: State<Database>) -> Result<i32, String> {
 }
 
 #[tauri::command]
-pub fn add_fluid_timer(db: State<Database>, timer_id: String, created_at: i64) -> Result<(), String> {
-  db.insert_fluid_timer(&timer_id, created_at).map_err(|e| e.to_string())
+pub fn add_fluid_timer(db: State<Database>, timer_id: String, created_at: i64, source: String) -> Result<(), String> {
+  db.insert_fluid_timer(&timer_id, created_at, &source).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn list_fluid_timers(db: State<Database>) -> Result<Vec<FluidTimer>, String> {
-  db.list_fluid().map_err(|e| e.to_string())
+pub fn list_fluid_timers(db: State<Database>, source: String) -> Result<Vec<FluidTimer>, String> {
+  db.list_fluid(&source).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

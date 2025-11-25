@@ -122,6 +122,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return defaultSettings
   }
 
+  const refreshFluidTimers = useCallback(async () => {
+    if(!settings?.datastore) return
+
+    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
+      source: settings.datastore,
+    }).then((fluids) => setfluidTimers(fluids.map((f) => f.timer_id)))
+  }, [settings])
+
   useEffect(() => {
     setIsLoading(true)
     getProdSettings().then((loadedSettings) => {
@@ -129,15 +137,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     })
 
-    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers').then(
-      (fluids) => setfluidTimers(fluids.map((f) => f.timer_id))
-    )
-  }, [])
-
-  const refreshFluidTimers = useCallback(async () => {
-    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers').then(
-      (fluids) => setfluidTimers(fluids.map((f) => f.timer_id))
-    )
+    refreshFluidTimers()
   }, [])
 
   async function updateSettings(newSettings: AppSettings): Promise<void> {

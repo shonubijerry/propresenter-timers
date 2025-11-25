@@ -11,7 +11,7 @@ import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useSettings } from '@/app/providers/settings'
 import { CgUnblock } from 'react-icons/cg'
@@ -37,17 +37,20 @@ export function TimerCard({
   onOpenFullScreen,
   onEditClick,
 }: TimerCardProps) {
-  const { fluidTimers, refreshFluidTimers } = useSettings()
+  const { fluidTimers, refreshFluidTimers, settings } = useSettings()
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
+      console.log(settings?.datastore);
+
       await invoke('add_fluid_timer', {
         timerId: timer.id.uuid,
+        source: settings?.datastore,
         createdAt: Date.now(),
       })
       refreshFluidTimers()
     },
-    [refreshFluidTimers]
+    [refreshFluidTimers, settings]
   )
 
   const removeFluidTime = useCallback(

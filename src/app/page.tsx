@@ -11,7 +11,7 @@ import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useTimersApi } from './hooks/useTimerApi'
 
 export default function Home() {
-  const { isLoading } = useSettings()
+  const { isLoading, fluidTimers } = useSettings()
   const {
     timers,
     fetchTimers,
@@ -20,6 +20,7 @@ export default function Home() {
     setTimerOperation,
     setAllTimersOperation,
     updateTimers,
+    setTimerUpdateOperation,
   } = useTimersApi()
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
@@ -174,6 +175,20 @@ export default function Home() {
         localTimer.overtime.reset(undefined, false)
         await setTimerOperation(action, timer.id.uuid)
 
+        console.log('fluidTimers', fluidTimers)
+
+        if (fluidTimers.length)
+          await Promise.all(
+            fluidTimers.map((timerId) => {
+              return setTimerUpdateOperation(
+                timer.countdown!.duration,
+                '',
+                action,
+                timerId
+              )
+            })
+          )
+
         if (action === 'reset') {
           setCurrentTimer(null)
           localTimer.handleLocalTimer('reset', timer.countdown?.duration)
@@ -184,7 +199,15 @@ export default function Home() {
         refetch()
       }, `Failed to ${action} timer`)
     },
-    [runOperation, localTimer, setCurrentTimer, setTimerOperation, refetch]
+    [
+      runOperation,
+      localTimer,
+      setCurrentTimer,
+      setTimerOperation,
+      refetch,
+      setTimerUpdateOperation,
+      fluidTimers,
+    ]
   )
 
   const onSearch = useCallback(

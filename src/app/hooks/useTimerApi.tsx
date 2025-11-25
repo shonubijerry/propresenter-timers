@@ -43,7 +43,7 @@ export const useTimersApi = (): TimersApiHook => {
   const [timers, setTimers] = useState<Timer[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
-  const { proPresenterUrl: baseUrl, settings } = useSettings()
+  const { proPresenterUrl: baseUrl, settings, fluidTimers } = useSettings()
 
   const isLocalDb = settings?.datastore === 'localDb'
 
@@ -133,12 +133,15 @@ export const useTimersApi = (): TimersApiHook => {
 
   const editTimer = useCallback(
     async (duration: number, name: string, id?: string): Promise<Timer> => {
+      if (!id) throw new Error('Id not set for update')
+
+      if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
+
       if (isLocalDb) {
         return await editTimerInDb(duration, name, id)
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
-      if (!id) throw new Error('Id not set for update')
 
       return fetchJson<Timer>(
         `${baseUrl}/v1/timer/${id}`,
@@ -155,18 +158,21 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to update timer'
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, fluidTimers]
   )
 
   const deleteTimer = useCallback(
     async (id?: string): Promise<void> => {
+      if (!id) throw new Error('Id not set for delete')
+
+      if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
+
       if (isLocalDb) {
         await deleteTimerFromDb(id)
         return
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
-      if (!id) throw new Error('Id not set for delete')
 
       await fetchJson<void>(
         `${baseUrl}/v1/timer/${id}`,
@@ -174,18 +180,21 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to delete timer'
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, fluidTimers]
   )
 
   const setTimerOperation = useCallback(
     async (operation: string, id?: string): Promise<void> => {
+      if (!id) throw new Error('Id not set for operation')
+
+      if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
+
       if (isLocalDb) {
         await setTimerOperationInDb(operation, id)
         return
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
-      if (!id) throw new Error('Id not set for operation')
 
       await fetchJson<void>(
         `${baseUrl}/v1/timer/${id}/${operation}`,
@@ -193,7 +202,7 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed: ${operation}`
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, fluidTimers]
   )
 
   const setTimerUpdateOperation = useCallback(
@@ -203,12 +212,13 @@ export const useTimersApi = (): TimersApiHook => {
       operation: string,
       id?: string
     ): Promise<Timer> => {
+      if (!id) throw new Error('Id not set for operation')
+
       if (isLocalDb) {
         return await setTimerUpdateOperationInDb(duration, name, operation, id)
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
-      if (!id) throw new Error('Id not set for operation')
 
       return fetchJson<Timer>(
         `${baseUrl}/v1/timer/${id}/${operation}`,
@@ -218,7 +228,7 @@ export const useTimersApi = (): TimersApiHook => {
             allows_overrun: true,
             countdown: { duration },
             id: {
-              name,
+              name: name.length ? name : undefined,
             },
           }),
         },
