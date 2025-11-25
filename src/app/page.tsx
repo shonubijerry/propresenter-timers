@@ -175,8 +175,6 @@ export default function Home() {
         localTimer.overtime.reset(undefined, false)
         await setTimerOperation(action, timer.id.uuid)
 
-        console.log('fluidTimers', fluidTimers)
-
         if (fluidTimers.length)
           await Promise.all(
             fluidTimers.map((timerId) => {

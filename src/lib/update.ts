@@ -3,7 +3,6 @@ import { relaunch } from '@tauri-apps/plugin-process'
 
 export const checkUpdate = async () => {
   const update = await check()
-  console.log('update', update)
 
   if (update) {
     console.log(
@@ -28,7 +27,6 @@ export const checkUpdate = async () => {
       }
     })
 
-    console.log('update installed')
     await relaunch()
   }
 }

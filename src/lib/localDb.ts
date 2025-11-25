@@ -154,7 +154,6 @@ export const setTimerOperationInDb = async (
   id?: string
 ): Promise<void> => {
   if (!id) throw new Error('Id not set for operation')
-  console.log(operation, id)
 
   try {
     const timer = await invoke<SqliteTimer>('get_timer', { uuid: id })

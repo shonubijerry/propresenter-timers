@@ -41,8 +41,6 @@ export function TimerCard({
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
-      console.log(settings?.datastore);
-
       await invoke('add_fluid_timer', {
         timerId: timer.id.uuid,
         source: settings?.datastore,
@@ -223,7 +221,7 @@ export function TimerCard({
                   onClick={onEditClick}
                 />
                 <IconButton
-                  style={{ color: 'var(--destructive)' }}
+                  style={{ color: 'var(--ring)' }}
                   icon={<TbLock size={30} />}
                   tooltip='Lock from deleting'
                   tooltipPosition='top'
