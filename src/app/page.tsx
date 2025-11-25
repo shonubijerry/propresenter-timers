@@ -77,9 +77,7 @@ export default function Home() {
         if (!mounted) return
         // If there's a running timer from initial fetch, sync it
         const runningTimer = fetched.find(
-          (d) =>
-            ['running', 'overrunning'].includes(d.state) &&
-            !fluidTimers.includes(d.id.uuid)
+          (d) => ['running', 'overrunning'].includes(d.state) && !d.isFluid
         )
 
         if (runningTimer) {

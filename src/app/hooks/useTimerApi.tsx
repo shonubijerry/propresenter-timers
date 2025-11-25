@@ -13,6 +13,7 @@ import {
   setTimerUpdateOperationInDb,
   setAllTimersOperationInDb,
 } from '../../lib/localDb'
+import { invoke } from '@tauri-apps/api/core'
 
 interface TimersApiHook {
   timers: Timer[]
@@ -69,8 +70,11 @@ export const useTimersApi = (): TimersApiHook => {
         undefined,
         'Failed to fetch current timers'
       ),
+      invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
+        source: settings?.datastore,
+      }).then((f) => f.map((t) => t.timer_id)),
     ])
-      .then(([all, current]) => {
+      .then(([all, current, fluidTimers]) => {
         const map = new Map(
           current.map((t) => [
             t.id.uuid,
@@ -78,13 +82,17 @@ export const useTimersApi = (): TimersApiHook => {
           ])
         )
 
-        return all.map((t) => ({ ...t, ...map.get(t.id.uuid) }))
+        return all.map((t) => ({
+          ...t,
+          ...map.get(t.id.uuid),
+          isFluid: fluidTimers.includes(t.id.uuid),
+        }))
       })
       .catch((err) => {
         setError(err)
         return []
       })
-  }, [baseUrl, isLocalDb])
+  }, [baseUrl, isLocalDb, settings?.datastore])
 
   // --- Data Fetch Effect ---
   const refetch = useCallback(async () => {

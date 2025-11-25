@@ -9,4 +9,5 @@ export interface Timer {
   state: 'stopped' | 'running' | 'complete' | 'overran' | 'overrunning'
   time: string
   remainingSeconds: number
+  isFluid?: boolean
 }

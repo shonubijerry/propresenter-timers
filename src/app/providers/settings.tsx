@@ -102,7 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
       source: settings?.datastore,
     }).then((fluids) => setfluidTimers(fluids.map((f) => f.timer_id)))
-  }, [settings])
+  }, [settings?.datastore])
 
   async function updateSettings(newSettings: AppSettings): Promise<void> {
     const updatedSettings = { ...settings, ...newSettings }
