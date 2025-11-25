@@ -10,15 +10,7 @@ import React, {
   useCallback,
 } from 'react'
 import logoSvg from '../../../public/logo.svg'
-import { appDataDir, BaseDirectory } from '@tauri-apps/api/path'
-import {
-  exists,
-  mkdir,
-  readTextFile,
-  writeTextFile,
-} from '@tauri-apps/plugin-fs'
 import { checkUpdate } from '@/lib/update'
-import { toastError, toastInfo } from '@/lib/toastUtils'
 import { invoke } from '@tauri-apps/api/core'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -69,61 +61,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         await checkUpdate()
       }
 
-      try {
-        const appDirExists = await exists('', {
-          baseDir: BaseDirectory.AppLocalData,
-        })
+      const data = await invoke<AppSettings>('get_settings')
 
-        if (!appDirExists) {
-          await mkdir(await appDataDir())
-        }
-
-        const fileExists = await exists('settings.json', {
-          baseDir: BaseDirectory.AppLocalData,
-        })
-
-        if (!fileExists) {
-          await writeTextFile(
-            'settings.json',
-            JSON.stringify(defaultSettings, null, 2),
-            { baseDir: BaseDirectory.AppLocalData }
-          )
-        } else {
-          const data = await readTextFile('settings.json', {
-            baseDir: BaseDirectory.AppLocalData,
-          })
-          return JSON.parse(data) as AppSettings
-        }
-      } catch (err) {
-        console.error(
-          'Failed to read Tauri settings:',
-          JSON.stringify(err, Object.getOwnPropertyNames(err))
-        )
-        toastInfo('Tauri => Default settings being used')
+      if (!data) {
+        await invoke('modify_settings', { settings: defaultSettings })
+        return defaultSettings
       }
+
+      return data
     }
 
     const savedSettings = localStorage.getItem('app-settings')
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings) as AppSettings
-        if (parsedSettings.address && parsedSettings.port) {
-          return parsedSettings
-        }
-      } catch (err) {
-        console.error(
-          'Failed to parse local settings:',
-          JSON.stringify(err, Object.getOwnPropertyNames(err))
-        )
-        toastInfo('Local => Default settings being used')
-      }
+    if (!savedSettings) {
+      localStorage.setItem('app-settings', JSON.stringify(defaultSettings))
+      return defaultSettings
     }
 
-    return defaultSettings
+    return JSON.parse(savedSettings)
   }
 
   const refreshFluidTimers = useCallback(async () => {
-    if(!settings?.datastore) return
+    if (!settings?.datastore) return
 
     invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
       source: settings.datastore,
@@ -136,9 +94,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setSettings(loadedSettings)
       setIsLoading(false)
     })
-
-    refreshFluidTimers()
   }, [])
+
+  useEffect(() => {
+    if (!settings?.datastore) return
+
+    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
+      source: settings?.datastore,
+    }).then((fluids) => setfluidTimers(fluids.map((f) => f.timer_id)))
+  }, [settings])
 
   async function updateSettings(newSettings: AppSettings): Promise<void> {
     const updatedSettings = { ...settings, ...newSettings }
@@ -146,18 +110,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       if (window.isTauri) {
-        try {
-          await writeTextFile(
-            'settings.json',
-            JSON.stringify(updatedSettings, null, 2),
-            { baseDir: BaseDirectory.AppLocalData }
-          )
-          return
-        } catch (err) {
-          toastError(
-            `Failed to save Tauri settings: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
-          )
-        }
+        await invoke('modify_settings', { settings: updatedSettings })
+        return
       }
 
       localStorage.setItem('app-settings', JSON.stringify(updatedSettings))

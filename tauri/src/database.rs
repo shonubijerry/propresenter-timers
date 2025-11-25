@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection, Error};
+use rusqlite::{params, Connection, Error, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::sync::Mutex;
@@ -38,6 +38,14 @@ pub struct FluidTimer {
   pub timer_id: String,
   pub source: String,
   pub created_at: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AppSettings {
+  pub address: String,
+  pub port: i32,
+  pub theme: String,
+  pub datastore: String,
 }
 
 // Database struct to hold the connection
@@ -218,7 +226,12 @@ impl Database {
     Ok(count)
   }
 
-  pub fn insert_fluid_timer(&self, timer_id: &String, created_at: i64, source: &String) -> Result<(), Error> {
+  pub fn insert_fluid_timer(
+    &self,
+    timer_id: &String,
+    created_at: i64,
+    source: &String,
+  ) -> Result<(), Error> {
     let conn = self.conn.lock().unwrap();
 
     conn.execute(
@@ -256,7 +269,59 @@ impl Database {
   pub fn delete_fluid(&self, timer_id: &str) -> Result<(), Error> {
     let conn = self.conn.lock().unwrap();
 
-    conn.execute("DELETE FROM fluid_timers WHERE timer_id = ?1", params![timer_id])?;
+    conn.execute(
+      "DELETE FROM fluid_timers WHERE timer_id = ?1",
+      params![timer_id],
+    )?;
+
+    Ok(())
+  }
+
+  pub fn settings(&self) -> Result<Option<AppSettings>, String> {
+    let conn = self.conn.lock().unwrap();
+
+    let mut stmt = conn
+      .prepare("SELECT address, port, theme, datastore FROM settings WHERE id = 1")
+      .map_err(|e| e.to_string())?;
+
+    let result = stmt
+      .query_row((), |row| {
+        Ok(AppSettings {
+          address: row.get(0)?,
+          port: row.get(1)?,
+          theme: row.get(2)?,
+          datastore: row.get(3)?,
+        })
+      })
+      .optional()
+      .map_err(|e| e.to_string())?;
+
+    Ok(result)
+  }
+
+  pub fn update_settings(&self, settings: AppSettings) -> Result<(), String> {
+    let conn = self.conn.lock().unwrap();
+    let query = "
+        INSERT INTO settings (id, address, port, theme, datastore)
+        VALUES (1, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            address = excluded.address,
+            port = excluded.port,
+            theme = excluded.theme,
+            datastore = excluded.datastore;
+    ";
+
+    conn
+      .execute(
+        query,
+        (
+          &settings.address,
+          settings.port,
+          &settings.theme,
+          &settings.datastore,
+        ),
+      )
+      .map_err(|e| e.to_string())?;
 
     Ok(())
   }
@@ -282,8 +347,15 @@ fn init_db(path: &str) -> Result<Connection, rusqlite::Error> {
     CREATE TABLE IF NOT EXISTS fluid_timers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timer_id TEXT UNIQUE,
-      "source"	TEXT,
+      source	TEXT,
       created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      address TEXT NOT NULL,
+      port INTEGER NOT NULL,
+      theme TEXT NOT NULL,
+      datastore TEXT NOT NULL
     );
     "#,
   )?;
