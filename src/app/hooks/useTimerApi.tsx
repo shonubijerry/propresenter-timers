@@ -70,11 +70,18 @@ export const useTimersApi = (): TimersApiHook => {
         undefined,
         'Failed to fetch current timers'
       ),
-      invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
-        source: settings?.datastore,
-      }).then((f) => f.map((t) => t.timer_id)),
     ])
-      .then(([all, current, fluidTimers]) => {
+      .then(async ([all, current]) => {
+        const fluidTimers =
+          typeof window !== 'undefined' && window.isTauri
+            ? await invoke<{ id: string; timer_id: string }[]>(
+                'list_fluid_timers',
+                {
+                  source: settings?.datastore,
+                }
+              ).then((f) => f.map((t) => t.timer_id))
+            : ([] as string[])
+
         const map = new Map(
           current.map((t) => [
             t.id.uuid,

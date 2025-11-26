@@ -12,6 +12,7 @@ import React, {
 import logoSvg from '../../../public/logo.svg'
 import { checkUpdate } from '@/lib/update'
 import { invoke } from '@tauri-apps/api/core'
+import { toastWarning } from '@/lib/toastUtils'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -82,6 +83,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const refreshFluidTimers = useCallback(async () => {
     if (!settings?.datastore) return
+    if (typeof window === 'undefined' || !window.isTauri) return
 
     invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
       source: settings.datastore,
@@ -98,6 +100,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!settings?.datastore) return
+    if (typeof window === 'undefined' || !window.isTauri) {
+      toastWarning('Running in browser mode: fluid timers is not available')
+      return
+    }
 
     invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
       source: settings?.datastore,

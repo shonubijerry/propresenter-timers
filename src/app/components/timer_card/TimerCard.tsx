@@ -17,6 +17,7 @@ import { useSettings } from '@/app/providers/settings'
 import { CgUnblock } from 'react-icons/cg'
 import { TbLock } from 'react-icons/tb'
 import Alert from '../ui/Alert'
+import { toastWarning } from '@/lib/toastUtils'
 
 interface TimerCardProps {
   timer: Timer
@@ -41,6 +42,10 @@ export function TimerCard({
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
+      if (typeof window === 'undefined' || !window.isTauri) {
+        toastWarning('Fluid timers feature not available in browser mode')
+        return
+      }
       await invoke('add_fluid_timer', {
         timerId: timer.id.uuid,
         source: settings?.datastore,
@@ -187,7 +192,7 @@ export function TimerCard({
                   tooltipPosition='top'
                   onClick={() => onOperation(timer, 'start')}
                 />
-                <IconButton
+                {/* <IconButton
                   disabled={
                     (localTimer.isRunning || localTimer.overtime.isRunning) &&
                     !isActive
@@ -197,7 +202,7 @@ export function TimerCard({
                   tooltip='Stop'
                   tooltipPosition='top'
                   onClick={() => onOperation(timer, 'stop')}
-                />
+                /> */}
                 <IconButton
                   disabled={
                     (localTimer.isRunning || localTimer.overtime.isRunning) &&
