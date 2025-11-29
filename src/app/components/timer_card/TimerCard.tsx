@@ -4,7 +4,7 @@ import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../../interfaces/time'
 import { TimerActions } from '../../hooks/timer'
 import Watch from '../watch/Watch'
-import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
+import { IoPlayOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
 import { MdOutlineDelete } from 'react-icons/md'
@@ -12,7 +12,6 @@ import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
 import { useCallback } from 'react'
-import { invoke } from '@tauri-apps/api/core'
 import { useSettings } from '@/app/providers/settings'
 import { CgUnblock } from 'react-icons/cg'
 import { TbLock } from 'react-icons/tb'
@@ -38,7 +37,7 @@ export function TimerCard({
   onOpenFullScreen,
   onEditClick,
 }: TimerCardProps) {
-  const { fluidTimers, refreshFluidTimers, settings } = useSettings()
+  const { fluidTimers, settings, addFluidTimer, removeFluidTimer } = useSettings()
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
@@ -46,24 +45,13 @@ export function TimerCard({
         toastWarning('Fluid timers feature not available in browser mode')
         return
       }
-      await invoke('add_fluid_timer', {
-        timerId: timer.id.uuid,
-        source: settings?.datastore,
-        createdAt: Date.now(),
+      await addFluidTimer({
+        timer_id: timer.id.uuid,
+        source: settings!.datastore,
+        created_at: Date.now(),
       })
-      refreshFluidTimers()
     },
-    [refreshFluidTimers, settings]
-  )
-
-  const removeFluidTime = useCallback(
-    async (timer: Timer) => {
-      await invoke('delete_fluid_timer', {
-        timerId: timer.id.uuid,
-      })
-      refreshFluidTimers()
-    },
-    [refreshFluidTimers]
+    [addFluidTimer, settings]
   )
 
   return (
@@ -131,7 +119,7 @@ export function TimerCard({
             icon={<CgUnblock size={30} />}
             tooltip='Unlock for editing'
             tooltipPosition='top'
-            onClick={() => removeFluidTime(timer)}
+            onClick={() => removeFluidTimer(timer.id.uuid)}
           />
         )}
       </div>

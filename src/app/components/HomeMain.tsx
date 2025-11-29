@@ -101,7 +101,7 @@ export default function HomeMain({
         toggleAboutModal={toggleAboutModal}
       />
       <div className='max-w-6xl mx-auto px-6 py-8'>
-        {searchableTimers.length === 0 ? (
+        {searchableTimers.length === 0 && !isCreatingTimer ? (
           <EmptyTimer openSettings={openSettingsDialog} />
         ) : (
           <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>

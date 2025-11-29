@@ -8,11 +8,14 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useMemo,
 } from 'react'
 import logoSvg from '../../../public/logo.svg'
 import { checkUpdate } from '@/lib/update'
-import { invoke } from '@tauri-apps/api/core'
 import { toastWarning } from '@/lib/toastUtils'
+import { DbService } from '@/lib/database'
+import Database from '@tauri-apps/plugin-sql'
+import { v4 as uuidv4 } from 'uuid';
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -21,6 +24,13 @@ export interface AppSettings {
   port: number
   theme: ThemeMode
   datastore: 'proPresenter' | 'localDb'
+}
+
+interface SqliteFluidTimer {
+  id: number
+  timer_id: string
+  source: 'proPresenter' | 'localDb'
+  created_at: number
 }
 
 const SettingsContext = createContext<{
@@ -32,7 +42,9 @@ const SettingsContext = createContext<{
   closeSettingsDialog: () => void
   isLoading: boolean
   fluidTimers: string[]
-  refreshFluidTimers: () => Promise<void>
+  db?: Database
+  addFluidTimer: (data: Omit<SqliteFluidTimer, "id">) => Promise<void>
+  removeFluidTimer: (uuid: string) => Promise<void>
 } | null>(null)
 
 export const useSettings = () => {
@@ -43,11 +55,11 @@ export const useSettings = () => {
   return context
 }
 
-const defaultSettings = {
+const defaultSettings: AppSettings = {
   address: 'http://192.168.1.103',
   port: 58000,
-  theme: 'system' as const,
-  datastore: 'proPresenter' as const,
+  theme: 'system',
+  datastore: 'proPresenter',
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -55,81 +67,156 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [fluidTimers, setfluidTimers] = useState<string[]>([])
+  const [db, setDb] = useState<Database>()
 
-  async function getProdSettings(): Promise<AppSettings | undefined> {
-    if (typeof window !== 'undefined' && window.isTauri) {
-      if (window.__TAURI_INTERNALS__.metadata.currentWebview.label === 'main') {
-        await checkUpdate()
-      }
-
-      const data = await invoke<AppSettings>('get_settings')
-
-      if (!data) {
-        await invoke('modify_settings', { settings: defaultSettings })
-        return defaultSettings
-      }
-
-      return data
-    }
-
-    const savedSettings = localStorage.getItem('app-settings')
-    if (!savedSettings) {
-      localStorage.setItem('app-settings', JSON.stringify(defaultSettings))
-      return defaultSettings
-    }
-
-    return JSON.parse(savedSettings)
-  }
-
-  const refreshFluidTimers = useCallback(async () => {
-    if (!settings?.datastore) return
-    if (typeof window === 'undefined' || !window.isTauri) return
-
-    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
-      source: settings.datastore,
-    }).then((fluids) => setfluidTimers(fluids.map((f) => f.timer_id)))
-  }, [settings])
-
+  // Initialize database first
   useEffect(() => {
-    setIsLoading(true)
-    getProdSettings().then((loadedSettings) => {
-      setSettings(loadedSettings)
-      setIsLoading(false)
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!settings?.datastore) return
     if (typeof window === 'undefined' || !window.isTauri) {
-      toastWarning('Running in browser mode: fluid timers is not available')
       return
     }
 
-    invoke<{ id: string; timer_id: string }[]>('list_fluid_timers', {
-      source: settings?.datastore,
-    }).then((fluids) => setfluidTimers(fluids.map((f) => f.timer_id)))
-  }, [settings?.datastore])
+    Database.load('sqlite:timersv2.db')
+      .then((datab) => setDb(datab))
+      .catch((err) => {
+        console.error('Failed to load database:', err)
+      })
+  }, [])
 
-  async function updateSettings(newSettings: AppSettings): Promise<void> {
-    const updatedSettings = { ...settings, ...newSettings }
-    setSettings(updatedSettings)
+  // Create services only when db is available
+  const fluidTimerService = useMemo(() => {
+    if (!db) return null
+    return new DbService<SqliteFluidTimer>('fluid_timers', 'timer_id', db)
+  }, [db])
 
-    try {
-      if (window.isTauri) {
-        await invoke('modify_settings', { settings: updatedSettings })
+  const settingsService = useMemo(() => {
+    if (!db) return null
+    return new DbService<AppSettings>('settings', 'id', db)
+  }, [db])
+
+  // Load settings after services are ready
+  useEffect(() => {
+    async function loadSettings() {
+      setIsLoading(true)
+
+      try {
+        if (typeof window !== 'undefined' && window.isTauri) {
+          // Wait for settingsService to be ready
+          if (!settingsService) {
+            return
+          }
+
+          if (
+            window.__TAURI_INTERNALS__.metadata.currentWebview.label === 'main'
+          ) {
+            await checkUpdate()
+          }
+
+          const data = await settingsService.findAll()
+
+          if (!data.length) {
+            await settingsService.create(defaultSettings)
+            setSettings(defaultSettings)
+          } else {
+            setSettings(data[0])
+          }
+        } else {
+          // Browser mode
+          const savedSettings = localStorage.getItem('app-settings')
+          if (!savedSettings) {
+            localStorage.setItem(
+              'app-settings',
+              JSON.stringify(defaultSettings)
+            )
+            setSettings(defaultSettings)
+          } else {
+            setSettings(JSON.parse(savedSettings))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err)
+        setSettings(defaultSettings)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [settingsService])
+
+  // Load fluid timers when settings change
+  useEffect(() => {
+    async function loadFluidTimers() {
+      if (!settings?.datastore) return
+
+      if (typeof window === 'undefined' || !window.isTauri) {
+        toastWarning('Running in browser mode: fluid timers is not available')
         return
       }
 
-      localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
-    } catch (err) {
-      console.error(
-        `Failed to save settings: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
-      )
-    }
-  }
+      if (!fluidTimerService) return
 
-  const openSettingsDialog = () => setIsDialogOpen(true)
-  const closeSettingsDialog = () => setIsDialogOpen(false)
+      try {
+        const fluids = await fluidTimerService.findWhere({
+          source: settings.datastore,
+        })
+        setfluidTimers(fluids.map((f) => f.timer_id))
+      } catch (err) {
+        console.error('Failed to load fluid timers:', err)
+      }
+    }
+
+    loadFluidTimers()
+  }, [settings?.datastore, fluidTimerService])
+
+  const addFluidTimer = useCallback(async (data: Omit<SqliteFluidTimer, 'id'>) => {
+    if (!settings?.datastore) return
+    if (typeof window === 'undefined' || !window.isTauri) return
+    if (!fluidTimerService) return
+
+    try {
+      const fluids = await fluidTimerService.create(data)
+      setfluidTimers((prev) => [...prev, fluids.timer_id])
+    } catch (err) {
+      console.error('Failed to refresh fluid timers:', err)
+    }
+  }, [settings?.datastore, fluidTimerService])
+
+  const removeFluidTimer = useCallback(async (uuid: string) => {
+    if (typeof window === 'undefined' || !window.isTauri) return
+    if (!fluidTimerService) return
+
+    try {
+      await fluidTimerService.deleteWhere({  timer_id: uuid })
+      setfluidTimers((prev) => prev.filter((t) => t !== uuid))
+    } catch (err) {
+      console.error('Failed to refresh fluid timers:', err)
+    }
+  }, [fluidTimerService])
+
+  const updateSettings = useCallback(
+    async (newSettings: AppSettings): Promise<void> => {
+      const updatedSettings = { ...settings, ...newSettings }
+      setSettings(updatedSettings)
+
+      try {
+        if (typeof window !== 'undefined' && window.isTauri) {
+          if (settingsService) {
+            await settingsService.upsert(updatedSettings)
+          }
+        } else {
+          localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
+        }
+      } catch (err) {
+        console.error(
+          `Failed to save settings: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
+        )
+      }
+    },
+    [settings, settingsService]
+  )
+
+  const openSettingsDialog = useCallback(() => setIsDialogOpen(true), [])
+  const closeSettingsDialog = useCallback(() => setIsDialogOpen(false), [])
 
   if (isLoading) {
     return (
@@ -155,7 +242,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         closeSettingsDialog,
         isLoading,
         fluidTimers,
-        refreshFluidTimers,
+        db,
+        addFluidTimer,
+        removeFluidTimer,
       }}
     >
       {children}

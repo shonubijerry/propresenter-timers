@@ -13,7 +13,6 @@ import {
   setTimerUpdateOperationInDb,
   setAllTimersOperationInDb,
 } from '../../lib/localDb'
-import { invoke } from '@tauri-apps/api/core'
 
 interface TimersApiHook {
   timers: Timer[]
@@ -41,22 +40,25 @@ interface TimersApiHook {
  * @returns TimersApiHook interface with all timer operations
  */
 export const useTimersApi = (): TimersApiHook => {
+  const { proPresenterUrl: baseUrl, settings, fluidTimers = [], db } = useSettings()
   const [timers, setTimers] = useState<Timer[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
-  const { proPresenterUrl: baseUrl, settings, fluidTimers } = useSettings()
 
   const isLocalDb = settings?.datastore === 'localDb'
 
   // --- Core Fetch Function ---
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
     if (isLocalDb) {
-      return await fetchTimersFromDb()
+      if (!db) {
+        throw new Error('Database not initialized')
+      }
+      return await fetchTimersFromDb(db)
     }
 
     // Use ProPresenter API
     if (!baseUrl) {
-      throw new Error('Base URL not set')
+      return []
     }
 
     return await Promise.all([
@@ -72,16 +74,6 @@ export const useTimersApi = (): TimersApiHook => {
       ),
     ])
       .then(async ([all, current]) => {
-        const fluidTimers =
-          typeof window !== 'undefined' && window.isTauri
-            ? await invoke<{ id: string; timer_id: string }[]>(
-                'list_fluid_timers',
-                {
-                  source: settings?.datastore,
-                }
-              ).then((f) => f.map((t) => t.timer_id))
-            : ([] as string[])
-
         const map = new Map(
           current.map((t) => [
             t.id.uuid,
@@ -99,10 +91,11 @@ export const useTimersApi = (): TimersApiHook => {
         setError(err)
         return []
       })
-  }, [baseUrl, isLocalDb, settings?.datastore])
+  }, [baseUrl, isLocalDb, db, fluidTimers])
 
   // --- Data Fetch Effect ---
   const refetch = useCallback(async () => {
+    if (isLocalDb && !db) return
     if (!isLocalDb && !baseUrl) return
 
     setIsLoading(true)
@@ -115,7 +108,7 @@ export const useTimersApi = (): TimersApiHook => {
     } finally {
       setIsLoading(false)
     }
-  }, [baseUrl, isLocalDb, fetchTimers])
+  }, [baseUrl, isLocalDb, fetchTimers, db])
 
   useEffect(() => {
     refetch()
@@ -126,7 +119,8 @@ export const useTimersApi = (): TimersApiHook => {
   const createTimer = useCallback(
     async (duration: number, name: string): Promise<Timer> => {
       if (isLocalDb) {
-        return await createTimerInDb(duration, name)
+        if (!db) throw new Error('Database not initialized')
+        return await createTimerInDb(duration, name, db)
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
@@ -143,7 +137,7 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to create timer'
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, db]
   )
 
   const editTimer = useCallback(
@@ -153,7 +147,15 @@ export const useTimersApi = (): TimersApiHook => {
       if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
 
       if (isLocalDb) {
-        return await editTimerInDb(duration, name, id)
+        if (!db) throw new Error('Database not initialized')
+        return await editTimerInDb(
+          {
+            countdown_duration: duration,
+            name,
+            uuid: id,
+          },
+          db
+        )
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
@@ -173,7 +175,7 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to update timer'
       )
     },
-    [baseUrl, isLocalDb, fluidTimers]
+    [baseUrl, isLocalDb, fluidTimers, db]
   )
 
   const deleteTimer = useCallback(
@@ -183,7 +185,8 @@ export const useTimersApi = (): TimersApiHook => {
       if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
 
       if (isLocalDb) {
-        await deleteTimerFromDb(id)
+        if (!db) throw new Error('Database not initialized')
+        await deleteTimerFromDb(id, db)
         return
       }
 
@@ -195,7 +198,7 @@ export const useTimersApi = (): TimersApiHook => {
         'Failed to delete timer'
       )
     },
-    [baseUrl, isLocalDb, fluidTimers]
+    [baseUrl, isLocalDb, fluidTimers, db]
   )
 
   const setTimerOperation = useCallback(
@@ -205,7 +208,8 @@ export const useTimersApi = (): TimersApiHook => {
       if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
 
       if (isLocalDb) {
-        await setTimerOperationInDb(operation, id)
+        if (!db) throw new Error('Database not initialized')
+        await setTimerOperationInDb(operation, id, db)
         return
       }
 
@@ -217,7 +221,7 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed: ${operation}`
       )
     },
-    [baseUrl, isLocalDb, fluidTimers]
+    [baseUrl, isLocalDb, fluidTimers, db]
   )
 
   const setTimerUpdateOperation = useCallback(
@@ -230,7 +234,14 @@ export const useTimersApi = (): TimersApiHook => {
       if (!id) throw new Error('Id not set for operation')
 
       if (isLocalDb) {
-        return await setTimerUpdateOperationInDb(duration, name, operation, id)
+        if (!db) throw new Error('Database not initialized')
+        return await setTimerUpdateOperationInDb(
+          duration,
+          name,
+          operation,
+          id,
+          db
+        )
       }
 
       if (!baseUrl) throw new Error('Base URL not set')
@@ -250,13 +261,14 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed to update timer and ${operation} it`
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, db]
   )
 
   const setAllTimersOperation = useCallback(
     async (operation: TimerActions): Promise<void> => {
       if (isLocalDb) {
-        await setAllTimersOperationInDb(operation)
+        if (!db) throw new Error('Database not initialized')
+        await setAllTimersOperationInDb(operation, db)
         return
       }
 
@@ -268,12 +280,12 @@ export const useTimersApi = (): TimersApiHook => {
         `Failed to perform operation: ${operation}`
       )
     },
-    [baseUrl, isLocalDb]
+    [baseUrl, isLocalDb, db]
   )
 
-  const updateTimers = (data: Timer[]) => {
+  const updateTimers = useCallback((data: Timer[]) => {
     setTimers(data)
-  }
+  }, [])
 
   // --- Return values ---
   return {

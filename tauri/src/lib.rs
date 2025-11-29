@@ -1,26 +1,12 @@
 use tauri::Manager;
-mod database;
-mod handlers;
 
-use crate::database::Database;
-use crate::handlers::{
-  add_fluid_timer, count_timers, create_timer, delete_fluid_timer, delete_timer, get_settings,
-  get_timer, list_fluid_timers, list_timers, list_timers_paginated, modify_settings, update_timer,
-};
+mod migrations;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .plugin(tauri_plugin_sql::Builder::new().build())
     .setup(|app| {
-      let app_dir = app
-        .handle()
-        .path()
-        .app_data_dir()
-        .expect("failed to get app data dir");
-
-      // Create app data directory if it doesn't exist
-      std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
-
       // ----- Plugins -----
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -35,16 +21,14 @@ pub fn run() {
         .handle()
         .plugin(tauri_plugin_updater::Builder::new().build())?;
 
-      // Get the path resolver from app handle
-      let database = Database::new(app_dir.join("timers.db").to_str().unwrap())
-        .expect("failed to initialize database");
-
-      // Manage the database state
-      app.manage(database);
-
       Ok(())
     })
     .plugin(tauri_plugin_fs::init())
+    .plugin(
+      tauri_plugin_sql::Builder::default()
+        .add_migrations("sqlite:timersv2.db", migrations::get_migrations())
+        .build(),
+    )
     // ----- 🔥 KEY FIX: Close ALL windows on ANY window CloseRequest -----
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -69,20 +53,6 @@ pub fn run() {
         }
       }
     })
-    .invoke_handler(tauri::generate_handler![
-      list_timers,
-      get_timer,
-      create_timer,
-      update_timer,
-      delete_timer,
-      list_timers_paginated,
-      count_timers,
-      add_fluid_timer,
-      list_fluid_timers,
-      delete_fluid_timer,
-      get_settings,
-      modify_settings
-    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
