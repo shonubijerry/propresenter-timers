@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "AGCTimerControl",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "identifier": "AGCTimerControl",
   "build": {
     "frontendDist": "../out",

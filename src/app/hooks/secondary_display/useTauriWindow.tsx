@@ -21,7 +21,9 @@ export default function useTauriWindow() {
       const current = await currentMonitor()
 
       const secondaryMonitor = monitors.find(
-        (monitor) => monitor.name !== current?.name
+        (monitor) =>
+          monitor.position.x !== current?.position.x &&
+          monitor.position.y !== current?.position.y
       )
 
       if (!secondaryMonitor) {
@@ -48,6 +50,7 @@ export default function useTauriWindow() {
 
       webview.once('tauri://created', () => {
         console.log('Second screen window created')
+        toastInfo('External screen opened')
       })
 
       webview.once('tauri://error', (e) => {
@@ -64,6 +67,6 @@ export default function useTauriWindow() {
 
   return {
     openNewTauriWindow,
-    closeTauriWindow
+    closeTauriWindow,
   }
 }

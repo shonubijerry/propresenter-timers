@@ -65,14 +65,11 @@ export default function HomeMain({
   }, [isCreatingTimer])
 
   const handleOpenFullScreen = useCallback(async () => {
-    try {
-      await openNewWindow()
-      toastInfo('External screen opened')
-    } catch (err) {
+    await openNewWindow().catch((err) => {
       toastError(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
       )
-    }
+    })
   }, [openNewWindow])
 
   const handleExitFullscreen = useCallback(async () => {

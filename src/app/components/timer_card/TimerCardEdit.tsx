@@ -36,7 +36,9 @@ export function TimerCardEdit({
   } = useForm<TimerFormData>({
     defaultValues: {
       name: timer?.id.name ?? '',
-      duration: formatSecondsToTime(timer?.countdown?.duration ?? 5),
+      duration: formatSecondsToTime(
+        isActive ? timer.remainingSeconds : (timer?.countdown?.duration ?? 5)
+      ),
     },
   })
 
@@ -140,7 +142,7 @@ export function TimerCardEdit({
               </span>
               <div className='flex-1 min-w-[150px]'>
                 <input
-                  type='time'
+                  type='datetime'
                   step='1'
                   className='w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none'
                   style={{

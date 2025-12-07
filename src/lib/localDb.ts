@@ -3,7 +3,8 @@ import { Timer } from '@/app/interfaces/time'
 import { TimerActions } from '@/app/hooks/timer'
 import { DbService } from './database'
 import Database from '@tauri-apps/plugin-sql'
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid'
+import { SqliteFluidTimer } from '@/app/interfaces/settings'
 
 // Type for the SQLite timer structure
 interface SqliteTimer {
@@ -25,6 +26,13 @@ const getTimerService = (db?: Database) => {
     throw new Error('Database not initialized')
   }
   return new DbService<SqliteTimer>('timers', 'uuid', db)
+}
+
+const getFluidTimerService = (db?: Database) => {
+  if (!db) {
+    throw new Error('Database not initialized')
+  }
+  return new DbService<SqliteFluidTimer>('fluid_timers', 'timer_id', db)
 }
 
 const getRemainingSeconds = ({
@@ -69,8 +77,16 @@ const convertSqliteToTimer = (sqliteTimer: SqliteTimer): Timer => {
  */
 export const fetchTimersFromDb = async (db?: Database): Promise<Timer[]> => {
   const timerService = getTimerService(db)
+  const fluidTimerService = getFluidTimerService(db)
   const sqliteTimers = await timerService.findAll('id')
-  return sqliteTimers.map(convertSqliteToTimer)
+  const fluidTimters = (await fluidTimerService.findAll('id')).map(
+    (t) => t.timer_id
+  )
+
+  return sqliteTimers.map(convertSqliteToTimer).map((t) => ({
+    ...t,
+    isFluid: fluidTimters.includes(t.id.uuid),
+  }))
 }
 
 /**

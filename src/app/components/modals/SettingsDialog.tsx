@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AppSettings, useSettings } from '../../providers/settings'
+import { useSettings } from '../../providers/settings'
 import { useForm } from 'react-hook-form'
 import Button from '../ui/Button'
 import Alert from '../ui/Alert'
@@ -8,6 +8,7 @@ import { RadioGroup } from '@headlessui/react'
 import { cn } from '@/lib/cn'
 import { fetchJson } from '@/app/hooks/client'
 import { IoMdCheckmarkCircleOutline } from 'react-icons/io'
+import { AppSettings } from '@/app/interfaces/settings'
 
 export default function SettingsDialog() {
   const { settings, updateSettings, isDialogOpen, closeSettingsDialog } =

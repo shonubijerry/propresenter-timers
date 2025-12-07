@@ -15,23 +15,7 @@ import { checkUpdate } from '@/lib/update'
 import { toastWarning } from '@/lib/toastUtils'
 import { DbService } from '@/lib/database'
 import Database from '@tauri-apps/plugin-sql'
-import { v4 as uuidv4 } from 'uuid';
-
-export type ThemeMode = 'light' | 'dark' | 'system'
-
-export interface AppSettings {
-  address: string
-  port: number
-  theme: ThemeMode
-  datastore: 'proPresenter' | 'localDb'
-}
-
-interface SqliteFluidTimer {
-  id: number
-  timer_id: string
-  source: 'proPresenter' | 'localDb'
-  created_at: number
-}
+import { AppSettings, SqliteFluidTimer } from '../interfaces/settings'
 
 const SettingsContext = createContext<{
   proPresenterUrl: string | null

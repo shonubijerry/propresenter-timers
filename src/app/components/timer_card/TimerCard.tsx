@@ -4,7 +4,7 @@ import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../../interfaces/time'
 import { TimerActions } from '../../hooks/timer'
 import Watch from '../watch/Watch'
-import { IoPlayOutline } from 'react-icons/io5'
+import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
 import { MdOutlineDelete } from 'react-icons/md'
@@ -37,7 +37,8 @@ export function TimerCard({
   onOpenFullScreen,
   onEditClick,
 }: TimerCardProps) {
-  const { fluidTimers, settings, addFluidTimer, removeFluidTimer } = useSettings()
+  const { fluidTimers, settings, addFluidTimer, removeFluidTimer } =
+    useSettings()
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
@@ -180,17 +181,19 @@ export function TimerCard({
                   tooltipPosition='top'
                   onClick={() => onOperation(timer, 'start')}
                 />
-                {/* <IconButton
-                  disabled={
-                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                    !isActive
-                  }
-                  style={{ color: 'var(--orange)' }}
-                  icon={<IoStopOutline size={30} />}
-                  tooltip='Stop'
-                  tooltipPosition='top'
-                  onClick={() => onOperation(timer, 'stop')}
-                /> */}
+                {settings?.datastore === 'proPresenter' && (
+                  <IconButton
+                    disabled={
+                      (localTimer.isRunning || localTimer.overtime.isRunning) &&
+                      !isActive
+                    }
+                    style={{ color: 'var(--orange)' }}
+                    icon={<IoStopOutline size={30} />}
+                    tooltip='Stop'
+                    tooltipPosition='top'
+                    onClick={() => onOperation(timer, 'stop')}
+                  />
+                )}
                 <IconButton
                   disabled={
                     (localTimer.isRunning || localTimer.overtime.isRunning) &&
