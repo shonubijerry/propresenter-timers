@@ -6,6 +6,7 @@ import {
   WebviewWindow,
 } from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
+import { debug, info, error as logError } from '@tauri-apps/plugin-log'
 
 export default function useTauriWindow() {
   const closeTauriWindow = async (view = 'second-screen') => {
@@ -25,6 +26,9 @@ export default function useTauriWindow() {
           monitor.position.x !== current?.position.x &&
           monitor.position.y !== current?.position.y
       )
+
+      // Log monitor information for debugging
+      await debug(`Monitors: ${JSON.stringify({monitors, current, secondaryMonitor})}`)
 
       if (!secondaryMonitor) {
         toastInfo('No secondary display found.')
@@ -48,20 +52,21 @@ export default function useTauriWindow() {
         skipTaskbar: false,
       })
 
-      webview.once('tauri://created', () => {
+      webview.once('tauri://created', async () => {
         console.log('Second screen window created')
+        await info('Second screen window created successfully')
         toastInfo('External screen opened')
       })
 
-      webview.once('tauri://error', (e) => {
-        toastError(
-          `Failed to create window: ${JSON.stringify(e, Object.getOwnPropertyNames(e))}`
-        )
+      webview.once('tauri://error', async (e) => {
+        const errorMsg = JSON.stringify(e, Object.getOwnPropertyNames(e))
+        await logError(`Failed to create window: ${errorMsg}`)
+        toastError(`Failed to create window: ${errorMsg}`)
       })
     } catch (error) {
-      toastError(
-        `Could not open a new window: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
-      )
+      const errorMsg = JSON.stringify(error, Object.getOwnPropertyNames(error))
+      await logError(`Could not open a new window: ${errorMsg}`)
+      toastError(`Could not open a new window: ${errorMsg}`)
     }
   }
 
