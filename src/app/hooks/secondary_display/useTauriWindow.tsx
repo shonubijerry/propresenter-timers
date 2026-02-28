@@ -23,12 +23,9 @@ export default function useTauriWindow() {
 
       const secondaryMonitor = monitors.find(
         (monitor) =>
-          monitor.position.x !== current?.position.x &&
+          monitor.position.x !== current?.position.x ||
           monitor.position.y !== current?.position.y
       )
-
-      // Log monitor information for debugging
-      await debug(`Monitors: ${JSON.stringify({monitors, current, secondaryMonitor})}`)
 
       if (!secondaryMonitor) {
         toastInfo('No secondary display found.')
