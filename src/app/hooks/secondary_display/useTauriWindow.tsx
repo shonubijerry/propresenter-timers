@@ -48,11 +48,10 @@ export default function useTauriWindow() {
       const currentPosition = current?.position ?? position
       const currentSize = current?.size ?? size
 
-      const previewWidth = Math.min(560, Math.max(360, currentSize.width / 3))
-      const previewHeight = Math.min(320, Math.max(220, previewWidth * 0.56))
-      const previewX =
-        currentPosition.x + currentSize.width - Math.round(previewWidth) - 24
-      const previewY = currentPosition.y + 24
+      const previewWidth = Math.round(currentSize.width * 0.1)
+      const previewHeight = Math.round(currentSize.height * 0.1)
+      const previewX = currentPosition.x + 16
+      const previewY = currentPosition.y + 16
 
       const webview = new WebviewWindow(SECOND_SCREEN_LABEL, {
         url: '?showTime=true',
