@@ -6,7 +6,7 @@ import {
   WebviewWindow,
 } from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
-import { debug, info, error as logError } from '@tauri-apps/plugin-log'
+import { info, error as logError } from '@tauri-apps/plugin-log'
 
 export default function useTauriWindow() {
   const closeTauriWindow = async (view = 'second-screen') => {

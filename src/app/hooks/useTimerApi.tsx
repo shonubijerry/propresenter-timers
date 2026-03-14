@@ -40,7 +40,12 @@ interface TimersApiHook {
  * @returns TimersApiHook interface with all timer operations
  */
 export const useTimersApi = (): TimersApiHook => {
-  const { proPresenterUrl: baseUrl, settings, fluidTimers = [], db } = useSettings()
+  const {
+    proPresenterUrl: baseUrl,
+    settings,
+    fluidTimers = [],
+    db,
+  } = useSettings()
   const [timers, setTimers] = useState<Timer[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
@@ -246,6 +251,23 @@ export const useTimersApi = (): TimersApiHook => {
 
       if (!baseUrl) throw new Error('Base URL not set')
 
+      if (name.length) {
+        await fetchJson<Timer>(
+          `${baseUrl}/v1/timer/${id}`,
+          {
+            method: 'PUT',
+            body: JSON.stringify({
+              allows_overrun: true,
+              countdown: { duration },
+              id: {
+                name,
+              },
+            }),
+          },
+          `Failed to update timer`
+        )
+      }
+
       return fetchJson<Timer>(
         `${baseUrl}/v1/timer/${id}/${operation}`,
         {
@@ -254,11 +276,11 @@ export const useTimersApi = (): TimersApiHook => {
             allows_overrun: true,
             countdown: { duration },
             id: {
-              name: name.length ? name : undefined,
+              name,
             },
           }),
         },
-        `Failed to update timer and ${operation} it`
+        `Failed to update timer operation`
       )
     },
     [baseUrl, isLocalDb, db]
