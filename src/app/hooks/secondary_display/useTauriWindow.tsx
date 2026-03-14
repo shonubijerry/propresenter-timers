@@ -8,11 +8,21 @@ import {
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
 import { info, error as logError } from '@tauri-apps/plugin-log'
 
+const SECOND_SCREEN_LABEL = 'second-screen'
+const FEEDBACK_SCREEN_LABEL = 'feedback-screen'
+
 export default function useTauriWindow() {
-  const closeTauriWindow = async (view = 'second-screen') => {
+  const closeTauriWindow = async (
+    view: string | string[] = [SECOND_SCREEN_LABEL, FEEDBACK_SCREEN_LABEL]
+  ) => {
+    const labels = Array.isArray(view) ? view : [view]
     const windows = await getAllWebviewWindows()
-    if (windows.length > 1) {
-      await windows.find((w) => w.label === view)?.close()
+    if (windows.length > 1 && labels.length) {
+      await Promise.all(
+        labels.map(async (label) => {
+          await windows.find((w) => w.label === label)?.close()
+        })
+      )
     }
   }
 
@@ -35,8 +45,16 @@ export default function useTauriWindow() {
       await closeTauriWindow()
 
       const { position, size } = secondaryMonitor
+      const currentPosition = current?.position ?? position
+      const currentSize = current?.size ?? size
 
-      const webview = new WebviewWindow('second-screen', {
+      const previewWidth = Math.min(560, Math.max(360, currentSize.width / 3))
+      const previewHeight = Math.min(320, Math.max(220, previewWidth * 0.56))
+      const previewX =
+        currentPosition.x + currentSize.width - Math.round(previewWidth) - 24
+      const previewY = currentPosition.y + 24
+
+      const webview = new WebviewWindow(SECOND_SCREEN_LABEL, {
         url: '?showTime=true',
         title: 'Timer',
         x: position.x,
@@ -49,10 +67,24 @@ export default function useTauriWindow() {
         skipTaskbar: false,
       })
 
+      new WebviewWindow(FEEDBACK_SCREEN_LABEL, {
+        url: '?showTime=true',
+        title: 'Timer Preview',
+        x: previewX,
+        y: previewY,
+        width: Math.round(previewWidth),
+        height: Math.round(previewHeight),
+        fullscreen: false,
+        decorations: true,
+        alwaysOnTop: true,
+        resizable: true,
+        skipTaskbar: true,
+      })
+
       webview.once('tauri://created', async () => {
         console.log('Second screen window created')
         await info('Second screen window created successfully')
-        toastInfo('External screen opened')
+        toastInfo('External screen and preview opened')
       })
 
       webview.once('tauri://error', async (e) => {

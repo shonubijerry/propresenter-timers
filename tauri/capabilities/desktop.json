@@ -6,7 +6,8 @@
     "linux"
   ],
   "windows": [
-    "main"
+    "main",
+    "feedback-screen"
   ],
   "permissions": [
     "updater:default"

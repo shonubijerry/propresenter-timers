@@ -206,10 +206,6 @@ export function TimerCard({
                   onClick={() => onOperation(timer, 'reset')}
                 />
                 <IconButton
-                  disabled={
-                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                    isActive
-                  }
                   style={{ color: 'var(--ring)' }}
                   icon={<AiOutlineEdit size={30} />}
                   tooltip='Edit'

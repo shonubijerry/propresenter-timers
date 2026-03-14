@@ -32,28 +32,33 @@ export default function WatchLayoutWithProps({
         : ''
 
   return (
-    <div className='h-screen w-screen bg-white flex flex-col'>
-      <div className='absolute top-6 left-0 w-full flex items-center justify-between px-5'>
+    <div className='h-screen w-screen bg-white flex flex-col overflow-hidden'>
+      {/* Header bar — part of normal flow, never overlaps content */}
+      <div className='flex items-center justify-between px-[2vw] py-[1vw] shrink-0'>
         {/* Logo (left) */}
-        <div className='flex items-center gap-3 cursor-pointer w-50 h-30'>
-          <Image src={logoSvg} alt='Logo' />
+        <div className='flex items-center'>
+          <Image
+            src={logoSvg}
+            alt='Logo'
+            style={{ height: '4vw', width: 'auto' }}
+          />
         </div>
 
         {/* Time tracker label (center) */}
         <div
-          className={`text-7xl font-bold text-gray-800 text-center flex-1 ${timeupStyle}`}
+          className={`text-[4vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
         >
           {timeTracker}
         </div>
 
-        {/* Time (right) */}
-        <div className='flex justify-end text-5xl font-semibold text-gray-800 text-top'>
+        {/* Clock (right) */}
+        <div className='text-[2.5vw] font-semibold text-gray-800 whitespace-nowrap'>
           {formatTime(hours, minutes, seconds)} {ampm?.toUpperCase()}
         </div>
       </div>
 
-      {/* Centered content */}
-      <div className='flex flex-1 flex-col items-center justify-center p-5 text-center'>
+      {/* Main content — takes all remaining height */}
+      <div className='flex flex-1 flex-col items-center justify-center overflow-hidden text-center'>
         <Watch
           fullscreen={true}
           isInjuryTime={isInjuryTime}
@@ -64,12 +69,12 @@ export default function WatchLayoutWithProps({
           overtime={localTimer.overtime}
         />
 
-        <div className='w-screen text-6xl font-bold text-gray-600 p-5'>
+        <div className='text-[3.5vw] font-bold text-gray-600 px-5 mt-[1vw] leading-tight'>
           {description}
         </div>
 
-        <div className='text-4xl font-bold text-gray-600 mt-5'>
-          <span className='text-slate-500'>Event Duration:</span>
+        <div className='text-[2vw] font-bold text-gray-600 mt-[1vw]'>
+          <span className='text-slate-500'>Event Duration: </span>
           <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
             {formatSecondsToTime(duration)}
           </span>

@@ -80,7 +80,7 @@ export default function HomeMain({
     if (fullscreenWindow && !fullscreenWindow.closed) {
       fullscreenWindow.close()
     }
-    toastInfo('External screen closed')
+    toastInfo('External screen and preview closed')
   }, [fullscreenWindow, closeTauriWindow])
 
   const toggleAboutModal = () => {
