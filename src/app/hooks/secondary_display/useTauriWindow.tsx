@@ -48,8 +48,8 @@ export default function useTauriWindow() {
       const currentPosition = current?.position ?? position
       const currentSize = current?.size ?? size
 
-      const previewWidth = Math.round(currentSize.width * 0.1)
-      const previewHeight = Math.round(currentSize.height * 0.1)
+      const previewWidth = Math.round(currentSize.width * 0.12)
+      const previewHeight = Math.round(currentSize.height * 0.12)
       const previewX = currentPosition.x + 16
       const previewY = currentPosition.y + 16
 
