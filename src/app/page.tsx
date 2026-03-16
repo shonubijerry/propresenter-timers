@@ -30,6 +30,12 @@ export default function Home() {
 
   const operationInProgress = useRef(false)
 
+  const resetLocalTimerState = useCallback(async () => {
+    setCurrentTimer(null)
+    await localTimer.handleLocalTimer('reset')
+    localTimer.overtime.reset(undefined, false)
+  }, [setCurrentTimer, localTimer])
+
   // Helper to set and log API errors
   const setApiError = useCallback(
     (err: unknown, fallback = 'An error occurred') => {
@@ -122,16 +128,14 @@ export default function Home() {
       const success = await runOperation(async () => {
         await setAllTimersOperation(action)
         await refetch()
-        setCurrentTimer(null)
-        localTimer.handleLocalTimer('reset')
-        localTimer.overtime.reset(undefined, false)
+        await resetLocalTimerState()
       }, 'Failed to reset timers')
 
       if (success) {
         toastSuccess('Operation successful')
       }
     },
-    [runOperation, setCurrentTimer, localTimer, refetch, setAllTimersOperation]
+    [runOperation, refetch, resetLocalTimerState, setAllTimersOperation]
   )
 
   // Delete a timer
@@ -144,9 +148,7 @@ export default function Home() {
         setSearchableTimers(filteredTimers)
 
         if (currentTimer?.id.uuid === uuid) {
-          setCurrentTimer(null)
-          localTimer.handleLocalTimer('reset')
-          localTimer.overtime.reset(undefined, false)
+          await resetLocalTimerState()
         }
       }, 'Failed to delete timer')
 
@@ -157,85 +159,12 @@ export default function Home() {
     [
       runOperation,
       currentTimer?.id.uuid,
-      setCurrentTimer,
-      localTimer,
+      resetLocalTimerState,
       deleteTimer,
       timers,
       updateTimers,
     ]
   )
-
-  // Perform operation on a single timer (start/stop/reset)
-  const handleOperation = useCallback(
-    async (timer: Timer, action: TimerActions) => {
-      await runOperation(async () => {
-        if (localTimer.isRunning && action === 'start') return
-        if (!localTimer.isRunning && action === 'stop') return
-
-        localTimer.overtime.reset(undefined, false)
-        await setTimerOperation(action, timer.id.uuid)
-
-        if (fluidTimers.length)
-          await Promise.all(
-            fluidTimers.map((timerId) => {
-              return setTimerUpdateOperation(
-                timer.countdown!.duration,
-                '',
-                action,
-                timerId
-              )
-            })
-          )
-
-        if (action === 'reset') {
-          setCurrentTimer(null)
-          localTimer.handleLocalTimer('reset', timer.countdown?.duration)
-        } else {
-          setCurrentTimer(timer)
-          localTimer.handleLocalTimer(action, timer.remainingSeconds)
-        }
-        refetch()
-      }, `Failed to ${action} timer`)
-    },
-    [
-      runOperation,
-      localTimer,
-      setCurrentTimer,
-      setTimerOperation,
-      refetch,
-      setTimerUpdateOperation,
-      fluidTimers,
-    ]
-  )
-
-  const onSearch = useCallback(
-    (term: string) => {
-      const trimmed = term.trim()
-      if (!trimmed) {
-        setSearchableTimers(timers)
-        return
-      }
-      const lowered = trimmed.toLowerCase()
-      setSearchableTimers(
-        timers.filter(
-          (item) =>
-            item.id.name.toLowerCase().includes(lowered) ||
-            item.id.uuid === currentTimer?.id.uuid
-        )
-      )
-    },
-    [timers, currentTimer]
-  )
-
-  const refreshTimers = useCallback(async () => {
-    try {
-      setSearchableTimers([])
-      await refetch()
-      toastSuccess('Timers refreshed')
-    } catch (err) {
-      setApiError(err, 'Failed to refresh timers')
-    }
-  }, [setApiError, refetch])
 
   const updateTimerInList = useCallback(
     (timer: Timer) => {
@@ -277,6 +206,115 @@ export default function Home() {
     },
     [timers, currentTimer, updateTimers, setCurrentTimer, localTimer]
   )
+
+
+  const applyFluidTimersOperation = useCallback(
+    async (timer: Timer, action: TimerActions) => {
+      if (!fluidTimers.length || !timer.countdown) return
+
+      const fluidTimerObjects = timers.filter((t) => fluidTimers.includes(t.id.uuid))
+      await Promise.all(
+        fluidTimerObjects.map(async (fluidTimer) => {
+          if (!fluidTimer) return Promise.resolve()
+
+          fluidTimer.countdown = timer.countdown
+          fluidTimer.remainingSeconds = timer.remainingSeconds
+          fluidTimer.time = timer.time
+
+          await setTimerUpdateOperation(
+            fluidTimer.countdown!.duration,
+            '',
+            action,
+            fluidTimer.id.uuid
+          )
+          updateTimerInList(fluidTimer)
+        })
+      )
+    },
+    [fluidTimers, setTimerUpdateOperation, timers, updateTimerInList]
+  )
+
+  // Perform operation on a single timer (start/stop/reset)
+  const handleOperation = useCallback(
+    async (timer: Timer, action: TimerActions) => {
+      await runOperation(async () => {
+        const isSwitchingRunningTimer =
+          action === 'start' &&
+          !!currentTimer?.id.uuid &&
+          currentTimer.id.uuid !== timer.id.uuid &&
+          (localTimer.isRunning || localTimer.overtime.isRunning)
+
+        if (action === 'stop' && currentTimer?.id.uuid !== timer.id.uuid) return
+
+        if (isSwitchingRunningTimer) {
+          await setAllTimersOperation('reset')
+          await resetLocalTimerState()
+        }
+
+        await setTimerOperation(action, timer.id.uuid)
+        await applyFluidTimersOperation(timer, action)
+
+        await refetch()
+
+        if (action === 'reset') {
+          if (currentTimer?.id.uuid === timer.id.uuid) {
+            await resetLocalTimerState()
+          }
+          return
+        }
+
+        if (action === 'start') {
+          setCurrentTimer(timer)
+          localTimer.overtime.reset(undefined, false)
+          await localTimer.handleLocalTimer('start', timer.remainingSeconds)
+          return
+        }
+
+        localTimer.overtime.reset(undefined, false)
+        await localTimer.handleLocalTimer('stop')
+      }, `Failed to ${action} timer`)
+    },
+    [
+      runOperation,
+      localTimer,
+      currentTimer,
+      setCurrentTimer,
+      setAllTimersOperation,
+      setTimerOperation,
+      applyFluidTimersOperation,
+      refetch,
+      resetLocalTimerState,
+    ]
+  )
+
+  const onSearch = useCallback(
+    (term: string) => {
+      const trimmed = term.trim()
+      if (!trimmed) {
+        setSearchableTimers(timers)
+        return
+      }
+      const lowered = trimmed.toLowerCase()
+      setSearchableTimers(
+        timers.filter(
+          (item) =>
+            item.id.name.toLowerCase().includes(lowered) ||
+            item.id.uuid === currentTimer?.id.uuid
+        )
+      )
+    },
+    [timers, currentTimer]
+  )
+
+  const refreshTimers = useCallback(async () => {
+    try {
+      setSearchableTimers([])
+      await refetch()
+      toastSuccess('Timers refreshed')
+    } catch (err) {
+      setApiError(err, 'Failed to refresh timers')
+    }
+  }, [setApiError, refetch])
 
   if (isLoading) {
     return (

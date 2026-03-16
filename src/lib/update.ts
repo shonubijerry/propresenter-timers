@@ -1,8 +1,16 @@
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 
+
+
 export const checkUpdate = async () => {
-  const update = await check()
+  let update
+
+  try {
+    update = await check()
+  } catch (error) {
+    console.info(JSON.stringify({ error }))
+  }
 
   if (update) {
     console.log(

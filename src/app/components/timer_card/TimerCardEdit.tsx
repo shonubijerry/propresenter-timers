@@ -35,7 +35,7 @@ export function TimerCardEdit({
     formState: { errors },
   } = useForm<TimerFormData>({
     defaultValues: {
-      name: timer?.id.name ?? '',
+      name: timer?.id.name ?? 'New Event',
       duration: formatSecondsToTime(
         isActive ? timer.remainingSeconds : (timer?.countdown?.duration ?? 5)
       ),
@@ -56,7 +56,6 @@ export function TimerCardEdit({
       }
 
       if (timer.time === 'new') {
-        // Creating a new timer
         const resp = await createTimer(totalSeconds, data.name)
         onSave({
           ...resp,

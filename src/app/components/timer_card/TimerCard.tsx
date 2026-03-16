@@ -4,7 +4,7 @@ import { formatSecondsToTime } from '@/lib/formatter'
 import { Timer } from '../../interfaces/time'
 import { TimerActions } from '../../hooks/timer'
 import Watch from '../watch/Watch'
-import { IoPlayOutline, IoStopOutline } from 'react-icons/io5'
+import { IoPlayOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
 import { MdOutlineDelete } from 'react-icons/md'
@@ -173,7 +173,7 @@ export function TimerCard({
               <>
                 <IconButton
                   disabled={
-                    localTimer.isRunning || localTimer.overtime.isRunning
+                    (localTimer.isRunning || localTimer.overtime.isRunning) && isActive
                   }
                   style={{ color: 'var(--green)' }}
                   icon={<IoPlayOutline size={30} />}
@@ -181,19 +181,6 @@ export function TimerCard({
                   tooltipPosition='top'
                   onClick={() => onOperation(timer, 'start')}
                 />
-                {settings?.datastore === 'proPresenter' && (
-                  <IconButton
-                    disabled={
-                      (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                      !isActive
-                    }
-                    style={{ color: 'var(--orange)' }}
-                    icon={<IoStopOutline size={30} />}
-                    tooltip='Stop'
-                    tooltipPosition='top'
-                    onClick={() => onOperation(timer, 'stop')}
-                  />
-                )}
                 <IconButton
                   disabled={
                     (localTimer.isRunning || localTimer.overtime.isRunning) &&
