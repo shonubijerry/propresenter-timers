@@ -63,7 +63,7 @@ export default function Modal({
           color: 'var(--card-foreground)',
           borderColor: 'var(--border)'
         }}
-        className={`rounded-2xl shadow-xl w-90 ${sizeClasses[size]} border flex flex-col`}
+        className={`rounded-2xl shadow-xl w-[92vw] ${sizeClasses[size]} max-h-[90vh] border flex flex-col`}
       >
         {/* Header */}
         {(title || showCloseButton) && (

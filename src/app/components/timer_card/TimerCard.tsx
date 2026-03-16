@@ -11,12 +11,14 @@ import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useSettings } from '@/app/providers/settings'
 import { CgUnblock } from 'react-icons/cg'
 import { TbLock } from 'react-icons/tb'
 import Alert from '../ui/Alert'
 import { toastWarning } from '@/lib/toastUtils'
+import Modal from '../modals/Modal'
+import Button from '../ui/Button'
 
 interface TimerCardProps {
   timer: Timer
@@ -37,8 +39,17 @@ export function TimerCard({
   onOpenFullScreen,
   onEditClick,
 }: TimerCardProps) {
-  const { fluidTimers, settings, addFluidTimer, removeFluidTimer } =
-    useSettings()
+  const {
+    fluidTimers,
+    settings,
+    addFluidTimer,
+    removeFluidTimer,
+    openSettingsDialog,
+  } = useSettings()
+
+  const hasLockPassword = Boolean(settings?.lock_password?.trim())
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false)
+  const [unlockPasswordInput, setUnlockPasswordInput] = useState('')
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
@@ -46,14 +57,50 @@ export function TimerCard({
         toastWarning('Fluid timers feature not available in browser mode')
         return
       }
+
+      if (!hasLockPassword) {
+        toastWarning('Set an unlock password in settings before locking timers')
+        openSettingsDialog()
+        return
+      }
+
       await addFluidTimer({
         timer_id: timer.id.uuid,
         source: settings!.datastore,
         created_at: Date.now(),
       })
     },
-    [addFluidTimer, settings]
+    [addFluidTimer, settings, hasLockPassword, openSettingsDialog]
   )
+
+  const openUnlockModal = useCallback(() => {
+    if (!hasLockPassword) {
+      toastWarning('No unlock password is configured. Set one in settings.')
+      openSettingsDialog()
+      return
+    }
+
+    setUnlockPasswordInput('')
+    setIsUnlockModalOpen(true)
+  }, [hasLockPassword, openSettingsDialog])
+
+  const submitUnlockPassword = useCallback(async () => {
+    if (!unlockPasswordInput.trim()) return
+
+    if (unlockPasswordInput !== settings?.lock_password) {
+      toastWarning('Incorrect unlock password')
+      return
+    }
+
+    await removeFluidTimer(timer.id.uuid)
+    setIsUnlockModalOpen(false)
+    setUnlockPasswordInput('')
+  }, [
+    unlockPasswordInput,
+    settings?.lock_password,
+    removeFluidTimer,
+    timer.id.uuid,
+  ])
 
   return (
     <div
@@ -120,7 +167,7 @@ export function TimerCard({
             icon={<CgUnblock size={30} />}
             tooltip='Unlock for editing'
             tooltipPosition='top'
-            onClick={() => removeFluidTimer(timer.id.uuid)}
+            onClick={openUnlockModal}
           />
         )}
       </div>
@@ -227,6 +274,50 @@ export function TimerCard({
           </p>
         </div>
       )}
+
+      <Modal
+        open={isUnlockModalOpen}
+        onClose={() => setIsUnlockModalOpen(false)}
+        title='Unlock Timer'
+        size='sm'
+      >
+        <div className='space-y-4'>
+          <p style={{ color: 'var(--muted-foreground)' }} className='text-sm'>
+            Enter the unlock password to continue.
+          </p>
+          <input
+            type='password'
+            value={unlockPasswordInput}
+            onChange={(e) => setUnlockPasswordInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                submitUnlockPassword()
+              }
+            }}
+            className='w-full p-2 border rounded-lg bg-background border-input placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
+            placeholder='Password'
+            autoFocus
+          />
+          <div className='flex gap-2 justify-end'>
+            <Button
+              variant='secondary'
+              type='button'
+              onClick={() => setIsUnlockModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant='primary'
+              type='button'
+              onClick={submitUnlockPassword}
+              disabled={!unlockPasswordInput.trim()}
+            >
+              Unlock
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

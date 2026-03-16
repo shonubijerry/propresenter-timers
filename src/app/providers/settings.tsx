@@ -40,10 +40,12 @@ export const useSettings = () => {
 }
 
 const defaultSettings: AppSettings = {
+  id: 1,
   address: 'http://192.168.1.103',
   port: 58000,
   theme: 'system',
   datastore: 'proPresenter',
+  lock_password: '',
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {

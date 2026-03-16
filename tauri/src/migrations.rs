@@ -32,6 +32,11 @@ pub fn get_migrations() -> Vec<Migration> {
       );"#,
       kind: MigrationKind::Up,
     },
-    // Add more migrations here
+    Migration {
+      version: 2,
+      description: "add_lock_password_to_settings",
+      sql: r#"ALTER TABLE settings ADD COLUMN lock_password TEXT NOT NULL DEFAULT '';"#,
+      kind: MigrationKind::Up,
+    },
   ]
 }

@@ -66,9 +66,14 @@ export default function SettingsDialog() {
   if (!isDialogOpen) return null
 
   return (
-    <Modal open={isDialogOpen} onClose={closeSettingsDialog} title='Settings'>
+    <Modal
+      open={isDialogOpen}
+      onClose={closeSettingsDialog}
+      title='Settings'
+      size='lg'
+    >
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className='space-y-6'>
+        <div className='space-y-5'>
           {/* Datastore Toggle */}
           <div>
             <h3 className='text-lg font-medium mb-4'>Data Source</h3>
@@ -130,7 +135,8 @@ export default function SettingsDialog() {
                   }
                 />
               )}
-              <div>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div>
                 <label className='block mb-1 font-medium'>
                   ProPresenter URL
                 </label>
@@ -156,9 +162,9 @@ export default function SettingsDialog() {
                     {errors.address.message}
                   </p>
                 )}
-              </div>
+                </div>
 
-              <div>
+                <div>
                 <label className='block mb-1 font-medium'>
                   ProPresenter Port
                 </label>
@@ -177,6 +183,7 @@ export default function SettingsDialog() {
                     {errors.port.message}
                   </p>
                 )}
+                </div>
               </div>
             </>
           )}
@@ -228,6 +235,17 @@ export default function SettingsDialog() {
                 ))}
               </div>
             </RadioGroup>
+          </div>
+
+          <div>
+            <h3 className='text-lg font-medium mb-2'>Timer Lock Security</h3>
+            <label className='block mb-1 font-medium'>Unlock Password</label>
+            <input
+              type='password'
+              placeholder='Set password to protect unlock action'
+              {...register('lock_password')}
+              className='w-full p-2 border rounded-lg bg-background border-input placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background outline-none'
+            />
           </div>
         </div>
         <div className='mt-6 flex justify-start gap-2'>
