@@ -7,6 +7,7 @@ import { AiOutlineFullscreenExit } from 'react-icons/ai'
 import IconButton from './IconButton'
 import { RiRefreshLine } from 'react-icons/ri'
 import { FiInfo } from 'react-icons/fi'
+import { MdCampaign } from 'react-icons/md'
 
 export function Header({
   openSettings,
@@ -15,6 +16,7 @@ export function Header({
   refreshTimers,
   onSearch,
   toggleAboutModal,
+  openBroadcastModal,
 }: {
   openSettings: () => void
   onExitFullscreen: () => void
@@ -22,6 +24,7 @@ export function Header({
   refreshTimers: () => void
   onSearch: (term: string) => void
   toggleAboutModal: () => void
+  openBroadcastModal: () => void
 }) {
   return (
     <div
@@ -89,6 +92,13 @@ export function Header({
               tooltip='Settings'
               tooltipPosition='bottom'
               onClick={openSettings}
+            />
+            <IconButton
+              style={{ color: 'var(--icon)' }}
+              icon={<MdCampaign size={40} />}
+              tooltip='Broadcast Message'
+              tooltipPosition='bottom'
+              onClick={openBroadcastModal}
             />
             <IconButton
               style={{ color: 'var(--icon)' }}

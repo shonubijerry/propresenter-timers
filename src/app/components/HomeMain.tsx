@@ -5,6 +5,7 @@ import EmptyTimer from './EmptyTimer'
 import { TimerCardContainer } from './timer_card/TimerCardContainer'
 import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
+import BroadcastDialog from './modals/BroadcastDialog'
 import { Timer } from '../interfaces/time'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LocalTime, useShared } from '../providers/timer'
@@ -41,6 +42,7 @@ export default function HomeMain({
 }: HomeMainProps) {
   const [isCreatingTimer, setIsCreatingTimer] = useState(false)
   const [openAbout, setOpenAbout] = useState(false)
+  const [openBroadcast, setOpenBroadcast] = useState(false)
   const { fullscreenWindow } = useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
   const { openSettingsDialog } = useSettings()
@@ -96,6 +98,7 @@ export default function HomeMain({
         refreshTimers={refreshTimers}
         onSearch={onSearch}
         toggleAboutModal={toggleAboutModal}
+        openBroadcastModal={() => setOpenBroadcast(true)}
       />
       <div className='max-w-6xl mx-auto px-6 py-8'>
         {searchableTimers.length === 0 && !isCreatingTimer ? (
@@ -138,6 +141,10 @@ export default function HomeMain({
         )}
       </div>
       <SettingsDialog />
+      <BroadcastDialog
+        open={openBroadcast}
+        onClose={() => setOpenBroadcast(false)}
+      />
       <About open={openAbout} onClose={toggleAboutModal} />
       <IconButton
         className='fixed bottom-10 right-14 z-50 hover:bg-blue-600 rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-all duration-200'

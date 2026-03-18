@@ -3,7 +3,7 @@ import logoSvg from '../../../../public/logo.svg'
 import { useTime } from 'react-timer-hook'
 import { formatSecondsToTime, formatTime } from '@/lib/formatter'
 import Watch from './Watch'
-import { LocalTime } from '../../providers/timer'
+import { LocalTime, useShared } from '../../providers/timer'
 
 export default function WatchLayoutWithProps({
   isInjuryTime,
@@ -20,6 +20,7 @@ export default function WatchLayoutWithProps({
   timeTracker?: string
   description?: string
 }) {
+  const { broadcastMessage, dismissBroadcastMessage } = useShared()
   const { seconds, minutes, hours, ampm } = useTime({ format: '12-hour' })
 
   if (!fullscreen) return
@@ -59,26 +60,43 @@ export default function WatchLayoutWithProps({
 
       {/* Main content — takes all remaining height */}
       <div className='flex flex-1 flex-col items-center justify-center overflow-hidden text-center'>
-        <Watch
-          fullscreen={true}
-          isInjuryTime={isInjuryTime}
-          mode='fullscreen'
-          hours={localTimer.hours}
-          minutes={localTimer.minutes}
-          seconds={localTimer.seconds}
-          overtime={localTimer.overtime}
-        />
+        {broadcastMessage ? (
+          <>
+            <div className='text-[5vw] font-extrabold px-[5vw] leading-tight text-gray-800 break-words'>
+              {broadcastMessage}
+            </div>
+            <button
+              type='button'
+              className='mt-[2vw] text-[1.8vw] font-semibold px-[1.4vw] py-[0.8vw] rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors'
+              onClick={dismissBroadcastMessage}
+            >
+              Dismiss Message
+            </button>
+          </>
+        ) : (
+          <>
+            <Watch
+              fullscreen={true}
+              isInjuryTime={isInjuryTime}
+              mode='fullscreen'
+              hours={localTimer.hours}
+              minutes={localTimer.minutes}
+              seconds={localTimer.seconds}
+              overtime={localTimer.overtime}
+            />
 
-        <div className='text-[3.5vw] font-bold text-gray-600 px-5 mt-[1vw] leading-tight'>
-          {description}
-        </div>
+            <div className='text-[3.5vw] font-bold text-gray-600 px-5 mt-[1vw] leading-tight'>
+              {description}
+            </div>
 
-        <div className='text-[2vw] font-bold text-gray-600 mt-[1vw]'>
-          <span className='text-slate-500'>Event Duration: </span>
-          <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
-            {formatSecondsToTime(duration)}
-          </span>
-        </div>
+            <div className='text-[2vw] font-bold text-gray-600 mt-[1vw]'>
+              <span className='text-slate-500'>Event Duration: </span>
+              <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
+                {formatSecondsToTime(duration)}
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
