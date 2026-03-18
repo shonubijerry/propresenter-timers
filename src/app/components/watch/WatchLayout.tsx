@@ -73,9 +73,9 @@ export default function WatchLayoutWithProps({
         : ''
 
   return (
-    <div className='h-screen w-screen bg-white flex flex-col overflow-hidden'>
-      {/* Header bar — part of normal flow, never overlaps content */}
-      <div className='flex items-center justify-between px-[2vw] py-[1vw] shrink-0'>
+    <div className='h-screen w-screen flex flex-col gap-[1.2vw] p-[1.2vw] overflow-hidden' style={{ background: '#f0f0eb' }}>
+      {/* Header card */}
+      <div className='flex items-center justify-between px-[2vw] py-[1vw] shrink-0 rounded-2xl bg-white shadow-sm'>
         {/* Logo (left) */}
         <div className='flex items-center'>
           <Image
@@ -98,8 +98,8 @@ export default function WatchLayoutWithProps({
         </div>
       </div>
 
-      {/* Main content — takes all remaining height */}
-      <div ref={contentAreaRef} className='flex flex-1 flex-col items-center justify-center overflow-hidden text-center'>
+      {/* Main content — off-white container matching outer background */}
+      <div ref={contentAreaRef} className='flex flex-1 flex-col items-center justify-center gap-[1.2vw] overflow-hidden rounded-2xl' style={{ background: '#f0f0eb' }}>
         {broadcastMessage ? (
           <>
             <div
@@ -112,25 +112,28 @@ export default function WatchLayoutWithProps({
           </>
         ) : (
           <>
-            <Watch
-              fullscreen={true}
-              isInjuryTime={isInjuryTime}
-              mode='fullscreen'
-              hours={localTimer.hours}
-              minutes={localTimer.minutes}
-              seconds={localTimer.seconds}
-              overtime={localTimer.overtime}
-            />
-
-            <div className='text-[5vw] font-bold text-gray-900 px-5 mt-[1vw] leading-tight'>
-              {description}
+            {/* Watch card */}
+            <div className='flex flex-1 items-center justify-center w-full rounded-2xl bg-white shadow-sm'>
+              <Watch
+                fullscreen={true}
+                isInjuryTime={isInjuryTime}
+                mode='fullscreen'
+                hours={localTimer.hours}
+                minutes={localTimer.minutes}
+                seconds={localTimer.seconds}
+                overtime={localTimer.overtime}
+              />
             </div>
 
-            <div className='text-[3.5vw] font-bold text-gray-900 mt-[1vw]'>
-              <span className='text-slate-900'>Duration: </span>
-              <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
-                {formatSecondsToHumanTime(duration)}
-              </span>
+            {/* Info card */}
+            <div className='w-full rounded-2xl bg-white shadow-sm px-[3vw] py-[1.5vw] text-center shrink-0'>
+              <div className='text-[3.5vw] font-bold text-gray-900 leading-tight'>
+                {description}
+              </div>
+              <div className='text-[2.2vw] font-semibold text-gray-700 mt-[0.5vw]'>
+                <span className='text-slate-500'>Duration: </span>
+                <span>{formatSecondsToHumanTime(duration)}</span>
+              </div>
             </div>
           </>
         )}
