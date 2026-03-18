@@ -35,6 +35,31 @@ export const formatSecondsToTime = (totalSeconds: number): string => {
 }
 
 /**
+ * Converts seconds to a human-readable duration string
+ * e.g. 900 -> "15 minutes"
+ * @param totalSeconds
+ * @returns string
+ */
+export const formatSecondsToHumanTime = (totalSeconds: number): string => {
+  if (totalSeconds <= 0) return '0 seconds'
+
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  const parts: string[] = []
+  if (hours > 0) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`)
+  if (minutes > 0) parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`)
+  if (seconds > 0 && hours === 0) {
+    parts.push(`${seconds} second${seconds === 1 ? '' : 's'}`)
+  }
+
+  if (parts.length === 0) return '0 seconds'
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]} ${parts[1]}`
+}
+
+/**
  * Converts HH:MM:SS to seconds
  * @param timeString
  * @returns number

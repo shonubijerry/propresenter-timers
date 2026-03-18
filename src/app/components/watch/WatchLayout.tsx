@@ -2,7 +2,7 @@ import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTime } from 'react-timer-hook'
-import { formatSecondsToTime, formatTime } from '@/lib/formatter'
+import { formatSecondsToHumanTime, formatTime } from '@/lib/formatter'
 import Watch from './Watch'
 import { LocalTime, useShared } from '../../providers/timer'
 
@@ -21,7 +21,7 @@ export default function WatchLayoutWithProps({
   timeTracker?: string
   description?: string
 }) {
-  const { broadcastMessage, dismissBroadcastMessage } = useShared()
+  const { broadcastMessage } = useShared()
   const { seconds, minutes, hours, ampm } = useTime({ format: '12-hour' })
 
   const contentAreaRef = useRef<HTMLDivElement>(null)
@@ -87,7 +87,7 @@ export default function WatchLayoutWithProps({
 
         {/* Time tracker label (center) */}
         <div
-          className={`text-[4vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
+          className={`text-[6vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
         >
           {timeTracker}
         </div>
@@ -109,13 +109,6 @@ export default function WatchLayoutWithProps({
             >
               {broadcastMessage}
             </div>
-            <button
-              type='button'
-              className='mt-[2vw] text-[1.8vw] font-semibold px-[1.4vw] py-[0.8vw] rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors'
-              onClick={dismissBroadcastMessage}
-            >
-              Dismiss Message
-            </button>
           </>
         ) : (
           <>
@@ -129,14 +122,14 @@ export default function WatchLayoutWithProps({
               overtime={localTimer.overtime}
             />
 
-            <div className='text-[3.5vw] font-bold text-gray-600 px-5 mt-[1vw] leading-tight'>
+            <div className='text-[5vw] font-bold text-gray-900 px-5 mt-[1vw] leading-tight'>
               {description}
             </div>
 
-            <div className='text-[2vw] font-bold text-gray-600 mt-[1vw]'>
-              <span className='text-slate-500'>Event Duration: </span>
+            <div className='text-[3.5vw] font-bold text-gray-900 mt-[1vw]'>
+              <span className='text-slate-900'>Duration: </span>
               <span className='font-mono bg-slate-100 px-2 py-1 rounded-lg'>
-                {formatSecondsToTime(duration)}
+                {formatSecondsToHumanTime(duration)}
               </span>
             </div>
           </>
