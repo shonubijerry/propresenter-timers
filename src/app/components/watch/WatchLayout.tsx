@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTime } from 'react-timer-hook'
 import { formatSecondsToTime, formatTime } from '@/lib/formatter'
 import Watch from './Watch'
@@ -22,6 +23,45 @@ export default function WatchLayoutWithProps({
 }) {
   const { broadcastMessage, dismissBroadcastMessage } = useShared()
   const { seconds, minutes, hours, ampm } = useTime({ format: '12-hour' })
+
+  const contentAreaRef = useRef<HTMLDivElement>(null)
+  const broadcastTextRef = useRef<HTMLDivElement>(null)
+  const [fontSize, setFontSize] = useState(80)
+
+  const fitText = useCallback(() => {
+    const container = contentAreaRef.current
+    const text = broadcastTextRef.current
+    if (!container || !text) return
+
+    // Available height minus ~90px for the Dismiss button
+    const availH = container.clientHeight - 90
+    // Pin the element's width so scrollHeight reflects real wrapping behaviour
+    const availW = container.clientWidth - 80
+    text.style.width = `${availW}px`
+
+    let lo = 12
+    let hi = 800
+    while (hi - lo > 1) {
+      const mid = Math.floor((lo + hi) / 2)
+      text.style.fontSize = `${mid}px`
+      // Only height constrains a wrapping block of known width
+      if (text.scrollHeight <= availH) lo = mid
+      else hi = mid
+    }
+
+    text.style.width = ''   // restore — React controls width via className
+    setFontSize(lo)
+  }, [])
+
+  useEffect(() => {
+    if (!broadcastMessage) return
+    const container = contentAreaRef.current
+    if (!container) return
+    const ro = new ResizeObserver(fitText)
+    ro.observe(container)
+    fitText()
+    return () => ro.disconnect()
+  }, [broadcastMessage, fitText])
 
   if (!fullscreen) return
 
@@ -59,10 +99,14 @@ export default function WatchLayoutWithProps({
       </div>
 
       {/* Main content — takes all remaining height */}
-      <div className='flex flex-1 flex-col items-center justify-center overflow-hidden text-center'>
+      <div ref={contentAreaRef} className='flex flex-1 flex-col items-center justify-center overflow-hidden text-center'>
         {broadcastMessage ? (
           <>
-            <div className='text-[5vw] font-extrabold px-[5vw] leading-tight text-gray-800 break-words'>
+            <div
+              ref={broadcastTextRef}
+              className='font-extrabold leading-tight text-gray-800 break-words w-full px-[4vw]'
+              style={{ fontSize }}
+            >
               {broadcastMessage}
             </div>
             <button
