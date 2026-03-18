@@ -5,9 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'src/**'
-      - 'tauri/**'
-      - '.github/workflows/build.yaml'
+      - 'tauri/tauri.conf.json'
 
 # `tauri-action` can also upload app bundles to an existing GitHub release.
 # This workflow uses different actions to create and publish the release.
