@@ -1,13 +1,23 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
-import { DiAptana } from 'react-icons/di'
+import { FiInfo, FiMoreVertical } from 'react-icons/fi'
 import { LuTimerReset } from 'react-icons/lu'
 import { TimerActions } from '@/app/hooks/timer'
 import { AiOutlineFullscreenExit } from 'react-icons/ai'
 import IconButton from './IconButton'
 import { RiRefreshLine } from 'react-icons/ri'
-import { FiInfo } from 'react-icons/fi'
 import { MdCampaign } from 'react-icons/md'
+import { DiAptana } from 'react-icons/di'
+import { cn } from '@/lib/cn'
+
+type HeaderAction = {
+  key: string
+  label: string
+  icon: React.ReactNode
+  onClick: () => void
+  destructive?: boolean
+}
 
 export function Header({
   openSettings,
@@ -26,34 +36,109 @@ export function Header({
   toggleAboutModal: () => void
   openBroadcastModal: () => void
 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const quickActions = useMemo<HeaderAction[]>(
+    () => [
+      {
+        key: 'refresh',
+        label: 'Refresh',
+        icon: <RiRefreshLine size={22} />,
+        onClick: refreshTimers,
+      },
+      {
+        key: 'broadcast',
+        label: 'Broadcast Message',
+        icon: <MdCampaign size={22} />,
+        onClick: openBroadcastModal,
+      },
+      {
+        key: 'reset',
+        label: 'Reset all timers',
+        icon: <LuTimerReset size={22} />,
+        onClick: () => resetAllTimers('reset'),
+        destructive: true,
+      },
+    ],
+    [openBroadcastModal, refreshTimers, resetAllTimers]
+  )
+
+  const menuActions = useMemo<HeaderAction[]>(
+    () => [
+      {
+        key: 'close-screen',
+        label: 'Close External Screen',
+        icon: <AiOutlineFullscreenExit size={18} />,
+        onClick: onExitFullscreen,
+      },
+      {
+        key: 'settings',
+        label: 'Settings',
+        icon: <DiAptana size={18} />,
+        onClick: openSettings,
+      },
+      {
+        key: 'about',
+        label: 'About',
+        icon: <FiInfo size={18} />,
+        onClick: toggleAboutModal,
+      },
+    ],
+    [onExitFullscreen, openSettings, toggleAboutModal]
+  )
+
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      if (!menuRef.current) return
+      if (!menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onDocumentClick)
+    document.addEventListener('keydown', onEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', onDocumentClick)
+      document.removeEventListener('keydown', onEscape)
+    }
+  }, [])
+
   return (
     <div
-      className='sticky top-0 z-10 backdrop-blur-sm'
+      className='sticky top-0 z-20 backdrop-blur-sm'
       style={{
         background: 'var(--card)',
         borderBottom: '1px solid var(--border)',
       }}
     >
-      <div className='max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-6'>
-        <div className='flex items-center justify-between gap-2'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4'>
+        <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
           <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
             <Image
               style={{ color: 'var(--foreground)' }}
               priority={true}
-              className='w-20 h-10 sm:w-30 sm:h-15 text-center flex-shrink-0'
+              className='w-20 h-10 sm:w-28 sm:h-14 text-center flex-shrink-0'
               src={logoSvg}
               alt='Logo'
             />
             <p
-              className='text-sm sm:text-xl md:text-2xl font-bold mt-1 truncate'
+              className='text-sm sm:text-lg md:text-xl font-bold truncate'
               style={{ color: 'var(--foreground)' }}
             >
               AGC Timer Control
             </p>
           </div>
-          <div className='flex items-center gap-2 sm:gap-3 min-w-0'>
+          <div className='flex items-center gap-2 sm:gap-3 min-w-0 flex-1 md:max-w-[460px]'>
             <input
-              className='w-full px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200'
+              className='w-full px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200'
               style={{
                 color: 'var(--foreground)',
                 background: 'var(--background)',
@@ -64,49 +149,78 @@ export function Header({
               onChange={(e) => onSearch(e.target.value)}
             />
           </div>
-          <div className='flex items-center gap-2 sm:gap-4 flex-shrink-0'>
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<RiRefreshLine size={40} />}
-              tooltip='Refresh'
-              tooltipPosition='bottom'
-              onClick={refreshTimers}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<AiOutlineFullscreenExit size={40} />}
-              tooltip='Close External Screen'
-              tooltipPosition='bottom'
-              onClick={onExitFullscreen}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<LuTimerReset size={40} />}
-              tooltip='Reset all timers'
-              tooltipPosition='bottom'
-              onClick={() => resetAllTimers('reset')}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<DiAptana size={40} />}
-              tooltip='Settings'
-              tooltipPosition='bottom'
-              onClick={openSettings}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<MdCampaign size={40} />}
-              tooltip='Broadcast Message'
-              tooltipPosition='bottom'
-              onClick={openBroadcastModal}
-            />
-            <IconButton
-              style={{ color: 'var(--icon)' }}
-              icon={<FiInfo size={40} />}
-              tooltip='About'
-              tooltipPosition='bottom'
-              onClick={toggleAboutModal}
-            />
+          <div className='flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0'>
+            <div
+              className='flex items-center gap-1.5 rounded-xl border'
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--background)',
+              }}
+            >
+              {quickActions.map((action) => (
+                <IconButton
+                  key={action.key}
+                  className='w-10 h-10 rounded-lg hover:bg-accent hover:text-accent-foreground'
+                  style={{
+                    color: action.destructive
+                      ? 'var(--destructive)'
+                      : 'var(--icon)',
+                  }}
+                  icon={action.icon}
+                  tooltip={action.label}
+                  tooltipPosition='bottom'
+                  onClick={action.onClick}
+                />
+              ))}
+            </div>
+
+            <div className='relative' ref={menuRef}>
+              <IconButton
+                className='w-10 h-10 rounded-xl border hover:bg-accent hover:text-accent-foreground'
+                style={{
+                  color: 'var(--icon)',
+                  borderColor: 'var(--border)',
+                  background: 'var(--background)',
+                }}
+                icon={<FiMoreVertical size={20} />}
+                tooltip='More actions'
+                tooltipPosition='bottom'
+                aria-label='More actions'
+                aria-expanded={isMenuOpen}
+                aria-haspopup='menu'
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+              />
+
+              {isMenuOpen ? (
+                <div
+                  role='menu'
+                  className='absolute right-0 mt-2 w-56 rounded-xl shadow-lg border py-2 z-30'
+                  style={{
+                    background: 'var(--card)',
+                    borderColor: 'var(--border)',
+                  }}
+                >
+                  {menuActions.map((action) => (
+                    <button
+                      key={action.key}
+                      type='button'
+                      role='menuitem'
+                      className={cn(
+                        'w-full px-3 py-2.5 text-sm flex items-center gap-2 transition-colors',
+                        'hover:bg-accent hover:text-accent-foreground'
+                      )}
+                      onClick={() => {
+                        setIsMenuOpen(false)
+                        action.onClick()
+                      }}
+                    >
+                      <span style={{ color: 'var(--icon)' }}>{action.icon}</span>
+                      <span>{action.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
