@@ -5,7 +5,11 @@ on:
     branches:
       - master
     paths:
+      - '.github/workflows/build.yaml'
       - 'tauri/tauri.conf.json'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 # `tauri-action` can also upload app bundles to an existing GitHub release.
 # This workflow uses different actions to create and publish the release.
@@ -20,10 +24,10 @@ jobs:
       release_id: ${{ steps.create-release.outputs.result }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
 
@@ -32,7 +36,7 @@ jobs:
 
       - name: create release
         id: create-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -59,10 +63,10 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: setup node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: lts/*
           cache: 'npm'
@@ -92,7 +96,7 @@ jobs:
     steps:
       - name: publish release
         id: publish-release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v8
         env:
           release_id: ${{ needs.create-release.outputs.release_id }}
         with:
@@ -110,7 +114,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Update Tauri updater endpoint dynamically
         shell: bash  # ✅ Force bash shell so jq + Unix syntax work properly
         run: |
