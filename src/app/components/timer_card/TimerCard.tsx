@@ -11,11 +11,10 @@ import { MdOutlineDelete } from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useSettings } from '@/app/providers/settings'
 import { CgUnblock } from 'react-icons/cg'
 import { TbLock } from 'react-icons/tb'
-import Alert from '../ui/Alert'
 import { toastWarning } from '@/lib/toastUtils'
 import Modal from '../modals/Modal'
 import Button from '../ui/Button'
@@ -50,6 +49,12 @@ export function TimerCard({
   const hasLockPassword = Boolean(settings?.lock_password?.trim())
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false)
   const [unlockPasswordInput, setUnlockPasswordInput] = useState('')
+  const isFluidTimer = fluidTimers.includes(timer.id.uuid)
+  const hasCountdown = Boolean(timer.countdown)
+  const isAnyTimerRunning =
+    localTimer.isRunning || localTimer.overtime.isRunning
+  const isInjuryTime =
+    localTimer.totalSeconds < (timer?.countdown?.duration ?? 0) * 0.2
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
@@ -84,6 +89,57 @@ export function TimerCard({
     setIsUnlockModalOpen(true)
   }, [hasLockPassword, openSettingsDialog])
 
+  const actionButtons = useMemo(
+    () => [
+      {
+        key: 'start',
+        label: 'Start',
+        icon: <IoPlayOutline size={20} />,
+        onClick: () => onOperation(timer, 'start'),
+        disabled: isAnyTimerRunning && isActive,
+        color: 'var(--green)',
+      },
+      {
+        key: 'reset',
+        label: 'Reset',
+        icon: <LuTimerReset size={20} />,
+        onClick: () => onOperation(timer, 'reset'),
+        disabled: isAnyTimerRunning && !isActive,
+        color: 'var(--ring)',
+      },
+      {
+        key: 'edit',
+        label: 'Edit',
+        icon: <AiOutlineEdit size={20} />,
+        onClick: onEditClick,
+        color: 'var(--ring)',
+      },
+      {
+        key: 'lock',
+        label: 'Lock from deleting',
+        icon: <TbLock size={20} />,
+        onClick: () => addFluidTime(timer),
+        color: 'var(--ring)',
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        icon: <MdOutlineDelete size={20} />,
+        onClick: () => onDelete(timer.id.uuid),
+        color: 'var(--destructive)',
+      },
+    ],
+    [
+      addFluidTime,
+      isActive,
+      isAnyTimerRunning,
+      onDelete,
+      onEditClick,
+      onOperation,
+      timer,
+    ]
+  )
+
   const submitUnlockPassword = useCallback(async () => {
     if (!unlockPasswordInput.trim()) return
 
@@ -104,91 +160,183 @@ export function TimerCard({
 
   return (
     <div
-      className={
-        'rounded-2xl p-6 shadow-sm border transition-all duration-300 hover:shadow-lg'
-      }
+      className='group rounded-2xl border p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg'
       style={{
-        background: 'var(--card)',
+        background: 'var(--surface-1)',
         border: isActive
           ? '1.5px solid var(--ring)'
           : '1.5px solid var(--border)',
         boxShadow: isActive
-          ? '0 3px 14px 0 var(--ring), 0 1px 4px 0 var(--ring)'
-          : undefined,
+          ? '0 8px 24px -18px var(--ring), 0 2px 8px 0 color-mix(in srgb, var(--ring) 40%, transparent)'
+          : 'var(--surface-shadow-sm)',
       }}
     >
-      {/* Timer Header */}
-      <div className='flex items-start justify-between mb-4'>
-        <div className='flex-1'>
+      <div className='flex items-start justify-between gap-3'>
+        <div className='min-w-0 flex-1'>
+          <div className='flex flex-wrap items-center gap-1.5 mb-2'>
+            <span
+              className='inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]'
+              style={{
+                background: isActive
+                  ? 'color-mix(in srgb, var(--ring) 12%, var(--surface-3) 88%)'
+                  : 'var(--surface-2)',
+                color: isActive ? 'var(--ring)' : 'var(--muted-foreground)',
+              }}
+            >
+              {isActive ? 'Live Timer' : 'Ready'}
+            </span>
+            {isFluidTimer ? (
+              <span
+                className='inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]'
+                style={{
+                  background:
+                    'color-mix(in srgb, var(--destructive) 10%, var(--surface-2) 90%)',
+                  color: 'var(--destructive)',
+                }}
+              >
+                Locked
+              </span>
+            ) : null}
+          </div>
+
           <h2
-            className='text-lg font-semibold mb-1'
+            className='text-base sm:text-lg font-semibold mb-2 truncate'
             style={{ color: 'var(--card-foreground)' }}
           >
             {timer.id.name}
           </h2>
-          {timer.countdown && (
-            <div className='flex items-center gap-2 flex-wrap'>
-              <span
-                className='text-sm'
-                style={{ color: 'var(--muted-foreground)' }}
-              >
-                Duration:
-              </span>
-              <span
-                className='text-sm font-mono px-2 py-1 rounded-lg'
+          {hasCountdown ? (
+            <div className='flex items-center gap-2 text-sm'>
+              <div
+                className='inline-flex items-center gap-2 rounded-xl px-2.5 py-1.5 border'
                 style={{
-                  background: 'var(--muted)',
-                  color: 'var(--foreground)',
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border)',
                 }}
               >
-                {formatSecondsToTime(timer.countdown.duration)}
-              </span>
+                <p
+                  className='text-[10px] font-semibold uppercase tracking-[0.14em]'
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  Duration
+                </p>
+                <p
+                  className='text-sm font-mono'
+                  style={{ color: 'var(--foreground)' }}
+                >
+                  {formatSecondsToTime(timer.countdown!.duration)}
+                </p>
+              </div>
+              <div
+                className='inline-flex items-center gap-2 rounded-xl px-2.5 py-1.5 border'
+                style={{
+                  background: 'var(--surface-2)',
+                  borderColor: 'var(--border)',
+                }}
+              >
+                <p
+                  className='text-[10px] font-semibold uppercase tracking-[0.14em]'
+                  style={{ color: 'var(--muted-foreground)' }}
+                >
+                  Status
+                </p>
+                <p
+                  className='text-sm font-medium capitalize'
+                  style={{ color: 'var(--foreground)' }}
+                >
+                  {timer.state}
+                </p>
+              </div>
             </div>
-          )}
+          ) : null}
         </div>
-        {isActive && (
-          <div
-            className='flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium'
-            style={{
-              background: 'var(--green)',
-              color: 'var(--card)',
-            }}
-          >
+
+        <div className='flex items-center gap-2'>
+          {isActive ? (
             <div
-              className='w-2 h-2 rounded-full animate-pulse'
-              style={{ background: 'var(--card)' }}
-            ></div>
-            Active
-          </div>
-        )}
-        {fluidTimers.includes(timer.id.uuid) && (
-          <IconButton
-            style={{ color: 'var(--destructive)' }}
-            icon={<CgUnblock size={30} />}
-            tooltip='Unlock for editing'
-            tooltipPosition='top'
-            onClick={openUnlockModal}
-          />
-        )}
+              className='flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap'
+              style={{
+                background: 'var(--green)',
+                color: 'var(--card)',
+              }}
+            >
+              <div
+                className='w-2 h-2 rounded-full animate-pulse'
+                style={{ background: 'var(--card)' }}
+              ></div>
+              Active
+            </div>
+          ) : null}
+
+          {isFluidTimer ? (
+            <IconButton
+              className='h-9 w-9 rounded-xl border hover:bg-accent hover:text-accent-foreground'
+              style={{
+                color: 'var(--destructive)',
+                borderColor: 'var(--border)',
+                background:
+                  'color-mix(in srgb, var(--destructive) 6%, var(--surface-2) 94%)',
+              }}
+              icon={<CgUnblock size={20} />}
+              tooltip='Unlock for editing'
+              tooltipPosition='top'
+              onClick={openUnlockModal}
+            />
+          ) : null}
+        </div>
       </div>
 
-      {timer.countdown ? (
-        <div className='space-y-4'>
+      {hasCountdown ? (
+        <div className='space-y-3 mt-3'>
           {isActive && (
-            <div className='flex items-stretch'>
+            <div
+              className='rounded-xl border p-2.5'
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--surface-3) 0%, var(--surface-2) 100%)',
+                borderColor: 'var(--border)',
+              }}
+            >
+              <div className='flex items-center justify-between gap-3 mb-2'>
+                <div>
+                  <p
+                    className='text-[10px] font-semibold uppercase tracking-[0.14em]'
+                    style={{ color: 'var(--muted-foreground)' }}
+                  >
+                    Live Preview
+                  </p>
+                  <p
+                    className='text-xs font-medium'
+                    style={{ color: 'var(--foreground)' }}
+                  >
+                    {isInjuryTime ? 'Ending soon' : 'In progress'}
+                  </p>
+                </div>
+                <IconButton
+                  className='h-9 w-9 rounded-xl border hover:bg-background'
+                  style={{
+                    color: 'var(--ring)',
+                    borderColor: 'var(--border)',
+                    background: 'var(--surface-1)',
+                  }}
+                  icon={<BiFullscreen size={20} className='inline' />}
+                  tooltip='Open fullscreen'
+                  tooltipPosition='top'
+                  onClick={() => onOpenFullScreen(timer)}
+                />
+              </div>
+
               <div
-                className='flex-3 rounded-l-xl p-2 border'
+                className='rounded-xl px-3 py-2 border'
                 style={{
-                  background: 'var(--accent)',
-                  border: '1.5px solid var(--border)',
+                  background: 'var(--surface-1)',
+                  borderColor: 'var(--border)',
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.35)',
                 }}
               >
                 <Watch
                   mode='normal'
-                  isInjuryTime={
-                    localTimer.totalSeconds <
-                    (timer?.countdown?.duration ?? 0) * 0.2
-                  }
+                  isInjuryTime={isInjuryTime}
                   hours={localTimer.hours}
                   minutes={localTimer.minutes}
                   seconds={localTimer.seconds}
@@ -196,76 +344,59 @@ export function TimerCard({
                   fullscreen={false}
                 />
               </div>
-              <IconButton
-                className='rounded-r-xl rounded-l-none flex-1 flex has-tooltip max-w-[60px]'
-                style={{ color: 'var(--ring)', background: 'var(--slate)' }}
-                icon={<BiFullscreen size={40} className='inline' />}
-                tooltip='Open fullscreen'
-                tooltipPosition='top'
-                onClick={() => onOpenFullScreen(timer)}
-              />
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className='flex gap-8 flex-wrap'>
-            {fluidTimers.includes(timer.id.uuid) ? (
-              <Alert
-                title=''
-                type='info'
-                message='This event should remain locked. Modifying it would compromise the integrity of the ProPresenter screen configuration.
-                  It must remain locked for the screens to function correctly. DO NOT DELETE'
-              ></Alert>
-            ) : (
-              <>
-                <IconButton
-                  disabled={
-                    (localTimer.isRunning || localTimer.overtime.isRunning) && isActive
-                  }
-                  style={{ color: 'var(--green)' }}
-                  icon={<IoPlayOutline size={30} />}
-                  tooltip='Start'
-                  tooltipPosition='top'
-                  onClick={() => onOperation(timer, 'start')}
-                />
-                <IconButton
-                  disabled={
-                    (localTimer.isRunning || localTimer.overtime.isRunning) &&
-                    !isActive
-                  }
-                  style={{ color: 'var(--ring)' }}
-                  icon={<LuTimerReset size={30} />}
-                  tooltip='Reset'
-                  tooltipPosition='top'
-                  onClick={() => onOperation(timer, 'reset')}
-                />
-                <IconButton
-                  style={{ color: 'var(--ring)' }}
-                  icon={<AiOutlineEdit size={30} />}
-                  tooltip='Edit'
-                  tooltipPosition='top'
-                  onClick={onEditClick}
-                />
-                <IconButton
-                  style={{ color: 'var(--ring)' }}
-                  icon={<TbLock size={30} />}
-                  tooltip='Lock from deleting'
-                  tooltipPosition='top'
-                  onClick={() => addFluidTime(timer)}
-                />
-                <IconButton
-                  style={{ color: 'var(--destructive)' }}
-                  icon={<MdOutlineDelete size={30} />}
-                  tooltip='Delete'
-                  tooltipPosition='top'
-                  onClick={() => onDelete(timer.id.uuid)}
-                />
-              </>
-            )}
-          </div>
+          {isFluidTimer ? (
+            <div
+              className='rounded-xl border px-3 py-2 text-xs leading-relaxed'
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--surface-2)',
+                color: 'var(--muted-foreground)',
+              }}
+            >
+              This event should remain locked. Modifying it would compromise the
+              integrity of the ProPresenter screen configuration. It must remain
+              locked for the screens to function correctly. DO NOT DELETE.
+            </div>
+          ) : (
+            <div
+              className='rounded-2xl border p-4'
+              style={{
+                borderColor: 'var(--border)',
+                background: 'var(--surface-2)',
+              }}
+            >
+              <div className='flex flex-wrap gap-2'>
+                {actionButtons.map((action) => (
+                  <IconButton
+                    key={action.key}
+                    disabled={action.disabled}
+                    className='h-9 w-9 rounded-xl border hover:bg-accent hover:text-accent-foreground'
+                    style={{
+                      color: action.color,
+                      borderColor: 'var(--border)',
+                      background: 'var(--surface-1)',
+                    }}
+                    icon={action.icon}
+                    tooltip={action.label}
+                    tooltipPosition='top'
+                    onClick={action.onClick}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className='text-center py-6'>
+        <div
+          className='text-center py-5 mt-3 rounded-xl border'
+          style={{
+            borderColor: 'var(--border)',
+            background: 'var(--surface-2)',
+          }}
+        >
           <p
             className='text-sm font-medium'
             style={{ color: 'var(--muted-foreground)' }}

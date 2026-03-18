@@ -115,8 +115,9 @@ export function Header({
     <div
       className='sticky top-0 z-20 backdrop-blur-sm'
       style={{
-        background: 'var(--card)',
+        background: 'var(--surface-elevated)',
         borderBottom: '1px solid var(--border)',
+        boxShadow: 'var(--surface-shadow-sm)',
       }}
     >
       <div className='max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4'>
@@ -141,9 +142,9 @@ export function Header({
               className='w-full px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all duration-200'
               style={{
                 color: 'var(--foreground)',
-                background: 'var(--background)',
+                background: 'var(--surface-1)',
                 border: '1px solid var(--border)',
-                boxShadow: 'none',
+                boxShadow: 'var(--surface-shadow-sm)',
               }}
               placeholder='Search...'
               onChange={(e) => onSearch(e.target.value)}
@@ -151,10 +152,11 @@ export function Header({
           </div>
           <div className='flex items-center justify-end gap-2 sm:gap-3 flex-shrink-0'>
             <div
-              className='flex items-center gap-1.5 rounded-xl border'
+              className='flex items-center gap-1.5 rounded-xl border p-1'
               style={{
                 borderColor: 'var(--border)',
-                background: 'var(--background)',
+                background: 'var(--surface-2)',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.45)',
               }}
             >
               {quickActions.map((action) => (
@@ -164,7 +166,8 @@ export function Header({
                   style={{
                     color: action.destructive
                       ? 'var(--destructive)'
-                      : 'var(--icon)',
+                        : 'var(--icon)',
+                      background: 'transparent',
                   }}
                   icon={action.icon}
                   tooltip={action.label}
@@ -180,7 +183,8 @@ export function Header({
                 style={{
                   color: 'var(--icon)',
                   borderColor: 'var(--border)',
-                  background: 'var(--background)',
+                  background: 'var(--surface-2)',
+                  boxShadow: 'var(--surface-shadow-sm)',
                 }}
                 icon={<FiMoreVertical size={20} />}
                 tooltip='More actions'
@@ -196,8 +200,9 @@ export function Header({
                   role='menu'
                   className='absolute right-0 mt-2 w-56 rounded-xl shadow-lg border py-2 z-30'
                   style={{
-                    background: 'var(--card)',
+                    background: 'var(--surface-1)',
                     borderColor: 'var(--border)',
+                    boxShadow: 'var(--surface-shadow)',
                   }}
                 >
                   {menuActions.map((action) => (
