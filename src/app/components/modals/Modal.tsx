@@ -28,7 +28,6 @@ export default function Modal({
   closeOnBackdrop = true,
   closeOnEscape = true,
   showCloseButton = false,
-  actions,
 }: ModalProps) {
   useEffect(() => {
     if (!closeOnEscape) return
