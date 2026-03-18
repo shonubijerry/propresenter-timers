@@ -8,6 +8,8 @@ import IconButton from '../ui/IconButton'
 import { useForm } from 'react-hook-form'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useTimersApi } from '@/app/hooks/useTimerApi'
+import { useShared } from '@/app/providers/timer'
+import { randomInt } from 'crypto'
 
 interface TimerCardEditProps {
   timer: Timer
@@ -28,6 +30,7 @@ export function TimerCardEdit({
   onSave,
 }: TimerCardEditProps) {
   const { createTimer, setTimerUpdateOperation } = useTimersApi()
+    const { localTimer } = useShared()
 
   const {
     register,
@@ -37,22 +40,30 @@ export function TimerCardEdit({
     defaultValues: {
       name: timer?.id.name ?? 'New Event',
       duration: formatSecondsToTime(
-        isActive ? timer.remainingSeconds : (timer?.countdown?.duration ?? 5)
+        isActive ? localTimer.totalSeconds : (timer?.countdown?.duration ?? 5)
       ),
     },
   })
 
   const onSubmit = async (data: TimerFormData) => {
+
     try {
+    if (!data.name.trim()) {
+      data.name = `Timer ${Math.floor(Math.random() * 1000)}`
+    }
       const [hours = 0, minutes = 0, seconds = 0] = data.duration
         .split(':')
         .map(Number)
 
-      const totalSeconds = hours * 3600 + minutes * 60 + seconds
+      let totalSeconds = hours * 3600 + minutes * 60 + seconds
 
       if (totalSeconds < 60) {
         toastError('Duration must be at least 1 minute')
         return
+      }
+
+      if (isActive) {
+        totalSeconds = localTimer.totalSeconds
       }
 
       if (timer.time === 'new') {
@@ -117,13 +128,7 @@ export function TimerCardEdit({
                 background: 'var(--card)',
                 color: 'var(--card-foreground)',
               }}
-              {...register('name', {
-                required: 'Name is required',
-                minLength: {
-                  value: 1,
-                  message: 'Name must be at least 1 character',
-                },
-              })}
+              {...register('name')}
             />
             {errors.name && (
               <span className='text-xs text-red-500'>
