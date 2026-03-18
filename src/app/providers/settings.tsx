@@ -15,7 +15,15 @@ import { checkUpdate } from '@/lib/update'
 import { toastWarning } from '@/lib/toastUtils'
 import { DbService } from '@/lib/database'
 import Database from '@tauri-apps/plugin-sql'
-import { AppSettings, SqliteFluidTimer } from '../interfaces/settings'
+import { AppSettings, SqliteFluidTimer, ThemeMode } from '../interfaces/settings'
+
+type SettingKey = Exclude<keyof AppSettings, 'id'>
+
+interface SqliteSettingRow {
+  id: number
+  name: SettingKey
+  value: string
+}
 
 const SettingsContext = createContext<{
   proPresenterUrl: string | null
@@ -48,6 +56,56 @@ const defaultSettings: AppSettings = {
   lock_password: '',
 }
 
+const settingKeys: SettingKey[] = [
+  'address',
+  'port',
+  'theme',
+  'datastore',
+  'lock_password',
+]
+
+const themeModes: ThemeMode[] = ['light', 'dark', 'system']
+const datastores: AppSettings['datastore'][] = ['proPresenter', 'localDb']
+
+const mapRowsToAppSettings = (rows: SqliteSettingRow[]): AppSettings => {
+  const rowMap = rows.reduce<Record<string, string>>((acc, row) => {
+    acc[row.name] = row.value
+    return acc
+  }, {})
+
+  const portValue = Number(rowMap.port)
+  const themeValue = rowMap.theme
+  const datastoreValue = rowMap.datastore
+
+  return {
+    id: 1,
+    address: rowMap.address || defaultSettings.address,
+    port:
+      Number.isFinite(portValue) && portValue > 0 && portValue <= 65535
+        ? portValue
+        : defaultSettings.port,
+    theme: themeModes.includes(themeValue as ThemeMode)
+      ? (themeValue as ThemeMode)
+      : defaultSettings.theme,
+    datastore: datastores.includes(datastoreValue as AppSettings['datastore'])
+      ? (datastoreValue as AppSettings['datastore'])
+      : defaultSettings.datastore,
+    lock_password: rowMap.lock_password ?? defaultSettings.lock_password,
+  }
+}
+
+const saveSettingsRows = async (
+  service: DbService<SqliteSettingRow>,
+  appSettings: AppSettings
+) => {
+  for (const key of settingKeys) {
+    await service.upsert({
+      name: key,
+      value: String(appSettings[key]),
+    })
+  }
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -76,7 +134,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const settingsService = useMemo(() => {
     if (!db) return null
-    return new DbService<AppSettings>('settings', 'id', db)
+    return new DbService<SqliteSettingRow>('settings', 'name', db)
   }, [db])
 
   // Load settings after services are ready
@@ -97,14 +155,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             await checkUpdate()
           }
 
-          const data = await settingsService.findAll()
+          const data = await settingsService.findAll('id ASC')
+          const mappedSettings = mapRowsToAppSettings(data)
 
-          if (!data.length) {
-            await settingsService.create(defaultSettings)
-            setSettings(defaultSettings)
-          } else {
-            setSettings(data[0])
+          if (data.length < settingKeys.length) {
+            await saveSettingsRows(settingsService, mappedSettings)
           }
+
+          setSettings(mappedSettings)
         } else {
           // Browser mode
           const savedSettings = localStorage.getItem('app-settings')
@@ -181,13 +239,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = useCallback(
     async (newSettings: AppSettings): Promise<void> => {
-      const updatedSettings = { ...settings, ...newSettings }
+      const updatedSettings = {
+        ...(settings ?? defaultSettings),
+        ...newSettings,
+        id: 1,
+      }
       setSettings(updatedSettings)
 
       try {
         if (typeof window !== 'undefined' && window.isTauri) {
           if (settingsService) {
-            await settingsService.upsert(updatedSettings)
+            await saveSettingsRows(settingsService, updatedSettings)
           }
         } else {
           localStorage.setItem('app-settings', JSON.stringify(updatedSettings))

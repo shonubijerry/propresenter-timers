@@ -38,5 +38,27 @@ pub fn get_migrations() -> Vec<Migration> {
       sql: r#"ALTER TABLE settings ADD COLUMN lock_password TEXT NOT NULL DEFAULT '';"#,
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 3,
+      description: "normalize_settings_to_key_value_rows",
+      sql: r#"ALTER TABLE settings RENAME TO settings_legacy;
+      CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        value TEXT NOT NULL
+      );
+      INSERT INTO settings (name, value)
+        SELECT 'address', address FROM settings_legacy WHERE address IS NOT NULL;
+      INSERT INTO settings (name, value)
+        SELECT 'port', CAST(port AS TEXT) FROM settings_legacy WHERE port IS NOT NULL;
+      INSERT INTO settings (name, value)
+        SELECT 'theme', theme FROM settings_legacy WHERE theme IS NOT NULL;
+      INSERT INTO settings (name, value)
+        SELECT 'datastore', datastore FROM settings_legacy WHERE datastore IS NOT NULL;
+      INSERT INTO settings (name, value)
+        SELECT 'lock_password', COALESCE(lock_password, '') FROM settings_legacy;
+      DROP TABLE settings_legacy;"#,
+      kind: MigrationKind::Up,
+    },
   ]
 }
