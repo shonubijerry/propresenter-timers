@@ -9,6 +9,7 @@ import IconButton from './IconButton'
 import { RiRefreshLine } from 'react-icons/ri'
 import { MdCampaign } from 'react-icons/md'
 import { DiAptana } from 'react-icons/di'
+import { PiChartBarDuotone } from 'react-icons/pi'
 import { cn } from '@/lib/cn'
 
 type HeaderAction = {
@@ -27,6 +28,7 @@ export function Header({
   onSearch,
   toggleAboutModal,
   openBroadcastModal,
+  openAnalyticsModal,
 }: {
   openSettings: () => void
   onExitFullscreen: () => void
@@ -35,6 +37,7 @@ export function Header({
   onSearch: (term: string) => void
   toggleAboutModal: () => void
   openBroadcastModal: () => void
+  openAnalyticsModal: () => void
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -79,13 +82,19 @@ export function Header({
         onClick: openSettings,
       },
       {
+        key: 'analytics',
+        label: 'Analytics',
+        icon: <PiChartBarDuotone size={18} />,
+        onClick: openAnalyticsModal,
+      },
+      {
         key: 'about',
         label: 'About',
         icon: <FiInfo size={18} />,
         onClick: toggleAboutModal,
       },
     ],
-    [onExitFullscreen, openSettings, toggleAboutModal]
+    [onExitFullscreen, openSettings, openAnalyticsModal, toggleAboutModal]
   )
 
   useEffect(() => {

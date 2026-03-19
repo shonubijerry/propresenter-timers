@@ -5,6 +5,12 @@ import { DbService } from './database'
 import Database from '@tauri-apps/plugin-sql'
 import { v4 as uuidv4 } from 'uuid'
 import { SqliteFluidTimer } from '@/app/interfaces/settings'
+import {
+  getTimerAnalyticsByRange,
+  getTimerAnalyticsByDate,
+  recordTimerRunEnd,
+  recordTimerRunStart,
+} from './timerAnalyticsDb'
 
 // Type for the SQLite timer structure
 interface SqliteTimer {
@@ -33,6 +39,12 @@ const getFluidTimerService = (db?: Database) => {
     throw new Error('Database not initialized')
   }
   return new DbService<SqliteFluidTimer>('fluid_timers', 'timer_id', db)
+}
+
+const isFluidTimer = async (timerId: string, db?: Database): Promise<boolean> => {
+  const fluidTimerService = getFluidTimerService(db)
+  const fluidTimer = await fluidTimerService.findById(timerId, 'timer_id')
+  return Boolean(fluidTimer)
 }
 
 const getRemainingSeconds = ({
@@ -153,6 +165,9 @@ export const deleteTimerFromDb = async (
 ): Promise<void> => {
   if (!id) throw new Error('Id not set for delete')
   const timerService = getTimerService(db)
+  if (!(await isFluidTimer(id, db))) {
+    await recordTimerRunEnd(id, 'reset', db)
+  }
   await timerService.delete(id)
 }
 
@@ -167,6 +182,7 @@ export const setTimerOperationInDb = async (
   if (!id) throw new Error('Id not set for operation')
 
   const timer = await getTimerFromDb(id, db)
+  const fluidTimer = await isFluidTimer(id, db)
 
   if (!timer) throw new Error('Timer not found')
 
@@ -178,6 +194,17 @@ export const setTimerOperationInDb = async (
     case 'start':
       updates.state = 'running'
       updates.started_at = now
+      if (!fluidTimer) {
+        await recordTimerRunStart(
+          {
+            timerUuid: timer.uuid,
+            timerName: timer.name,
+            scheduledDuration: timer.countdown_duration,
+          },
+          db,
+          now
+        )
+      }
       break
     case 'stop':
       const elapsedTime = now - (timer.started_at ?? 0)
@@ -185,11 +212,18 @@ export const setTimerOperationInDb = async (
       updates.remaining_seconds = Math.floor(
         timer.remaining_seconds - elapsedTime
       )
+      updates.started_at = null
+      if (!fluidTimer) {
+        await recordTimerRunEnd(id, 'stop', db, now)
+      }
       break
     case 'reset':
       updates.state = 'stopped'
       updates.remaining_seconds = timer.countdown_duration
       updates.started_at = null
+      if (!fluidTimer) {
+        await recordTimerRunEnd(id, 'reset', db, now)
+      }
       break
     default:
       throw new Error(`Unknown operation: ${operation}`)
@@ -211,6 +245,10 @@ export const setTimerUpdateOperationInDb = async (
 ): Promise<Timer> => {
   if (!id) throw new Error('Id not set for operation')
 
+  const timer = await getTimerFromDb(id, db)
+  const fluidTimer = await isFluidTimer(id, db)
+  if (!timer) throw new Error('Timer not found')
+
   const now = Math.floor(Date.now() / 1000)
   let state: 'stopped' | 'running' = 'stopped'
   let started_at: number | null = null
@@ -219,9 +257,29 @@ export const setTimerUpdateOperationInDb = async (
     case 'start':
       state = 'running'
       started_at = now
+      if (!fluidTimer) {
+        await recordTimerRunStart(
+          {
+            timerUuid: timer.uuid,
+            timerName: name.length ? name : timer.name,
+            scheduledDuration: duration,
+          },
+          db,
+          now
+        )
+      }
       break
     case 'stop':
       state = 'stopped'
+      if (!fluidTimer) {
+        await recordTimerRunEnd(id, 'stop', db, now)
+      }
+      break
+    case 'reset':
+      state = 'stopped'
+      if (!fluidTimer) {
+        await recordTimerRunEnd(id, 'reset', db, now)
+      }
       break
     default:
       state = 'stopped'
@@ -252,7 +310,11 @@ export const setAllTimersOperationInDb = async (
   db?: Database
 ): Promise<void> => {
   const timerService = getTimerService(db)
+  const fluidTimerService = getFluidTimerService(db)
   const timers = await timerService.findAll('id')
+  const fluidTimerIds = new Set(
+    (await fluidTimerService.findAll('id')).map((timer) => timer.timer_id)
+  )
 
   const updates = timers.map(async (timer) => {
     const now = Math.floor(Date.now() / 1000)
@@ -262,16 +324,33 @@ export const setAllTimersOperationInDb = async (
       case 'start':
         updateData.state = 'running'
         updateData.started_at = now
+        if (!fluidTimerIds.has(timer.uuid)) {
+          await recordTimerRunStart(
+            {
+              timerUuid: timer.uuid,
+              timerName: timer.name,
+              scheduledDuration: timer.countdown_duration,
+            },
+            db,
+            now
+          )
+        }
         break
       case 'stop':
         updateData.state = 'stopped'
         updateData.remaining_seconds = timer.countdown_duration
         updateData.started_at = null
+        if (!fluidTimerIds.has(timer.uuid)) {
+          await recordTimerRunEnd(timer.uuid, 'stop', db, now)
+        }
         break
       case 'reset':
         updateData.state = 'stopped'
         updateData.remaining_seconds = timer.countdown_duration
         updateData.started_at = null
+        if (!fluidTimerIds.has(timer.uuid)) {
+          await recordTimerRunEnd(timer.uuid, 'reset', db, now)
+        }
         break
     }
     updateData.uuid = timer.uuid
@@ -281,3 +360,15 @@ export const setAllTimersOperationInDb = async (
 
   await Promise.all(updates)
 }
+
+export const getTimerAnalyticsByDateFromDb = async (
+  date: string,
+  db?: Database
+): ReturnType<typeof getTimerAnalyticsByDate> => getTimerAnalyticsByDate(date, db)
+
+export const getTimerAnalyticsByRangeFromDb = async (
+  fromDate: string,
+  toDate: string,
+  db?: Database
+): ReturnType<typeof getTimerAnalyticsByRange> =>
+  getTimerAnalyticsByRange(fromDate, toDate, db)

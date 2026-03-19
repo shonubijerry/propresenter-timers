@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Timer } from './interfaces/time'
+import { TimerAnalyticsRangeSummary } from './interfaces/analytics'
 import { TimerActions } from './hooks/timer'
 import HomeMain from './components/HomeMain'
 import WatchMain from './components/watch/WatchMain'
@@ -21,6 +22,7 @@ export default function Home() {
     setAllTimersOperation,
     updateTimers,
     setTimerUpdateOperation,
+    getTimerAnalyticsByRange,
   } = useTimersApi()
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
   const [showTime, setShowTime] = useState(false)
@@ -251,7 +253,10 @@ export default function Home() {
           await resetLocalTimerState()
         }
 
-        await setTimerOperation(action, timer.id.uuid)
+        await setTimerOperation(action, timer.id.uuid, {
+          name: timer.id.name,
+          duration: timer.countdown?.duration ?? 0,
+        })
         await applyFluidTimersOperation(timer, action)
 
         await refetch()
@@ -316,6 +321,13 @@ export default function Home() {
     }
   }, [setApiError, refetch])
 
+  const onLoadAnalyticsRange = useCallback(
+    async (fromDate: string, toDate: string): Promise<TimerAnalyticsRangeSummary> => {
+      return await getTimerAnalyticsByRange(fromDate, toDate)
+    },
+    [getTimerAnalyticsByRange]
+  )
+
   if (isLoading) {
     return (
       <main
@@ -345,6 +357,7 @@ export default function Home() {
           refreshTimers={refreshTimers}
           updateTimerInList={updateTimerInList}
           onSearch={onSearch}
+          onLoadAnalytics={onLoadAnalyticsRange}
         />
       ) : (
         <WatchMain

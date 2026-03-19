@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Timer } from '../interfaces/time'
+import {
+  TimerAnalyticsRangeSummary,
+  TimerAnalyticsSummary,
+} from '../interfaces/analytics'
 import { convertTimeToSeconds } from '@/lib/formatter'
 import { useSettings } from '../providers/settings'
 import { fetchJson } from './client'
@@ -12,7 +16,20 @@ import {
   setTimerOperationInDb,
   setTimerUpdateOperationInDb,
   setAllTimersOperationInDb,
+  getTimerAnalyticsByDateFromDb,
+  getTimerAnalyticsByRangeFromDb,
 } from '../../lib/localDb'
+import {
+  getTimerAnalyticsByRange as getTimerAnalyticsByRangeShared,
+  getTimerAnalyticsByDate as getTimerAnalyticsByDateShared,
+  recordTimerRunEnd,
+  recordTimerRunStart,
+} from '@/lib/timerAnalyticsDb'
+
+type TimerAnalyticsMeta = {
+  name: string
+  duration: number
+}
 
 interface TimersApiHook {
   timers: Timer[]
@@ -22,7 +39,11 @@ interface TimersApiHook {
   createTimer: (duration: number, name: string) => Promise<Timer>
   editTimer: (duration: number, name: string, id?: string) => Promise<Timer>
   deleteTimer: (id?: string) => Promise<void>
-  setTimerOperation: (operation: string, id?: string) => Promise<void>
+  setTimerOperation: (
+    operation: string,
+    id?: string,
+    analyticsMeta?: TimerAnalyticsMeta
+  ) => Promise<void>
   setTimerUpdateOperation: (
     duration: number,
     name: string,
@@ -32,6 +53,11 @@ interface TimersApiHook {
   setAllTimersOperation: (operation: TimerActions) => Promise<void>
   updateTimers: (data: Timer[]) => void
   fetchTimers: () => Promise<Timer[]>
+  getTimerAnalyticsByDate: (date: string) => Promise<TimerAnalyticsSummary>
+  getTimerAnalyticsByRange: (
+    fromDate: string,
+    toDate: string
+  ) => Promise<TimerAnalyticsRangeSummary>
 }
 
 /**
@@ -207,7 +233,11 @@ export const useTimersApi = (): TimersApiHook => {
   )
 
   const setTimerOperation = useCallback(
-    async (operation: string, id?: string): Promise<void> => {
+    async (
+      operation: string,
+      id?: string,
+      analyticsMeta?: TimerAnalyticsMeta
+    ): Promise<void> => {
       if (!id) throw new Error('Id not set for operation')
 
       if (fluidTimers.includes(id)) throw new Error('Timer cannot be modified')
@@ -225,6 +255,24 @@ export const useTimersApi = (): TimersApiHook => {
         { method: 'GET' },
         `Failed: ${operation}`
       )
+
+      if (!db) return
+      if (fluidTimers.includes(id)) return
+
+      if (operation === 'start' && analyticsMeta) {
+        await recordTimerRunStart(
+          {
+            timerUuid: id,
+            timerName: analyticsMeta.name,
+            scheduledDuration: analyticsMeta.duration,
+          },
+          db
+        )
+      }
+
+      if (operation === 'stop' || operation === 'reset') {
+        await recordTimerRunEnd(id, operation, db)
+      }
     },
     [baseUrl, isLocalDb, fluidTimers, db]
   )
@@ -281,9 +329,28 @@ export const useTimersApi = (): TimersApiHook => {
           }),
         },
         `Failed to update timer operation`
-      )
+      ).then(async (response) => {
+        if (db && !fluidTimers.includes(id)) {
+          if (operation === 'start') {
+            await recordTimerRunStart(
+              {
+                timerUuid: id,
+                timerName: name.length ? name : response.id.name,
+                scheduledDuration: duration,
+              },
+              db
+            )
+          }
+
+          if (operation === 'stop' || operation === 'reset') {
+            await recordTimerRunEnd(id, operation, db)
+          }
+        }
+
+        return response
+      })
     },
-    [baseUrl, isLocalDb, db]
+    [baseUrl, isLocalDb, db, fluidTimers]
   )
 
   const setAllTimersOperation = useCallback(
@@ -301,13 +368,78 @@ export const useTimersApi = (): TimersApiHook => {
         { method: 'GET' },
         `Failed to perform operation: ${operation}`
       )
+
+      if (!db) return
+
+      if (operation === 'reset' || operation === 'stop') {
+        const nonFluidTimerIds = timers
+          .filter((timer) => !timer.isFluid)
+          .map((timer) => timer.id.uuid)
+
+        await Promise.all(
+          nonFluidTimerIds.map((timerId) =>
+            recordTimerRunEnd(timerId, operation, db)
+          )
+        )
+        return
+      }
+
+      if (operation === 'start') {
+        await Promise.all(
+          timers
+            .filter((timer) => !timer.isFluid && timer.countdown)
+            .map((timer) =>
+              recordTimerRunStart(
+                {
+                  timerUuid: timer.id.uuid,
+                  timerName: timer.id.name,
+                  scheduledDuration: timer.countdown!.duration,
+                },
+                db
+              )
+            )
+        )
+      }
     },
-    [baseUrl, isLocalDb, db]
+    [baseUrl, isLocalDb, db, timers]
   )
 
   const updateTimers = useCallback((data: Timer[]) => {
     setTimers(data)
   }, [])
+
+  const getTimerAnalyticsByDate = useCallback(
+    async (date: string): Promise<TimerAnalyticsSummary> => {
+      if (!db) {
+        throw new Error('Analytics is available only in desktop app mode')
+      }
+
+      if (isLocalDb) {
+        return await getTimerAnalyticsByDateFromDb(date, db)
+      }
+
+      return await getTimerAnalyticsByDateShared(date, db)
+    },
+    [isLocalDb, db]
+  )
+
+  const getTimerAnalyticsByRange = useCallback(
+    async (
+      fromDate: string,
+      toDate: string
+    ): Promise<TimerAnalyticsRangeSummary> => {
+      if (!db) {
+        throw new Error('Analytics is available only in desktop app mode')
+      }
+
+      if (isLocalDb) {
+        return await getTimerAnalyticsByRangeFromDb(fromDate, toDate, db)
+      }
+
+      return await getTimerAnalyticsByRangeShared(fromDate, toDate, db)
+    },
+    [isLocalDb, db]
+  )
 
   // --- Return values ---
   return {
@@ -323,5 +455,7 @@ export const useTimersApi = (): TimersApiHook => {
     setTimerUpdateOperation,
     setAllTimersOperation,
     updateTimers,
+    getTimerAnalyticsByDate,
+    getTimerAnalyticsByRange,
   }
 }

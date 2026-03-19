@@ -60,5 +60,24 @@ pub fn get_migrations() -> Vec<Migration> {
       DROP TABLE settings_legacy;"#,
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 4,
+      description: "create_timer_run_logs",
+      sql: r#"CREATE TABLE IF NOT EXISTS timer_run_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timer_uuid TEXT NOT NULL,
+        timer_name TEXT NOT NULL,
+        scheduled_duration REAL NOT NULL,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER,
+        end_action TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_timer_run_logs_timer_uuid ON timer_run_logs(timer_uuid);
+      CREATE INDEX IF NOT EXISTS idx_timer_run_logs_started_at ON timer_run_logs(started_at);
+      CREATE INDEX IF NOT EXISTS idx_timer_run_logs_ended_at ON timer_run_logs(ended_at);"#,
+      kind: MigrationKind::Up,
+    },
   ]
 }

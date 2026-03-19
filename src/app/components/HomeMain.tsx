@@ -6,6 +6,7 @@ import { TimerCardContainer } from './timer_card/TimerCardContainer'
 import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
 import BroadcastDialog from './modals/BroadcastDialog'
+import AnalyticsDialog from './modals/AnalyticsDialog'
 import { Timer } from '../interfaces/time'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LocalTime, useShared } from '../providers/timer'
@@ -16,6 +17,7 @@ import { TimerActions } from '../hooks/timer'
 import { TimerCardEdit } from './timer_card/TimerCardEdit'
 import { BiPlus } from 'react-icons/bi'
 import IconButton from './ui/IconButton'
+import { TimerAnalyticsRangeSummary } from '../interfaces/analytics'
 
 interface HomeMainProps {
   searchableTimers: Timer[]
@@ -27,6 +29,10 @@ interface HomeMainProps {
   refreshTimers: () => Promise<void>
   updateTimerInList: (timer: Timer) => void
   onSearch: (term: string) => void
+  onLoadAnalytics: (
+    fromDate: string,
+    toDate: string
+  ) => Promise<TimerAnalyticsRangeSummary>
 }
 
 export default function HomeMain({
@@ -39,13 +45,15 @@ export default function HomeMain({
   refreshTimers,
   updateTimerInList,
   onSearch,
+  onLoadAnalytics,
 }: HomeMainProps) {
   const [isCreatingTimer, setIsCreatingTimer] = useState(false)
   const [openAbout, setOpenAbout] = useState(false)
   const [openBroadcast, setOpenBroadcast] = useState(false)
+  const [openAnalytics, setOpenAnalytics] = useState(false)
   const { fullscreenWindow } = useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
-  const { openSettingsDialog } = useSettings()
+  const { openSettingsDialog, db } = useSettings()
 
   const createTimerRef = useRef(null as unknown as HTMLElement)
 
@@ -99,6 +107,7 @@ export default function HomeMain({
         onSearch={onSearch}
         toggleAboutModal={toggleAboutModal}
         openBroadcastModal={() => setOpenBroadcast(true)}
+        openAnalyticsModal={() => setOpenAnalytics(true)}
       />
       <div className='max-w-6xl mx-auto px-6 py-8'>
         {searchableTimers.length === 0 && !isCreatingTimer ? (
@@ -144,6 +153,12 @@ export default function HomeMain({
       <BroadcastDialog
         open={openBroadcast}
         onClose={() => setOpenBroadcast(false)}
+      />
+      <AnalyticsDialog
+        open={openAnalytics}
+        onClose={() => setOpenAnalytics(false)}
+        isAvailable={Boolean(db)}
+        onLoad={onLoadAnalytics}
       />
       <About open={openAbout} onClose={toggleAboutModal} />
       <IconButton
