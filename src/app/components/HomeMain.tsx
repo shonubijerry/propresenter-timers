@@ -53,7 +53,7 @@ export default function HomeMain({
   const [openAnalytics, setOpenAnalytics] = useState(false)
   const { fullscreenWindow } = useShared()
   const { openNewWindow, closeTauriWindow } = useSecondScreenDisplay()
-  const { openSettingsDialog, db } = useSettings()
+  const { openSettingsDialog, db, activeProfile } = useSettings()
 
   const createTimerRef = useRef(null as unknown as HTMLElement)
 
@@ -108,6 +108,7 @@ export default function HomeMain({
         toggleAboutModal={toggleAboutModal}
         openBroadcastModal={() => setOpenBroadcast(true)}
         openAnalyticsModal={() => setOpenAnalytics(true)}
+        activeProfileName={activeProfile.name}
       />
       <div className='max-w-6xl mx-auto px-6 py-8'>
         {searchableTimers.length === 0 && !isCreatingTimer ? (

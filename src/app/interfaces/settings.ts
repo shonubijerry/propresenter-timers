@@ -1,5 +1,11 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 
+export interface AppProfile {
+  id: string
+  name: string
+  created_at: number
+}
+
 export interface AppSettings {
   id?: number
   address: string

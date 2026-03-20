@@ -29,6 +29,7 @@ export function Header({
   toggleAboutModal,
   openBroadcastModal,
   openAnalyticsModal,
+  activeProfileName,
 }: {
   openSettings: () => void
   onExitFullscreen: () => void
@@ -38,6 +39,7 @@ export function Header({
   toggleAboutModal: () => void
   openBroadcastModal: () => void
   openAnalyticsModal: () => void
+  activeProfileName: string
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -145,6 +147,17 @@ export function Header({
             >
               AGC Timer Control
             </p>
+            <span
+              className='hidden sm:inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]'
+              style={{
+                color: 'var(--ring)',
+                background:
+                  'color-mix(in srgb, var(--ring) 10%, var(--surface-2) 90%)',
+              }}
+              title={`Active profile: ${activeProfileName}`}
+            >
+              Profile: {activeProfileName}
+            </span>
           </div>
           <div className='flex items-center gap-2 sm:gap-3 min-w-0 flex-1 md:max-w-[460px]'>
             <input

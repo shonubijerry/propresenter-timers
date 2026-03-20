@@ -15,7 +15,22 @@ import { checkUpdate } from '@/lib/update'
 import { toastWarning } from '@/lib/toastUtils'
 import { DbService } from '@/lib/database'
 import Database from '@tauri-apps/plugin-sql'
-import { AppSettings, SqliteFluidTimer, ThemeMode } from '../interfaces/settings'
+import {
+  AppProfile,
+  AppSettings,
+  SqliteFluidTimer,
+  ThemeMode,
+} from '../interfaces/settings'
+import { relaunch } from '@tauri-apps/plugin-process'
+import {
+  buildProfileDbUrl,
+  createProfile,
+  DEFAULT_PROFILE_ID,
+  getBrowserSettingsStorageKey,
+  getDefaultProfile,
+  persistProfilesState,
+  readProfilesState,
+} from '@/lib/profile'
 
 type SettingKey = Exclude<keyof AppSettings, 'id'>
 
@@ -23,6 +38,56 @@ interface SqliteSettingRow {
   id: number
   name: SettingKey
   value: string
+}
+
+const ensureProfileDatabaseSchema = async (database: Database) => {
+  await database.execute(`CREATE TABLE IF NOT EXISTS timers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT UNIQUE,
+    name TEXT NOT NULL,
+    allows_overrun INTEGER NOT NULL DEFAULT 0,
+    countdown_duration REAL,
+    state TEXT NOT NULL,
+    remaining_seconds REAL NOT NULL,
+    started_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );`)
+
+  await database.execute(`CREATE TABLE IF NOT EXISTS fluid_timers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timer_id TEXT UNIQUE,
+    source TEXT,
+    created_at INTEGER NOT NULL
+  );`)
+
+  await database.execute(`CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    value TEXT NOT NULL
+  );`)
+
+  await database.execute(`CREATE TABLE IF NOT EXISTS timer_run_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timer_uuid TEXT NOT NULL,
+    timer_name TEXT NOT NULL,
+    scheduled_duration REAL NOT NULL,
+    started_at INTEGER NOT NULL,
+    ended_at INTEGER,
+    end_action TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );`)
+
+  await database.execute(
+    'CREATE INDEX IF NOT EXISTS idx_timer_run_logs_timer_uuid ON timer_run_logs(timer_uuid);'
+  )
+  await database.execute(
+    'CREATE INDEX IF NOT EXISTS idx_timer_run_logs_started_at ON timer_run_logs(started_at);'
+  )
+  await database.execute(
+    'CREATE INDEX IF NOT EXISTS idx_timer_run_logs_ended_at ON timer_run_logs(ended_at);'
+  )
 }
 
 const SettingsContext = createContext<{
@@ -37,6 +102,12 @@ const SettingsContext = createContext<{
   db?: Database
   addFluidTimer: (data: Omit<SqliteFluidTimer, "id">) => Promise<void>
   removeFluidTimer: (uuid: string) => Promise<void>
+  profiles: AppProfile[]
+  activeProfileId: string
+  activeProfile: AppProfile
+  createNewProfile: (name: string) => Promise<AppProfile>
+  deleteProfile: (profileId: string) => Promise<void>
+  switchProfile: (profileId: string) => Promise<void>
 } | null>(null)
 
 export const useSettings = () => {
@@ -110,19 +181,48 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isProfileReady, setIsProfileReady] = useState(false)
   const [fluidTimers, setfluidTimers] = useState<string[]>([])
   const [db, setDb] = useState<Database>()
+  const [profiles, setProfiles] = useState<AppProfile[]>([getDefaultProfile()])
+  const [activeProfileId, setActiveProfileId] = useState<string>(
+    DEFAULT_PROFILE_ID
+  )
 
-  // Initialize database first
+  const activeProfile = useMemo(
+    () =>
+      profiles.find((profile) => profile.id === activeProfileId) ??
+      getDefaultProfile(),
+    [profiles, activeProfileId]
+  )
+
+  // Initialize profile and database first
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.isTauri) {
+    if (typeof window === 'undefined') {
       return
     }
 
-    Database.load('sqlite:timersv2.db')
-      .then((datab) => setDb(datab))
+    const { profiles: storedProfiles, activeProfileId: storedActiveProfileId } =
+      readProfilesState()
+
+    setProfiles(storedProfiles)
+    setActiveProfileId(storedActiveProfileId)
+
+    if (!window.isTauri) {
+      setIsProfileReady(true)
+      return
+    }
+
+    Database.load(buildProfileDbUrl(storedActiveProfileId))
+      .then(async (database) => {
+        await ensureProfileDatabaseSchema(database)
+        setDb(database)
+      })
       .catch((err) => {
         console.error('Failed to load database:', err)
+      })
+      .finally(() => {
+        setIsProfileReady(true)
       })
   }, [])
 
@@ -140,6 +240,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Load settings after services are ready
   useEffect(() => {
     async function loadSettings() {
+      if (!isProfileReady) return
+
       setIsLoading(true)
 
       try {
@@ -165,12 +267,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setSettings(mappedSettings)
         } else {
           // Browser mode
-          const savedSettings = localStorage.getItem('app-settings')
+          const browserSettingsKey = getBrowserSettingsStorageKey(activeProfileId)
+          const savedSettings = localStorage.getItem(browserSettingsKey)
           if (!savedSettings) {
-            localStorage.setItem(
-              'app-settings',
-              JSON.stringify(defaultSettings)
-            )
+            localStorage.setItem(browserSettingsKey, JSON.stringify(defaultSettings))
             setSettings(defaultSettings)
           } else {
             setSettings(JSON.parse(savedSettings))
@@ -185,7 +285,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
 
     loadSettings()
-  }, [settingsService])
+  }, [settingsService, isProfileReady, activeProfileId])
 
   // Load fluid timers when settings change
   useEffect(() => {
@@ -252,7 +352,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             await saveSettingsRows(settingsService, updatedSettings)
           }
         } else {
-          localStorage.setItem('app-settings', JSON.stringify(updatedSettings))
+          localStorage.setItem(
+            getBrowserSettingsStorageKey(activeProfileId),
+            JSON.stringify(updatedSettings)
+          )
         }
       } catch (err) {
         console.error(
@@ -260,7 +363,75 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         )
       }
     },
-    [settings, settingsService]
+    [settings, settingsService, activeProfileId]
+  )
+
+  const createNewProfile = useCallback(
+    async (name: string): Promise<AppProfile> => {
+      const nextProfile = createProfile(name)
+      const duplicate = profiles.some(
+        (profile) =>
+          profile.name.trim().toLowerCase() ===
+          nextProfile.name.trim().toLowerCase()
+      )
+
+      if (duplicate) {
+        throw new Error('A profile with this name already exists')
+      }
+
+      const nextProfiles = [...profiles, nextProfile]
+      persistProfilesState(nextProfiles, activeProfileId)
+      setProfiles(nextProfiles)
+
+      if (typeof window !== 'undefined' && window.isTauri) {
+        const database = await Database.load(buildProfileDbUrl(nextProfile.id))
+        await ensureProfileDatabaseSchema(database)
+      }
+
+      return nextProfile
+    },
+    [profiles, activeProfileId]
+  )
+
+  const deleteProfile = useCallback(
+    async (profileId: string): Promise<void> => {
+      if (profileId === DEFAULT_PROFILE_ID) {
+        throw new Error('Default profile cannot be deleted')
+      }
+
+      if (profileId === activeProfileId) {
+        throw new Error('Switch to another profile before deleting this one')
+      }
+
+      const nextProfiles = profiles.filter((profile) => profile.id !== profileId)
+      persistProfilesState(nextProfiles, activeProfileId)
+      setProfiles(nextProfiles)
+
+      if (typeof window !== 'undefined' && !window.isTauri) {
+        localStorage.removeItem(getBrowserSettingsStorageKey(profileId))
+      }
+    },
+    [profiles, activeProfileId]
+  )
+
+  const switchProfile = useCallback(
+    async (profileId: string): Promise<void> => {
+      const profileExists = profiles.some((profile) => profile.id === profileId)
+
+      if (!profileExists) {
+        throw new Error('Profile not found')
+      }
+
+      if (profileId === activeProfileId) return
+
+      persistProfilesState(profiles, profileId)
+      setActiveProfileId(profileId)
+
+      if (typeof window === 'undefined') return
+
+      window.location.reload()
+    },
+    [profiles, activeProfileId]
   )
 
   const openSettingsDialog = useCallback(() => setIsDialogOpen(true), [])
@@ -293,6 +464,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         db,
         addFluidTimer,
         removeFluidTimer,
+        profiles,
+        activeProfileId,
+        activeProfile,
+        createNewProfile,
+        deleteProfile,
+        switchProfile,
       }}
     >
       {children}
