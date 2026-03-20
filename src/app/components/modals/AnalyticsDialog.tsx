@@ -9,12 +9,16 @@ import {
   TimerAnalyticsTotals,
 } from '@/app/interfaces/analytics'
 import { formatSecondsToTime } from '@/lib/formatter'
+import { toastSuccess } from '@/lib/toastUtils'
 
 interface AnalyticsDialogProps {
   open: boolean
   onClose: () => void
   isAvailable: boolean
-  onLoad: (fromDate: string, toDate: string) => Promise<TimerAnalyticsRangeSummary>
+  onLoad: (
+    fromDate: string,
+    toDate: string
+  ) => Promise<TimerAnalyticsRangeSummary>
 }
 
 const getTodayDateInputValue = () => {
@@ -42,7 +46,9 @@ export default function AnalyticsDialog({
   const [toDate, setToDate] = useState(getTodayDateInputValue())
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [summary, setSummary] = useState<TimerAnalyticsRangeSummary | null>(null)
+  const [summary, setSummary] = useState<TimerAnalyticsRangeSummary | null>(
+    null
+  )
 
   useEffect(() => {
     if (!open) return
@@ -87,14 +93,22 @@ export default function AnalyticsDialog({
     lines.push('Totals')
     lines.push('Metric,Value')
     lines.push(`Active Count,${rangeSummary.totals.activeCount}`)
-    lines.push(`Actual Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.actualTimeSeconds)}`)
-    lines.push(`Running Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.runningTimeSeconds)}`)
-    lines.push(`Overrun Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.overrunningTimeSeconds)}`)
+    lines.push(
+      `Actual Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.actualTimeSeconds)}`
+    )
+    lines.push(
+      `Running Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.runningTimeSeconds)}`
+    )
+    lines.push(
+      `Overrun Time (HH:MM:SS),${formatSecondsToTime(rangeSummary.totals.overrunningTimeSeconds)}`
+    )
     lines.push('')
     lines.push('Per Timer by Day')
     rangeSummary.days.forEach((day) => {
       lines.push(`Date,${csvEscape(day.date)}`)
-      lines.push('Timer,Active Count,Actual Time (HH:MM:SS),Running Time (HH:MM:SS),Overrun Time (HH:MM:SS)')
+      lines.push(
+        'Timer,Active Count,Actual Time (HH:MM:SS),Running Time (HH:MM:SS),Overrun Time (HH:MM:SS)'
+      )
       day.entries.forEach((entry) => {
         lines.push(
           [
@@ -110,7 +124,9 @@ export default function AnalyticsDialog({
     })
     lines.push('')
     lines.push('Per Day')
-    lines.push('Date,Active Count,Actual Time (HH:MM:SS),Running Time (HH:MM:SS),Overrun Time (HH:MM:SS)')
+    lines.push(
+      'Date,Active Count,Actual Time (HH:MM:SS),Running Time (HH:MM:SS),Overrun Time (HH:MM:SS)'
+    )
     rangeSummary.days.forEach((day) => {
       lines.push(
         [
@@ -174,8 +190,8 @@ export default function AnalyticsDialog({
               color: 'var(--muted-foreground)',
             }}
           >
-            Timer analytics is available in desktop mode where the local
-            SQLite table is accessible.
+            Timer analytics is available in desktop mode where the local SQLite
+            table is accessible.
           </div>
         ) : (
           <>
@@ -220,12 +236,22 @@ export default function AnalyticsDialog({
                   }}
                 />
               </label>
-              <Button onClick={handleLoad} disabled={isLoading || !fromDate || !toDate}>
+              <Button
+                onClick={handleLoad}
+                disabled={isLoading || !fromDate || !toDate}
+              >
                 {isLoading ? 'Loading...' : 'Generate'}
               </Button>
               <Button
                 variant='outline'
-                onClick={() => summary && downloadCsv(summary)}
+                onClick={() => {
+                  if (summary) {
+                    downloadCsv(summary)
+                    toastSuccess('CSV downloaded successfully')
+                  } else {
+                    toastSuccess('No data to download')
+                  }
+                }}
                 disabled={!summary || summary.days.length === 0}
               >
                 Download CSV
@@ -256,19 +282,32 @@ export default function AnalyticsDialog({
                   }}
                 >
                   <p>
-                    <span style={{ color: 'var(--muted-foreground)' }}>Period: </span>
-                    <strong>{summary.fromDate}</strong> to <strong>{summary.toDate}</strong>
+                    <span style={{ color: 'var(--muted-foreground)' }}>
+                      Period:{' '}
+                    </span>
+                    <strong>{summary.fromDate}</strong> to{' '}
+                    <strong>{summary.toDate}</strong>
                   </p>
                 </div>
 
                 {summary.days.length > 0 ? (
-                  <div className='rounded-xl border p-3 space-y-3' style={{ borderColor: 'var(--border)' }}>
-                    <p className='text-sm font-semibold' style={{ color: 'var(--foreground)' }}>
+                  <div
+                    className='rounded-xl border p-3 space-y-3'
+                    style={{ borderColor: 'var(--border)' }}
+                  >
+                    <p
+                      className='text-sm font-semibold'
+                      style={{ color: 'var(--foreground)' }}
+                    >
                       Daily Comparison (seconds)
                     </p>
                     <div className='space-y-2'>
                       {summary.days.map((day) => (
-                        <DailyComparisonRow key={day.date} day={day} maxValue={chartMax} />
+                        <DailyComparisonRow
+                          key={day.date}
+                          day={day}
+                          maxValue={chartMax}
+                        />
                       ))}
                     </div>
                   </div>
@@ -286,11 +325,21 @@ export default function AnalyticsDialog({
                       }}
                     >
                       <tr>
-                        <th className='text-left px-3 py-2 font-semibold'>Timer</th>
-                        <th className='text-right px-3 py-2 font-semibold'>Active</th>
-                        <th className='text-right px-3 py-2 font-semibold'>Actual Time</th>
-                        <th className='text-right px-3 py-2 font-semibold'>Running Time</th>
-                        <th className='text-right px-3 py-2 font-semibold'>Overrun Time</th>
+                        <th className='text-left px-3 py-2 font-semibold'>
+                          Timer
+                        </th>
+                        <th className='text-right px-3 py-2 font-semibold'>
+                          Active
+                        </th>
+                        <th className='text-right px-3 py-2 font-semibold'>
+                          Actual Time
+                        </th>
+                        <th className='text-right px-3 py-2 font-semibold'>
+                          Running Time
+                        </th>
+                        <th className='text-right px-3 py-2 font-semibold'>
+                          Overrun Time
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -312,7 +361,9 @@ export default function AnalyticsDialog({
                             style={{ borderColor: 'var(--border)' }}
                           >
                             <td className='px-3 py-2'>{entry.timerName}</td>
-                            <td className='px-3 py-2 text-right'>{entry.activeCount}</td>
+                            <td className='px-3 py-2 text-right'>
+                              {entry.activeCount}
+                            </td>
                             <td className='px-3 py-2 text-right font-mono'>
                               {formatSecondsToTime(entry.actualTimeSeconds)}
                             </td>
@@ -320,7 +371,9 @@ export default function AnalyticsDialog({
                               {formatSecondsToTime(entry.runningTimeSeconds)}
                             </td>
                             <td className='px-3 py-2 text-right font-mono'>
-                              {formatSecondsToTime(entry.overrunningTimeSeconds)}
+                              {formatSecondsToTime(
+                                entry.overrunningTimeSeconds
+                              )}
                             </td>
                           </tr>
                         ))
@@ -338,23 +391,31 @@ export default function AnalyticsDialog({
                 >
                   <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2'>
                     <p>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Total Active: </span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>
+                        Total Active:{' '}
+                      </span>
                       <strong>{totals.activeCount}</strong>
                     </p>
                     <p>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Total Actual: </span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>
+                        Total Actual:{' '}
+                      </span>
                       <strong className='font-mono'>
                         {formatSecondsToTime(totals.actualTimeSeconds)}
                       </strong>
                     </p>
                     <p>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Total Running: </span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>
+                        Total Running:{' '}
+                      </span>
                       <strong className='font-mono'>
                         {formatSecondsToTime(totals.runningTimeSeconds)}
                       </strong>
                     </p>
                     <p>
-                      <span style={{ color: 'var(--muted-foreground)' }}>Total Overrun: </span>
+                      <span style={{ color: 'var(--muted-foreground)' }}>
+                        Total Overrun:{' '}
+                      </span>
                       <strong className='font-mono'>
                         {formatSecondsToTime(totals.overrunningTimeSeconds)}
                       </strong>
@@ -384,7 +445,10 @@ function DailyComparisonRow({
 
   return (
     <div className='space-y-1'>
-      <p className='text-xs font-semibold' style={{ color: 'var(--muted-foreground)' }}>
+      <p
+        className='text-xs font-semibold'
+        style={{ color: 'var(--muted-foreground)' }}
+      >
         {day.date}
       </p>
       <div className='space-y-1'>
@@ -431,9 +495,15 @@ function MetricBar({
         className='h-2.5 w-full rounded-full overflow-hidden'
         style={{ background: 'var(--surface-3)' }}
       >
-        <div className='h-full rounded-full' style={{ width, background: color }} />
+        <div
+          className='h-full rounded-full'
+          style={{ width, background: color }}
+        />
       </div>
-      <span className='font-mono w-16 text-right' style={{ color: 'var(--foreground)' }}>
+      <span
+        className='font-mono w-16 text-right'
+        style={{ color: 'var(--foreground)' }}
+      >
         {value}
       </span>
     </div>
