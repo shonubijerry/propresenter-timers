@@ -49,7 +49,7 @@ export default function WatchLayoutWithProps({
       else hi = mid
     }
 
-    text.style.width = ''   // restore — React controls width via className
+    text.style.width = '' // restore — React controls width via className
     setFontSize(lo)
   }, [])
 
@@ -73,7 +73,10 @@ export default function WatchLayoutWithProps({
         : ''
 
   return (
-    <div className='h-screen w-screen flex flex-col gap-[1.2vw] p-[1.2vw] overflow-hidden' style={{ background: '#f0f0eb' }}>
+    <div
+      className='h-screen w-screen flex flex-col gap-[1.2vw] p-[1.2vw] overflow-hidden'
+      style={{ background: '#f0f0eb' }}
+    >
       {/* Header card */}
       <div className='flex items-center justify-between px-[2vw] py-[1vw] shrink-0 rounded-2xl bg-white shadow-sm'>
         {/* Logo (left) */}
@@ -86,11 +89,13 @@ export default function WatchLayoutWithProps({
         </div>
 
         {/* Time tracker label (center) */}
-        <div
-          className={`text-[6vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
-        >
-          {timeTracker}
-        </div>
+        {!broadcastMessage && (
+          <div
+            className={`text-[6vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
+          >
+            {timeTracker}
+          </div>
+        )}
 
         {/* Clock (right) */}
         <div className='text-[2.5vw] font-semibold text-gray-800 whitespace-nowrap'>
@@ -99,7 +104,11 @@ export default function WatchLayoutWithProps({
       </div>
 
       {/* Main content — off-white container matching outer background */}
-      <div ref={contentAreaRef} className='flex flex-1 flex-col items-center justify-center gap-[1.2vw] overflow-hidden rounded-2xl' style={{ background: '#f0f0eb' }}>
+      <div
+        ref={contentAreaRef}
+        className='flex flex-1 flex-col items-center justify-center gap-[1.2vw] overflow-hidden rounded-2xl'
+        style={{ background: '#f0f0eb' }}
+      >
         {broadcastMessage ? (
           <>
             <div
