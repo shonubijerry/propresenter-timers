@@ -21,7 +21,6 @@ import {
   SqliteFluidTimer,
   ThemeMode,
 } from '../interfaces/settings'
-import { relaunch } from '@tauri-apps/plugin-process'
 import {
   buildProfileDbUrl,
   createProfile,
