@@ -89,13 +89,16 @@ const ensureProfileDatabaseSchema = async (database: Database) => {
   )
 }
 
+export type SettingsTab = 'profiles' | 'datasource' | 'appearance' | 'security'
+
 const SettingsContext = createContext<{
   proPresenterUrl: string | null
   settings?: AppSettings
   updateSettings: (newSettings: AppSettings) => Promise<void>
   isDialogOpen: boolean
-  openSettingsDialog: () => void
+  openSettingsDialog: (tab?: SettingsTab) => void
   closeSettingsDialog: () => void
+  requestedTab: SettingsTab
   isLoading: boolean
   fluidTimers: string[]
   db?: Database
@@ -179,6 +182,7 @@ const saveSettingsRows = async (
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [requestedTab, setRequestedTab] = useState<SettingsTab>('profiles')
   const [isLoading, setIsLoading] = useState(true)
   const [isProfileReady, setIsProfileReady] = useState(false)
   const [fluidTimers, setfluidTimers] = useState<string[]>([])
@@ -433,7 +437,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [profiles, activeProfileId]
   )
 
-  const openSettingsDialog = useCallback(() => setIsDialogOpen(true), [])
+  const openSettingsDialog = useCallback((tab: SettingsTab = 'profiles') => {
+    setRequestedTab(tab)
+    setIsDialogOpen(true)
+  }, [])
   const closeSettingsDialog = useCallback(() => setIsDialogOpen(false), [])
 
   if (isLoading) {
@@ -458,6 +465,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         isDialogOpen,
         openSettingsDialog,
         closeSettingsDialog,
+        requestedTab,
         isLoading,
         fluidTimers,
         db,

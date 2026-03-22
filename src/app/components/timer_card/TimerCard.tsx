@@ -65,7 +65,7 @@ export function TimerCard({
 
       if (!hasLockPassword) {
         toastWarning('Set an unlock password in settings before locking timers')
-        openSettingsDialog()
+        openSettingsDialog('security')
         return
       }
 
@@ -81,7 +81,7 @@ export function TimerCard({
   const openUnlockModal = useCallback(() => {
     if (!hasLockPassword) {
       toastWarning('No unlock password is configured. Set one in settings.')
-      openSettingsDialog()
+      openSettingsDialog('security')
       return
     }
 

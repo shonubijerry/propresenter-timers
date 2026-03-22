@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSettings } from '../../providers/settings'
+import { SettingsTab } from '../../providers/settings'
 import { useForm } from 'react-hook-form'
 import Button from '../ui/Button'
 import Modal from './Modal'
@@ -84,7 +85,6 @@ const inputStyle = {
   color: 'var(--foreground)',
 }
 
-type SettingsTab = 'profiles' | 'datasource' | 'appearance' | 'security'
 
 export default function SettingsDialog() {
   const {
@@ -92,6 +92,7 @@ export default function SettingsDialog() {
     updateSettings,
     isDialogOpen,
     closeSettingsDialog,
+    requestedTab,
     profiles,
     activeProfileId,
     activeProfile,
@@ -103,7 +104,7 @@ export default function SettingsDialog() {
   const [connectionOk, setConnectionOk] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState('')
   const [isProcessingProfile, setIsProcessingProfile] = useState(false)
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profiles')
+  const [activeTab, setActiveTab] = useState<SettingsTab>(requestedTab)
 
   const {
     register,
@@ -124,8 +125,8 @@ export default function SettingsDialog() {
 
   useEffect(() => {
     if (!isDialogOpen) return
-    setActiveTab('profiles')
-  }, [isDialogOpen])
+    setActiveTab(requestedTab)
+  }, [isDialogOpen, requestedTab])
 
   useEffect(() => {
     if (!isDialogOpen) return

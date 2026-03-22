@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import logoSvg from '../../../../public/logo.svg'
+import logoWhiteSvg from '../../../../public/logo-white.svg'
 import { FiInfo, FiMoreVertical } from 'react-icons/fi'
 import { LuTimerReset } from 'react-icons/lu'
 import { TimerActions } from '@/app/hooks/timer'
@@ -11,6 +12,7 @@ import { MdCampaign } from 'react-icons/md'
 import { DiAptana } from 'react-icons/di'
 import { PiChartBarDuotone } from 'react-icons/pi'
 import { cn } from '@/lib/cn'
+import { useTheme } from '@/app/providers/ThemeProvider'
 
 type HeaderAction = {
   key: string
@@ -42,7 +44,31 @@ export function Header({
   activeProfileName: string
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const { theme } = useTheme()
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      setIsDarkMode(true)
+      return
+    }
+
+    if (theme === 'light') {
+      setIsDarkMode(false)
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateDarkMode = () => setIsDarkMode(mediaQuery.matches)
+
+    updateDarkMode()
+    mediaQuery.addEventListener('change', updateDarkMode)
+
+    return () => {
+      mediaQuery.removeEventListener('change', updateDarkMode)
+    }
+  }, [theme])
 
   const quickActions = useMemo<HeaderAction[]>(
     () => [
@@ -138,14 +164,14 @@ export function Header({
               style={{ color: 'var(--foreground)' }}
               priority={true}
               className='w-20 h-10 sm:w-28 sm:h-14 text-center flex-shrink-0'
-              src={logoSvg}
+              src={isDarkMode ? logoWhiteSvg : logoSvg}
               alt='Logo'
             />
             <p
               className='text-sm sm:text-lg md:text-xl font-bold truncate'
               style={{ color: 'var(--foreground)' }}
             >
-              AGC Timer Control
+              Timer Control
             </p>
             <span
               className='hidden sm:inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]'
