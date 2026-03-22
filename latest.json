@@ -1,15 +1,15 @@
 {
-  "version": "0.2.27",
+  "version": "0.2.28",
   "notes": "",
-  "pub_date": "2026-03-20T00:33:53.765Z",
+  "pub_date": "2026-03-22T06:56:29.480Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdjIrWk9EdzA5MGhTQmVnc252a1YwaHV5dUxXelJyUFFsdWpUcXZtWnZGZURHWkQycjhKRGNNTWxFek4vNWF4djZFTzFHa0tPS1J5TEw2c29yWnBscmpWUnJqVTFndXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczOTY2ODMyCWZpbGU6QUdDIFRpbWVyIENvbnRyb2xfMC4yLjI3X3g2NC1zZXR1cC5leGUKTlA3eGtGQmhYU3NGMSt6bG02RFFiTmJoVzRqUytVdXdqb3c4TjBpNVM5Y2FsRWlLaU5JelhUN3lqV2ZYQnZlNWdzc1N1c3V2eGk4dUZEZjZ4N25BRGc9PQo=",
-      "url": "https://github.com/shonubijerry/propresenter-timers/releases/latest/download/AGC.Timer.Control_0.2.27_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdjIrWk9EdzA5MGt2cW9BaWlpaXM0M1YvT1JlRE9RSkZRK2RNQWdlbHJlVWZNeGlwdzY2dTF2Z0pISWlsenEzTDFGcWphdXZUanY1cXhKc1pVZHpTVXVVVmsxQThpOHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc0MTYyNTg4CWZpbGU6QUdDIFRpbWVyIENvbnRyb2xfMC4yLjI4X3g2NC1zZXR1cC5leGUKME4rQnh4VGNwZUtKZmpDL2UrOCtBTER4VjJGOUdqQk44K2NwaFRIalE3cU9iM0ovdWNRclYwcGEzTWpWSENLQzQ5V1JuOFVaeXNvVjM5cVJNVExlRFE9PQo=",
+      "url": "https://github.com/shonubijerry/propresenter-timers/releases/latest/download/AGC.Timer.Control_0.2.28_x64-setup.exe"
     },
     "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdjIrWk9EdzA5MGhTQmVnc252a1YwaHV5dUxXelJyUFFsdWpUcXZtWnZGZURHWkQycjhKRGNNTWxFek4vNWF4djZFTzFHa0tPS1J5TEw2c29yWnBscmpWUnJqVTFndXdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczOTY2ODMyCWZpbGU6QUdDIFRpbWVyIENvbnRyb2xfMC4yLjI3X3g2NC1zZXR1cC5leGUKTlA3eGtGQmhYU3NGMSt6bG02RFFiTmJoVzRqUytVdXdqb3c4TjBpNVM5Y2FsRWlLaU5JelhUN3lqV2ZYQnZlNWdzc1N1c3V2eGk4dUZEZjZ4N25BRGc9PQo=",
-      "url": "https://github.com/shonubijerry/propresenter-timers/releases/latest/download/AGC.Timer.Control_0.2.27_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdjIrWk9EdzA5MGt2cW9BaWlpaXM0M1YvT1JlRE9RSkZRK2RNQWdlbHJlVWZNeGlwdzY2dTF2Z0pISWlsenEzTDFGcWphdXZUanY1cXhKc1pVZHpTVXVVVmsxQThpOHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc0MTYyNTg4CWZpbGU6QUdDIFRpbWVyIENvbnRyb2xfMC4yLjI4X3g2NC1zZXR1cC5leGUKME4rQnh4VGNwZUtKZmpDL2UrOCtBTER4VjJGOUdqQk44K2NwaFRIalE3cU9iM0ovdWNRclYwcGEzTWpWSENLQzQ5V1JuOFVaeXNvVjM5cVJNVExlRFE9PQo=",
+      "url": "https://github.com/shonubijerry/propresenter-timers/releases/latest/download/AGC.Timer.Control_0.2.28_x64-setup.exe"
     }
   }
 }
