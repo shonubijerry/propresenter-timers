@@ -76,14 +76,30 @@ export default function Home() {
 
   // Load initial timers and sync running state with local timer
   useEffect(() => {
-    if (isInitialized) return
+    if (isInitialized || isLoading) return
 
     let mounted = true
 
-    fetchTimers()
-      .then((fetched) => {
+    const initializeTimers = async () => {
+      try {
+        const fetched = await fetchTimers()
         if (!mounted) return
-        // If there's a running timer from initial fetch, sync it
+
+        const runningTimers = fetched.filter((d) =>
+          ['running', 'overrunning'].includes(d.state)
+        )
+        const onlyFluidTimerIsRunning =
+          runningTimers.length > 0 && runningTimers.every((d) => d.isFluid)
+
+        if (onlyFluidTimerIsRunning) {
+          await setAllTimersOperation('reset')
+          await resetLocalTimerState()
+          await refetch()
+          return
+        }
+
+        // If there's a running timer from initial fetch, sync it.
+        // Prefer a non-fluid running timer, but fall back to any running timer.
         const runningTimer = fetched.find(
           (d) => ['running', 'overrunning'].includes(d.state) && !d.isFluid
         )
@@ -106,16 +122,29 @@ export default function Home() {
             localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
           }
         }
-      })
-      .catch((err) => setApiError(err, 'Failed to initialize timers'))
-      .finally(() => {
+      } catch (err) {
+        setApiError(err, 'Failed to initialize timers')
+      } finally {
         if (mounted) setIsInitialized(true)
-      })
+      }
+    }
+
+    initializeTimers()
 
     return () => {
       mounted = false
     }
-  }, [isInitialized, setCurrentTimer, localTimer, setApiError, fetchTimers])
+  }, [
+    isInitialized,
+    isLoading,
+    setCurrentTimer,
+    localTimer,
+    setApiError,
+    fetchTimers,
+    setAllTimersOperation,
+    resetLocalTimerState,
+    refetch,
+  ])
 
   // URL param handling (client-only)
   useEffect(() => {
@@ -209,28 +238,31 @@ export default function Home() {
     [timers, currentTimer, updateTimers, setCurrentTimer, localTimer]
   )
 
-
   const applyFluidTimersOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
       if (!fluidTimers.length || !timer.countdown) return
 
-      const fluidTimerObjects = timers.filter((t) => fluidTimers.includes(t.id.uuid))
       await Promise.all(
-        fluidTimerObjects.map(async (fluidTimer) => {
-          if (!fluidTimer) return Promise.resolve()
+        timers
+          .filter((t) => fluidTimers.includes(t.id.uuid))
+          .map(async (fluidTimer) => {
+            if (!fluidTimer) return Promise.resolve()
 
-          fluidTimer.countdown = timer.countdown
-          fluidTimer.remainingSeconds = timer.remainingSeconds
-          fluidTimer.time = timer.time
+            const updatedFluidTimer = {
+              ...fluidTimer,
+              countdown: timer.countdown,
+              remainingSeconds: timer.remainingSeconds,
+              time: timer.time,
+            }
 
-          await setTimerUpdateOperation(
-            fluidTimer.countdown!.duration,
-            '',
-            action,
-            fluidTimer.id.uuid
-          )
-          updateTimerInList(fluidTimer)
-        })
+            await setTimerUpdateOperation(
+              updatedFluidTimer.countdown!.duration,
+              '',
+              action,
+              updatedFluidTimer.id.uuid
+            )
+            updateTimerInList(updatedFluidTimer)
+          })
       )
     },
     [fluidTimers, setTimerUpdateOperation, timers, updateTimerInList]
@@ -322,7 +354,10 @@ export default function Home() {
   }, [setApiError, refetch])
 
   const onLoadAnalyticsRange = useCallback(
-    async (fromDate: string, toDate: string): Promise<TimerAnalyticsRangeSummary> => {
+    async (
+      fromDate: string,
+      toDate: string
+    ): Promise<TimerAnalyticsRangeSummary> => {
       return await getTimerAnalyticsByRange(fromDate, toDate)
     },
     [getTimerAnalyticsByRange]

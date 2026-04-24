@@ -35,18 +35,25 @@ function SectionHeader({
       <div
         className='flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5'
         style={{
-          background: 'color-mix(in srgb, var(--primary) 12%, var(--surface-2) 88%)',
+          background:
+            'color-mix(in srgb, var(--primary) 12%, var(--surface-2) 88%)',
           color: 'var(--primary)',
         }}
       >
         {icon}
       </div>
       <div>
-        <p className='text-sm font-semibold' style={{ color: 'var(--foreground)' }}>
+        <p
+          className='text-sm font-semibold'
+          style={{ color: 'var(--foreground)' }}
+        >
           {title}
         </p>
         {description && (
-          <p className='text-xs mt-0.5' style={{ color: 'var(--muted-foreground)' }}>
+          <p
+            className='text-xs mt-0.5'
+            style={{ color: 'var(--muted-foreground)' }}
+          >
             {description}
           </p>
         )}
@@ -85,7 +92,6 @@ const inputStyle = {
   color: 'var(--foreground)',
 }
 
-
 export default function SettingsDialog() {
   const {
     settings,
@@ -104,7 +110,9 @@ export default function SettingsDialog() {
   const [connectionOk, setConnectionOk] = useState<boolean>(false)
   const [newProfileName, setNewProfileName] = useState('')
   const [isProcessingProfile, setIsProcessingProfile] = useState(false)
-  const [activeTab, setActiveTab] = useState<SettingsTab>(requestedTab)
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    requestedTab ?? 'profiles'
+  )
 
   const {
     register,
@@ -148,6 +156,7 @@ export default function SettingsDialog() {
       .catch((e) => {
         console.error(e instanceof Error ? e.message : 'Connection failed')
         setConnectionOk(false)
+        setActiveTab('datasource')
       })
   }, [settings?.address, settings?.port, isDialogOpen, datastore])
 
@@ -168,13 +177,18 @@ export default function SettingsDialog() {
       setNewProfileName('')
       toastSuccess('Profile created')
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Failed to create profile')
+      toastError(
+        err instanceof Error ? err.message : 'Failed to create profile'
+      )
     } finally {
       setIsProcessingProfile(false)
     }
   }
 
-  const handleDeleteProfile = async (profileId: string, profileName: string) => {
+  const handleDeleteProfile = async (
+    profileId: string,
+    profileName: string
+  ) => {
     if (!window.confirm(`Delete profile "${profileName}"?`)) return
 
     try {
@@ -182,13 +196,18 @@ export default function SettingsDialog() {
       await deleteProfile(profileId)
       toastSuccess('Profile deleted')
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Failed to delete profile')
+      toastError(
+        err instanceof Error ? err.message : 'Failed to delete profile'
+      )
     } finally {
       setIsProcessingProfile(false)
     }
   }
 
-  const handleSwitchProfile = async (profileId: string, profileName: string) => {
+  const handleSwitchProfile = async (
+    profileId: string,
+    profileName: string
+  ) => {
     if (profileId === activeProfileId) return
 
     try {
@@ -196,7 +215,9 @@ export default function SettingsDialog() {
       toastInfo(`Switching to ${profileName} profile...`)
       await switchProfile(profileId)
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Failed to switch profile')
+      toastError(
+        err instanceof Error ? err.message : 'Failed to switch profile'
+      )
       setIsProcessingProfile(false)
     }
   }
@@ -204,7 +225,11 @@ export default function SettingsDialog() {
   if (!isDialogOpen) return null
 
   const datastoreOptions = [
-    { value: 'proPresenter', label: 'ProPresenter', desc: 'Sync via network API' },
+    {
+      value: 'proPresenter',
+      label: 'ProPresenter',
+      desc: 'Sync via network API',
+    },
     { value: 'localDb', label: 'Local Database', desc: 'Offline storage only' },
   ]
 
@@ -222,12 +247,20 @@ export default function SettingsDialog() {
   ]
 
   return (
-    <Modal open={isDialogOpen} onClose={closeSettingsDialog} title='Settings' size='lg'>
+    <Modal
+      open={isDialogOpen}
+      onClose={closeSettingsDialog}
+      title='Settings'
+      size='lg'
+    >
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className='space-y-4'>
           <div
             className='rounded-2xl border p-1 flex items-center gap-1 overflow-x-auto'
-            style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}
+            style={{
+              borderColor: 'var(--border)',
+              background: 'var(--surface-2)',
+            }}
           >
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id
@@ -269,7 +302,8 @@ export default function SettingsDialog() {
                   color: 'var(--foreground)',
                 }}
               >
-                Active profile: <span className='font-semibold'>{activeProfile.name}</span>
+                Active profile:{' '}
+                <span className='font-semibold'>{activeProfile.name}</span>
               </div>
 
               <div className='flex flex-col sm:flex-row gap-2'>
@@ -306,7 +340,10 @@ export default function SettingsDialog() {
                     <div
                       key={profile.id}
                       className='rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3'
-                      style={{ borderColor: 'var(--border)', background: 'var(--surface-1)' }}
+                      style={{
+                        borderColor: 'var(--border)',
+                        background: 'var(--surface-1)',
+                      }}
                     >
                       <div className='min-w-0'>
                         <p
@@ -334,7 +371,9 @@ export default function SettingsDialog() {
                           variant='secondary'
                           size='sm'
                           type='button'
-                          onClick={() => handleSwitchProfile(profile.id, profile.name)}
+                          onClick={() =>
+                            handleSwitchProfile(profile.id, profile.name)
+                          }
                           disabled={isActive || isProcessingProfile}
                         >
                           Switch
@@ -343,8 +382,14 @@ export default function SettingsDialog() {
                           variant='error'
                           size='sm'
                           type='button'
-                          onClick={() => handleDeleteProfile(profile.id, profile.name)}
-                          disabled={isActive || profile.id === 'default' || isProcessingProfile}
+                          onClick={() =>
+                            handleDeleteProfile(profile.id, profile.name)
+                          }
+                          disabled={
+                            isActive ||
+                            profile.id === 'default' ||
+                            isProcessingProfile
+                          }
                           className='inline-flex items-center gap-1'
                         >
                           <TbTrash size={14} /> Delete
@@ -379,7 +424,9 @@ export default function SettingsDialog() {
                       }
                       className={cn(
                         'relative flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[var(--ring)]',
-                        checked ? 'border-[var(--ring)] text-[var(--primary)]' : 'hover:bg-accent'
+                        checked
+                          ? 'border-[var(--ring)] text-[var(--primary)]'
+                          : 'hover:bg-accent'
                       )}
                       style={{
                         borderColor: checked ? 'var(--ring)' : 'var(--border)',
@@ -398,7 +445,10 @@ export default function SettingsDialog() {
                         </span>
                       )}
                       <span className='text-sm font-semibold'>{opt.label}</span>
-                      <span className='text-xs' style={{ color: 'var(--muted-foreground)' }}>
+                      <span
+                        className='text-xs'
+                        style={{ color: 'var(--muted-foreground)' }}
+                      >
                         {opt.desc}
                       </span>
                     </button>
@@ -412,7 +462,10 @@ export default function SettingsDialog() {
                     {connectionOk ? (
                       <span
                         className='inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold'
-                        style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}
+                        style={{
+                          background: 'rgba(34,197,94,0.12)',
+                          color: '#16a34a',
+                        }}
                       >
                         <TbPlugConnected size={13} /> Connected
                       </span>
@@ -447,7 +500,9 @@ export default function SettingsDialog() {
                         type='url'
                         {...register('address', {
                           required:
-                            datastore === 'proPresenter' ? 'URL is required' : false,
+                            datastore === 'proPresenter'
+                              ? 'URL is required'
+                              : false,
                           pattern: {
                             value:
                               /^http:\/\/(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/,
@@ -458,7 +513,10 @@ export default function SettingsDialog() {
                         style={inputStyle}
                       />
                       {errors.address && (
-                        <p className='mt-1 text-xs' style={{ color: 'var(--destructive)' }}>
+                        <p
+                          className='mt-1 text-xs'
+                          style={{ color: 'var(--destructive)' }}
+                        >
                           {errors.address.message}
                         </p>
                       )}
@@ -469,15 +527,23 @@ export default function SettingsDialog() {
                         type='number'
                         {...register('port', {
                           required:
-                            datastore === 'proPresenter' ? 'Port is required' : false,
+                            datastore === 'proPresenter'
+                              ? 'Port is required'
+                              : false,
                           min: { value: 1, message: 'Port must be > 0' },
-                          max: { value: 65535, message: 'Port must be ≤ 65535' },
+                          max: {
+                            value: 65535,
+                            message: 'Port must be ≤ 65535',
+                          },
                         })}
                         className={inputClass}
                         style={inputStyle}
                       />
                       {errors.port && (
-                        <p className='mt-1 text-xs' style={{ color: 'var(--destructive)' }}>
+                        <p
+                          className='mt-1 text-xs'
+                          style={{ color: 'var(--destructive)' }}
+                        >
                           {errors.port.message}
                         </p>
                       )}
@@ -495,7 +561,8 @@ export default function SettingsDialog() {
                     background: 'var(--surface-1)',
                   }}
                 >
-                  Timers are stored locally on this device, independent from ProPresenter.
+                  Timers are stored locally on this device, independent from
+                  ProPresenter.
                 </p>
               )}
             </SettingsSection>
@@ -573,7 +640,11 @@ export default function SettingsDialog() {
           className='flex items-center justify-end gap-2 mt-5 pt-4 border-t'
           style={{ borderColor: 'var(--border)' }}
         >
-          <Button variant='secondary' type='button' onClick={closeSettingsDialog}>
+          <Button
+            variant='secondary'
+            type='button'
+            onClick={closeSettingsDialog}
+          >
             Cancel
           </Button>
           <Button variant='primary' type='submit'>

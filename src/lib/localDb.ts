@@ -47,6 +47,12 @@ const isFluidTimer = async (timerId: string, db?: Database): Promise<boolean> =>
   return Boolean(fluidTimer)
 }
 
+export const getFluidTimerIds = async (db?: Database): Promise<string[]> => {
+  const fluidTimerService = getFluidTimerService(db)
+  const fluidRecords = await fluidTimerService.findAll('id')
+  return fluidRecords.map(f => f.timer_id)
+}
+
 const getRemainingSeconds = ({
   remaining_seconds,
   started_at,

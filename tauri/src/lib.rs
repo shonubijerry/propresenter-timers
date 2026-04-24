@@ -26,7 +26,7 @@ pub fn run() {
         .add_migrations("sqlite:timersv2.db", migrations::get_migrations())
         .build(),
     )
-    // ----- 🔥 KEY FIX: Close ALL windows on ANY window CloseRequest -----
+    // ----- 🔥 KEY FIX: Close ALL windows when the main window is closed -----
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         let app = window.app_handle();
@@ -42,8 +42,8 @@ pub fn run() {
             }
           }
 
-          // Now exit whole app
-          std::process::exit(0);
+          // Exit through Tauri so all windows and resources are cleaned up.
+          let _ = app.exit(0);
         } else {
           // let default behavior happen
           println!("Secondary window '{}' is closing.", label);

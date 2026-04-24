@@ -18,6 +18,7 @@ import {
   setAllTimersOperationInDb,
   getTimerAnalyticsByDateFromDb,
   getTimerAnalyticsByRangeFromDb,
+  getFluidTimerIds,
 } from '../../lib/localDb'
 import {
   getTimerAnalyticsByRange as getTimerAnalyticsByRangeShared,
@@ -80,49 +81,59 @@ export const useTimersApi = (): TimersApiHook => {
 
   // --- Core Fetch Function ---
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
-    if (isLocalDb) {
-      if (!db) {
-        throw new Error('Database not initialized')
+    try {
+      if (isLocalDb) {
+        if (!db) {
+          throw new Error('Database not initialized')
+        }
+        return await fetchTimersFromDb(db)
       }
-      return await fetchTimersFromDb(db)
-    }
 
-    // Use ProPresenter API
-    if (!baseUrl) {
+      // Use ProPresenter API
+      if (!baseUrl) {
+        return []
+      }
+
+      const [all, current] = await Promise.all([
+        fetchJson<Timer[]>(
+          `${baseUrl}/v1/timers?chunked=false`,
+          undefined,
+          'Failed to fetch timers'
+        ),
+        fetchJson<Timer[]>(
+          `${baseUrl}/v1/timers/current?chunked=false`,
+          undefined,
+          'Failed to fetch current timers'
+        ),
+      ])
+
+      const map = new Map(
+        current.map((t) => [
+          t.id.uuid,
+          { ...t, remainingSeconds: convertTimeToSeconds(t.time) },
+        ])
+      )
+
+      // Query fluid timers from local database if available
+      let fluidTimerIds: string[] = []
+      if (db) {
+        try {
+          fluidTimerIds = await getFluidTimerIds(db)
+        } catch (err) {
+          console.warn('Failed to load fluid timers from database:', err)
+        }
+      }
+
+      return all.map((t) => ({
+        ...t,
+        ...map.get(t.id.uuid),
+        isFluid: fluidTimerIds.includes(t.id.uuid),
+      }))
+    } catch (err) {
+      setError(err as Error)
       return []
     }
-
-    return await Promise.all([
-      fetchJson<Timer[]>(
-        `${baseUrl}/v1/timers?chunked=false`,
-        undefined,
-        'Failed to fetch timers'
-      ),
-      fetchJson<Timer[]>(
-        `${baseUrl}/v1/timers/current?chunked=false`,
-        undefined,
-        'Failed to fetch current timers'
-      ),
-    ])
-      .then(async ([all, current]) => {
-        const map = new Map(
-          current.map((t) => [
-            t.id.uuid,
-            { ...t, remainingSeconds: convertTimeToSeconds(t.time) },
-          ])
-        )
-
-        return all.map((t) => ({
-          ...t,
-          ...map.get(t.id.uuid),
-          isFluid: fluidTimers.includes(t.id.uuid),
-        }))
-      })
-      .catch((err) => {
-        setError(err)
-        return []
-      })
-  }, [baseUrl, isLocalDb, db, fluidTimers])
+  }, [baseUrl, isLocalDb, db])
 
   // --- Data Fetch Effect ---
   const refetch = useCallback(async () => {
