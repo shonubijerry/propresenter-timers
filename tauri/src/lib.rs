@@ -36,14 +36,12 @@ pub fn run() {
         if is_main {
           api.prevent_close();
           // ----- Main window is being closed -----
-          for (win_label, w) in app.webview_windows().iter() {
-            if win_label != "main" {
-              let _ = w.close();
-            }
+          for w in app.webview_windows().values() {
+            let _ = w.close();
           }
 
-          // Exit through Tauri so all windows and resources are cleaned up.
-          let _ = app.exit(0);
+          // Use std::process::exit for a hard exit to ensure proper cleanup on Windows
+          std::process::exit(0);
         } else {
           // let default behavior happen
           println!("Secondary window '{}' is closing.", label);
