@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "AGC Timer Control",
   "version": "0.2.30",
-  "identifier": "AGCTimerControl",
+  "identifier": "com.agctimers.control",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
