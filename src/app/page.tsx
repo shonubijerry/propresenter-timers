@@ -21,6 +21,7 @@ export default function Home() {
     setTimerOperation,
     setAllTimersOperation,
     updateTimers,
+    saveTimerOrder,
     setTimerUpdateOperation,
     getTimerAnalyticsByRange,
   } = useTimersApi()
@@ -175,7 +176,7 @@ export default function Home() {
       const success = await runOperation(async () => {
         await deleteTimer(uuid)
         const filteredTimers = timers.filter((t) => t.id.uuid !== uuid)
-        updateTimers(filteredTimers)
+        await saveTimerOrder(filteredTimers)
         setSearchableTimers(filteredTimers)
 
         if (currentTimer?.id.uuid === uuid) {
@@ -193,7 +194,7 @@ export default function Home() {
       resetLocalTimerState,
       deleteTimer,
       timers,
-      updateTimers,
+      saveTimerOrder,
     ]
   )
 
@@ -204,7 +205,7 @@ export default function Home() {
       if (!existingTimer) {
         // Append newly created timer to list
         const newTimers = [...timers, timer]
-        updateTimers(newTimers)
+        void saveTimerOrder(newTimers)
         setSearchableTimers((prev) => [...prev, timer])
         return
       }
@@ -235,7 +236,51 @@ export default function Home() {
         }
       }
     },
-    [timers, currentTimer, updateTimers, setCurrentTimer, localTimer]
+    [
+      timers,
+      currentTimer,
+      updateTimers,
+      setCurrentTimer,
+      localTimer,
+      saveTimerOrder,
+    ]
+  )
+
+  const handleReorderTimer = useCallback(
+    async (timerId: string, direction: 'up' | 'down') => {
+      const visibleIndex = searchableTimers.findIndex(
+        (timer) => timer.id.uuid === timerId
+      )
+
+      if (visibleIndex < 0) return
+
+      const swapVisibleIndex =
+        direction === 'up' ? visibleIndex - 1 : visibleIndex + 1
+
+      if (swapVisibleIndex < 0 || swapVisibleIndex >= searchableTimers.length) {
+        return
+      }
+
+      const swapWithTimerId = searchableTimers[swapVisibleIndex]?.id.uuid
+      if (!swapWithTimerId) return
+
+      const sourceIndex = timers.findIndex((timer) => timer.id.uuid === timerId)
+      const targetIndex = timers.findIndex(
+        (timer) => timer.id.uuid === swapWithTimerId
+      )
+
+      if (sourceIndex < 0 || targetIndex < 0) return
+
+      const reorderedTimers = [...timers]
+      ;[reorderedTimers[sourceIndex], reorderedTimers[targetIndex]] = [
+        reorderedTimers[targetIndex],
+        reorderedTimers[sourceIndex],
+      ]
+
+      await saveTimerOrder(reorderedTimers)
+      setSearchableTimers(reorderedTimers)
+    },
+    [searchableTimers, timers, saveTimerOrder]
   )
 
   const applyFluidTimersOperation = useCallback(
@@ -272,15 +317,9 @@ export default function Home() {
   const handleOperation = useCallback(
     async (timer: Timer, action: TimerActions) => {
       await runOperation(async () => {
-        const isSwitchingRunningTimer =
-          action === 'start' &&
-          !!currentTimer?.id.uuid &&
-          currentTimer.id.uuid !== timer.id.uuid &&
-          (localTimer.isRunning || localTimer.overtime.isRunning)
-
         if (action === 'stop' && currentTimer?.id.uuid !== timer.id.uuid) return
 
-        if (isSwitchingRunningTimer) {
+        if (action === 'start') {
           await setAllTimersOperation('reset')
           await resetLocalTimerState()
         }
@@ -391,6 +430,7 @@ export default function Home() {
           resetAllTimers={resetAllTimers}
           refreshTimers={refreshTimers}
           updateTimerInList={updateTimerInList}
+          onReorderTimer={handleReorderTimer}
           onSearch={onSearch}
           onLoadAnalytics={onLoadAnalyticsRange}
         />

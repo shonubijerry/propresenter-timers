@@ -9,22 +9,30 @@ import { TimerCardEdit } from './TimerCardEdit'
 
 interface TimerCardContainerProps {
   timer: Timer
+  canMoveUp: boolean
+  canMoveDown: boolean
   isActive: boolean
   localTimer: LocalTime
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
   onOpenFullScreen: (timer: Timer) => void
   onEdit: (timer: Timer) => void
+  onMoveUp: () => void
+  onMoveDown: () => void
 }
 
 export function TimerCardContainer({
   timer,
+  canMoveUp,
+  canMoveDown,
   isActive,
   localTimer,
   onDelete,
   onOperation,
   onOpenFullScreen,
   onEdit,
+  onMoveUp,
+  onMoveDown,
 }: TimerCardContainerProps) {
   const [isEditMode, setIsEditMode] = useState<boolean>(false)
 
@@ -61,6 +69,10 @@ export function TimerCardContainer({
       onDelete={onDelete}
       onOpenFullScreen={onOpenFullScreen}
       onEditClick={handleEditClick}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
     />
   )
 }

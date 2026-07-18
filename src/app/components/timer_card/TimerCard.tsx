@@ -7,7 +7,7 @@ import Watch from '../watch/Watch'
 import { IoPlayOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
-import { MdOutlineDelete } from 'react-icons/md'
+import { MdOutlineDelete, MdOutlineKeyboardArrowUp, MdOutlineKeyboardArrowDown } from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
@@ -21,22 +21,30 @@ import Button from '../ui/Button'
 
 interface TimerCardProps {
   timer: Timer
+  canMoveUp: boolean
+  canMoveDown: boolean
   isActive: boolean
   localTimer: LocalTime
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
   onOpenFullScreen: (timer: Timer) => void
   onEditClick: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
 }
 
 export function TimerCard({
   timer,
+  canMoveUp,
+  canMoveDown,
   isActive,
   localTimer,
   onDelete,
   onOperation,
   onOpenFullScreen,
   onEditClick,
+  onMoveUp,
+  onMoveDown,
 }: TimerCardProps) {
   const {
     fluidTimers,
@@ -115,6 +123,22 @@ export function TimerCard({
         color: 'var(--ring)',
       },
       {
+        key: 'move-up',
+        label: 'Move up',
+        icon: <MdOutlineKeyboardArrowUp size={20} />,
+        onClick: onMoveUp,
+        disabled: !canMoveUp,
+        color: 'var(--ring)',
+      },
+      {
+        key: 'move-down',
+        label: 'Move down',
+        icon: <MdOutlineKeyboardArrowDown size={20} />,
+        onClick: onMoveDown,
+        disabled: !canMoveDown,
+        color: 'var(--ring)',
+      },
+      {
         key: 'lock',
         label: 'Lock from deleting',
         icon: <TbLock size={20} />,
@@ -133,8 +157,12 @@ export function TimerCard({
       addFluidTime,
       isActive,
       isAnyTimerRunning,
+      canMoveDown,
+      canMoveUp,
       onDelete,
       onEditClick,
+      onMoveDown,
+      onMoveUp,
       onOperation,
       timer,
     ]

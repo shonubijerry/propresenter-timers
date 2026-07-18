@@ -79,5 +79,17 @@ pub fn get_migrations() -> Vec<Migration> {
       CREATE INDEX IF NOT EXISTS idx_timer_run_logs_ended_at ON timer_run_logs(ended_at);"#,
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 5,
+      description: "create_timer_orders",
+      sql: r#"CREATE TABLE IF NOT EXISTS timer_orders (
+        timer_uuid TEXT PRIMARY KEY,
+        sort_order INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_timer_orders_sort_order ON timer_orders(sort_order);"#,
+      kind: MigrationKind::Up,
+    },
   ]
 }

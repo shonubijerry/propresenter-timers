@@ -26,6 +26,13 @@ interface SqliteTimer {
   updated_at: number
 }
 
+interface SqliteTimerOrder {
+  timer_uuid: string
+  sort_order: number
+  created_at: number
+  updated_at: number
+}
+
 // Helper function to get timer service instance
 const getTimerService = (db?: Database) => {
   if (!db) {
@@ -41,6 +48,13 @@ const getFluidTimerService = (db?: Database) => {
   return new DbService<SqliteFluidTimer>('fluid_timers', 'timer_id', db)
 }
 
+const getTimerOrderService = (db?: Database) => {
+  if (!db) {
+    throw new Error('Database not initialized')
+  }
+  return new DbService<SqliteTimerOrder>('timer_orders', 'timer_uuid', db)
+}
+
 const isFluidTimer = async (timerId: string, db?: Database): Promise<boolean> => {
   const fluidTimerService = getFluidTimerService(db)
   const fluidTimer = await fluidTimerService.findById(timerId, 'timer_id')
@@ -51,6 +65,45 @@ export const getFluidTimerIds = async (db?: Database): Promise<string[]> => {
   const fluidTimerService = getFluidTimerService(db)
   const fluidRecords = await fluidTimerService.findAll('id')
   return fluidRecords.map(f => f.timer_id)
+}
+
+export const fetchTimerOrdersFromDb = async (
+  db?: Database
+): Promise<Record<string, number>> => {
+  const timerOrderService = getTimerOrderService(db)
+  const orders = await timerOrderService.findAll('sort_order ASC')
+
+  return orders.reduce<Record<string, number>>((acc, order) => {
+    acc[order.timer_uuid] = order.sort_order
+    return acc
+  }, {})
+}
+
+export const upsertTimerOrdersInDb = async (
+  timerUuids: string[],
+  db?: Database
+): Promise<void> => {
+  const timerOrderService = getTimerOrderService(db)
+  const now = Math.floor(Date.now() / 1000)
+
+  await Promise.all(
+    timerUuids.map((timerUuid, index) =>
+      timerOrderService.upsert({
+        timer_uuid: timerUuid,
+        sort_order: index,
+        created_at: now,
+        updated_at: now,
+      })
+    )
+  )
+}
+
+export const deleteTimerOrderFromDb = async (
+  timerUuid: string,
+  db?: Database
+): Promise<void> => {
+  const timerOrderService = getTimerOrderService(db)
+  await timerOrderService.delete(timerUuid)
 }
 
 const getRemainingSeconds = ({
@@ -175,6 +228,7 @@ export const deleteTimerFromDb = async (
     await recordTimerRunEnd(id, 'reset', db)
   }
   await timerService.delete(id)
+  await deleteTimerOrderFromDb(id, db)
 }
 
 /**

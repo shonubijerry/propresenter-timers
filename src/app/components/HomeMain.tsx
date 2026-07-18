@@ -28,6 +28,7 @@ interface HomeMainProps {
   resetAllTimers: (action: TimerActions) => Promise<void>
   refreshTimers: () => Promise<void>
   updateTimerInList: (timer: Timer) => void
+  onReorderTimer: (timerId: string, direction: 'up' | 'down') => Promise<void>
   onSearch: (term: string) => void
   onLoadAnalytics: (
     fromDate: string,
@@ -44,6 +45,7 @@ export default function HomeMain({
   resetAllTimers,
   refreshTimers,
   updateTimerInList,
+  onReorderTimer,
   onSearch,
   onLoadAnalytics,
 }: HomeMainProps) {
@@ -119,12 +121,19 @@ export default function HomeMain({
               <TimerCardContainer
                 key={timer.id.uuid}
                 timer={timer}
+                canMoveUp={searchableTimers[0]?.id.uuid !== timer.id.uuid}
+                canMoveDown={
+                  searchableTimers[searchableTimers.length - 1]?.id.uuid !==
+                  timer.id.uuid
+                }
                 isActive={currentTimer?.id?.uuid === timer.id.uuid}
                 localTimer={localTimer}
                 onOperation={handleOperation}
                 onDelete={handleDelete}
                 onOpenFullScreen={handleOpenFullScreen}
                 onEdit={updateTimerInList}
+                onMoveUp={() => onReorderTimer(timer.id.uuid, 'up')}
+                onMoveDown={() => onReorderTimer(timer.id.uuid, 'down')}
               />
             ))}
             {isCreatingTimer && (

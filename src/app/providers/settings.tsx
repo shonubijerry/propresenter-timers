@@ -66,6 +66,13 @@ const ensureProfileDatabaseSchema = async (database: Database) => {
     value TEXT NOT NULL
   );`)
 
+  await database.execute(`CREATE TABLE IF NOT EXISTS timer_orders (
+    timer_uuid TEXT PRIMARY KEY,
+    sort_order INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );`)
+
   await database.execute(`CREATE TABLE IF NOT EXISTS timer_run_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timer_uuid TEXT NOT NULL,
@@ -86,6 +93,9 @@ const ensureProfileDatabaseSchema = async (database: Database) => {
   )
   await database.execute(
     'CREATE INDEX IF NOT EXISTS idx_timer_run_logs_ended_at ON timer_run_logs(ended_at);'
+  )
+  await database.execute(
+    'CREATE INDEX IF NOT EXISTS idx_timer_orders_sort_order ON timer_orders(sort_order);'
   )
 }
 

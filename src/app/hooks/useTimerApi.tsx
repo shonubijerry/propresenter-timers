@@ -19,6 +19,8 @@ import {
   getTimerAnalyticsByDateFromDb,
   getTimerAnalyticsByRangeFromDb,
   getFluidTimerIds,
+  fetchTimerOrdersFromDb,
+  upsertTimerOrdersInDb,
 } from '../../lib/localDb'
 import {
   getTimerAnalyticsByRange as getTimerAnalyticsByRangeShared,
@@ -53,6 +55,7 @@ interface TimersApiHook {
   ) => Promise<Timer>
   setAllTimersOperation: (operation: TimerActions) => Promise<void>
   updateTimers: (data: Timer[]) => void
+  saveTimerOrder: (orderedTimers: Timer[]) => Promise<void>
   fetchTimers: () => Promise<Timer[]>
   getTimerAnalyticsByDate: (date: string) => Promise<TimerAnalyticsSummary>
   getTimerAnalyticsByRange: (
@@ -72,12 +75,91 @@ export const useTimersApi = (): TimersApiHook => {
     settings,
     fluidTimers = [],
     db,
+    activeProfileId,
   } = useSettings()
   const [timers, setTimers] = useState<Timer[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
 
   const isLocalDb = settings?.datastore === 'localDb'
+
+  const timerOrderStorageKey = `agc:timer-order:${activeProfileId}`
+
+  const persistTimerOrderByIds = useCallback(
+    async (orderedTimerIds: string[]): Promise<void> => {
+      if (db) {
+        await upsertTimerOrdersInDb(orderedTimerIds, db)
+        return
+      }
+
+      if (typeof window === 'undefined') return
+
+      window.localStorage.setItem(
+        timerOrderStorageKey,
+        JSON.stringify(orderedTimerIds)
+      )
+    },
+    [db, timerOrderStorageKey]
+  )
+
+  const getPersistedTimerOrderIds = useCallback(async (): Promise<string[]> => {
+    if (db) {
+      const orderMap = await fetchTimerOrdersFromDb(db)
+
+      return Object.entries(orderMap)
+        .sort((a, b) => a[1] - b[1])
+        .map(([timerId]) => timerId)
+    }
+
+    if (typeof window === 'undefined') return []
+
+    const stored = window.localStorage.getItem(timerOrderStorageKey)
+    if (!stored) return []
+
+    try {
+      const parsed = JSON.parse(stored)
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === 'string')
+        : []
+    } catch {
+      return []
+    }
+  }, [db, timerOrderStorageKey])
+
+  const applyPersistedTimerOrder = useCallback(
+    async (rawTimers: Timer[]): Promise<Timer[]> => {
+      const persistedOrderIds = await getPersistedTimerOrderIds()
+      const persistedOrderIndex = new Map(
+        persistedOrderIds.map((timerId, index) => [timerId, index])
+      )
+
+      const sortedTimers = [...rawTimers].sort((a, b) => {
+        const aOrder = persistedOrderIndex.get(a.id.uuid)
+        const bOrder = persistedOrderIndex.get(b.id.uuid)
+
+        if (aOrder === undefined && bOrder === undefined) {
+          return a.id.index - b.id.index
+        }
+
+        if (aOrder === undefined) return 1
+        if (bOrder === undefined) return -1
+
+        return aOrder - bOrder
+      })
+
+      const normalizedIds = sortedTimers.map((timer) => timer.id.uuid)
+      const isDifferentOrder =
+        persistedOrderIds.length !== normalizedIds.length ||
+        normalizedIds.some((id, index) => persistedOrderIds[index] !== id)
+
+      if (isDifferentOrder) {
+        await persistTimerOrderByIds(normalizedIds)
+      }
+
+      return sortedTimers
+    },
+    [getPersistedTimerOrderIds, persistTimerOrderByIds]
+  )
 
   // --- Core Fetch Function ---
   const fetchTimers = useCallback(async (): Promise<Timer[]> => {
@@ -86,7 +168,8 @@ export const useTimersApi = (): TimersApiHook => {
         if (!db) {
           throw new Error('Database not initialized')
         }
-        return await fetchTimersFromDb(db)
+        const localTimers = await fetchTimersFromDb(db)
+        return await applyPersistedTimerOrder(localTimers)
       }
 
       // Use ProPresenter API
@@ -124,16 +207,18 @@ export const useTimersApi = (): TimersApiHook => {
         }
       }
 
-      return all.map((t) => ({
+      const timersWithMetadata = all.map((t) => ({
         ...t,
         ...map.get(t.id.uuid),
         isFluid: fluidTimerIds.includes(t.id.uuid),
       }))
+
+      return await applyPersistedTimerOrder(timersWithMetadata)
     } catch (err) {
       setError(err as Error)
       return []
     }
-  }, [baseUrl, isLocalDb, db])
+  }, [baseUrl, isLocalDb, db, applyPersistedTimerOrder])
 
   // --- Data Fetch Effect ---
   const refetch = useCallback(async () => {
@@ -419,6 +504,14 @@ export const useTimersApi = (): TimersApiHook => {
     setTimers(data)
   }, [])
 
+  const saveTimerOrder = useCallback(
+    async (orderedTimers: Timer[]): Promise<void> => {
+      await persistTimerOrderByIds(orderedTimers.map((timer) => timer.id.uuid))
+      setTimers(orderedTimers)
+    },
+    [persistTimerOrderByIds]
+  )
+
   const getTimerAnalyticsByDate = useCallback(
     async (date: string): Promise<TimerAnalyticsSummary> => {
       if (!db) {
@@ -466,6 +559,7 @@ export const useTimersApi = (): TimersApiHook => {
     setTimerUpdateOperation,
     setAllTimersOperation,
     updateTimers,
+    saveTimerOrder,
     getTimerAnalyticsByDate,
     getTimerAnalyticsByRange,
   }
