@@ -65,8 +65,10 @@ export default function WatchLayoutWithProps({
 
   if (!fullscreen) return
 
+  const isTimeUp = timeTracker === 'Time Up'
+
   const timeupStyle =
-    timeTracker === 'Time Up'
+    isTimeUp
       ? 'text-red-600 animate-[blink_2s_infinite]'
       : isInjuryTime
         ? 'animate-[blink_6s_infinite]'
@@ -89,13 +91,26 @@ export default function WatchLayoutWithProps({
         </div>
 
         {/* Time tracker label (center) */}
-        {!broadcastMessage && (
-          <div
-            className={`text-[6vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
-          >
-            {timeTracker}
-          </div>
-        )}
+        {!broadcastMessage &&
+          (isTimeUp ? (
+            <div className='flex flex-1 items-center justify-center'>
+              <Watch
+                fullscreen={false}
+                sizeClassName='font-bold text-[3.6vw] tracking-wide'
+                isInjuryTime={isInjuryTime}
+                hours={localTimer.hours}
+                minutes={localTimer.minutes}
+                seconds={localTimer.seconds}
+                overtime={localTimer.overtime}
+              />
+            </div>
+          ) : (
+            <div
+              className={`text-[6vw] font-bold text-gray-800 text-center flex-1 px-4 ${timeupStyle}`}
+            >
+              {timeTracker}
+            </div>
+          ))}
 
         {/* Clock (right) */}
         <div className='text-[2.5vw] font-semibold text-gray-800 whitespace-nowrap'>
@@ -121,18 +136,28 @@ export default function WatchLayoutWithProps({
           </>
         ) : (
           <>
-            {/* Watch card */}
-            <div className='flex flex-1 items-center justify-center w-full rounded-2xl bg-white shadow-sm'>
-              <Watch
-                fullscreen={true}
-                isInjuryTime={isInjuryTime}
-                mode='fullscreen'
-                hours={localTimer.hours}
-                minutes={localTimer.minutes}
-                seconds={localTimer.seconds}
-                overtime={localTimer.overtime}
-              />
-            </div>
+            {/* Watch card / Time Up card (swapped when time is up) */}
+            {isTimeUp ? (
+              <div className='flex flex-1 items-center justify-center w-full rounded-2xl bg-white shadow-sm'>
+                <div
+                  className={`text-[14vw] font-extrabold text-center leading-none ${timeupStyle}`}
+                >
+                  {timeTracker}
+                </div>
+              </div>
+            ) : (
+              <div className='flex flex-1 items-center justify-center w-full rounded-2xl bg-white shadow-sm'>
+                <Watch
+                  fullscreen={true}
+                  isInjuryTime={isInjuryTime}
+                  mode='fullscreen'
+                  hours={localTimer.hours}
+                  minutes={localTimer.minutes}
+                  seconds={localTimer.seconds}
+                  overtime={localTimer.overtime}
+                />
+              </div>
+            )}
 
             {/* Info card */}
             <div className='w-full rounded-2xl bg-white shadow-sm px-[3vw] py-[1.5vw] text-center shrink-0'>

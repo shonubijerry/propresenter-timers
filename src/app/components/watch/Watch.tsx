@@ -9,6 +9,8 @@ interface Props {
   overtime: ReturnType<typeof useStopwatch>
   fullscreen?: boolean
   mode?: 'normal' | 'fullscreen'
+  sizeClassName?: string
+  className?: string
 }
 
 export default function Watch({
@@ -19,12 +21,16 @@ export default function Watch({
   overtime,
   fullscreen,
   mode,
+  sizeClassName,
+  className,
 }: Props) {
   if (mode === 'fullscreen' && !fullscreen) return
 
-  const textSize = fullscreen
-    ? 'font-bold text-[19vw] tracking-wider'
-    : 'text-2xl'
+  const textSize =
+    sizeClassName ??
+    (fullscreen
+      ? 'font-bold text-[19vw] tracking-wider'
+      : 'text-2xl')
 
   const textColor = isInjuryTime
     ? 'text-amber-500'
@@ -32,11 +38,11 @@ export default function Watch({
   return (
     <>
       {overtime.isRunning ? (
-        <h2 className={`px-3 py-1 ${textSize} text-red-600`}>
+        <h2 className={`px-3 py-1 ${textSize} text-red-600 ${className ?? ''}`}>
           -{formatTime(overtime.hours, overtime.minutes, overtime.seconds)}
         </h2>
       ) : (
-        <h2 className={`px-3 py-1  ${textSize} ${textColor}`}>
+        <h2 className={`px-3 py-1 ${textSize} ${textColor} ${className ?? ''}`}>
           {formatTime(hours, minutes, seconds)}
         </h2>
       )}
