@@ -8,9 +8,11 @@ import { SqliteFluidTimer } from '@/app/interfaces/settings'
 import {
   getTimerAnalyticsByRange,
   getTimerAnalyticsByDate,
+  recordAllTimerRunEnds,
   recordTimerRunEnd,
   recordTimerRunStart,
 } from './timerAnalyticsDb'
+import { getPausedRemainingSeconds } from './timerLogic'
 
 // Type for the SQLite timer structure
 interface SqliteTimer {
@@ -55,7 +57,10 @@ const getTimerOrderService = (db?: Database) => {
   return new DbService<SqliteTimerOrder>('timer_orders', 'timer_uuid', db)
 }
 
-const isFluidTimer = async (timerId: string, db?: Database): Promise<boolean> => {
+const isFluidTimer = async (
+  timerId: string,
+  db?: Database
+): Promise<boolean> => {
   const fluidTimerService = getFluidTimerService(db)
   const fluidTimer = await fluidTimerService.findById(timerId, 'timer_id')
   return Boolean(fluidTimer)
@@ -64,7 +69,7 @@ const isFluidTimer = async (timerId: string, db?: Database): Promise<boolean> =>
 export const getFluidTimerIds = async (db?: Database): Promise<string[]> => {
   const fluidTimerService = getFluidTimerService(db)
   const fluidRecords = await fluidTimerService.findAll('id')
-  return fluidRecords.map(f => f.timer_id)
+  return fluidRecords.map((f) => f.timer_id)
 }
 
 export const fetchTimerOrdersFromDb = async (
@@ -267,11 +272,13 @@ export const setTimerOperationInDb = async (
       }
       break
     case 'stop':
-      const elapsedTime = now - (timer.started_at ?? 0)
       updates.state = 'stopped'
-      updates.remaining_seconds = Math.floor(
-        timer.remaining_seconds - elapsedTime
-      )
+      updates.remaining_seconds = getPausedRemainingSeconds({
+        remainingSeconds: timer.remaining_seconds,
+        startedAt: timer.started_at,
+        isRunning: timer.state === 'running',
+        now,
+      })
       updates.started_at = null
       if (!fluidTimer) {
         await recordTimerRunEnd(id, 'stop', db, now)
@@ -375,9 +382,25 @@ export const setAllTimersOperationInDb = async (
   const fluidTimerIds = new Set(
     (await fluidTimerService.findAll('id')).map((timer) => timer.timer_id)
   )
+  const now = Math.floor(Date.now() / 1000)
+
+  // Close every open run in one query (only running timers have one)
+  if (operation === 'stop' || operation === 'reset') {
+    await recordAllTimerRunEnds(operation, db, now)
+  }
 
   const updates = timers.map(async (timer) => {
-    const now = Math.floor(Date.now() / 1000)
+    // Skip rows that are already in the target state
+    if (operation === 'stop' && timer.state !== 'running') return
+    if (
+      operation === 'reset' &&
+      timer.state === 'stopped' &&
+      timer.started_at === null &&
+      timer.remaining_seconds === timer.countdown_duration
+    ) {
+      return
+    }
+
     const updateData: Partial<SqliteTimer> = { updated_at: now }
 
     switch (operation) {
@@ -397,20 +420,20 @@ export const setAllTimersOperationInDb = async (
         }
         break
       case 'stop':
+        // Pause, same as a single stop: keep the time left
         updateData.state = 'stopped'
-        updateData.remaining_seconds = timer.countdown_duration
+        updateData.remaining_seconds = getPausedRemainingSeconds({
+          remainingSeconds: timer.remaining_seconds,
+          startedAt: timer.started_at,
+          isRunning: timer.state === 'running',
+          now,
+        })
         updateData.started_at = null
-        if (!fluidTimerIds.has(timer.uuid)) {
-          await recordTimerRunEnd(timer.uuid, 'stop', db, now)
-        }
         break
       case 'reset':
         updateData.state = 'stopped'
         updateData.remaining_seconds = timer.countdown_duration
         updateData.started_at = null
-        if (!fluidTimerIds.has(timer.uuid)) {
-          await recordTimerRunEnd(timer.uuid, 'reset', db, now)
-        }
         break
     }
     updateData.uuid = timer.uuid
@@ -424,7 +447,8 @@ export const setAllTimersOperationInDb = async (
 export const getTimerAnalyticsByDateFromDb = async (
   date: string,
   db?: Database
-): ReturnType<typeof getTimerAnalyticsByDate> => getTimerAnalyticsByDate(date, db)
+): ReturnType<typeof getTimerAnalyticsByDate> =>
+  getTimerAnalyticsByDate(date, db)
 
 export const getTimerAnalyticsByRangeFromDb = async (
   fromDate: string,

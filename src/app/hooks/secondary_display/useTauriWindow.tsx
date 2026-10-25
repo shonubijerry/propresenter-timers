@@ -7,6 +7,7 @@ import {
 } from '@tauri-apps/api/webviewWindow'
 import { currentMonitor, availableMonitors } from '@tauri-apps/api/window'
 import { info, error as logError } from '@tauri-apps/plugin-log'
+import { logTiming } from '@/lib/perfLog'
 
 const SECOND_SCREEN_LABEL = 'second-screen'
 const FEEDBACK_SCREEN_LABEL = 'feedback-screen'
@@ -27,9 +28,11 @@ export default function useTauriWindow() {
   }
 
   const openNewTauriWindow = async () => {
+    const startedAt = performance.now()
     try {
       const monitors = await availableMonitors()
       const current = await currentMonitor()
+      logTiming('Open fullscreen: found monitors', startedAt)
 
       const secondaryMonitor = monitors.find(
         (monitor) =>
@@ -43,6 +46,7 @@ export default function useTauriWindow() {
       }
 
       await closeTauriWindow()
+      logTiming('Open fullscreen: closed old screen windows', startedAt)
 
       const { position, size } = secondaryMonitor
       const currentPosition = current?.position ?? position
@@ -81,7 +85,7 @@ export default function useTauriWindow() {
       })
 
       webview.once('tauri://created', async () => {
-        console.log('Second screen window created')
+        logTiming('Open fullscreen: screen window created', startedAt)
         await info('Second screen window created successfully')
         toastInfo('External screen and preview opened')
       })
