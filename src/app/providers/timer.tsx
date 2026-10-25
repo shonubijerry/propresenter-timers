@@ -12,6 +12,7 @@ import {
 import useTimerHook, { TimerActions, ReactHookTimerType } from '../hooks/timer'
 import { Timer } from '../interfaces/time'
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+import { CountdownAnchor } from '@/lib/timerLogic'
 
 export type LocalTime = {
   totalSeconds: number
@@ -22,6 +23,10 @@ export type LocalTime = {
   handleLocalTimer: (action: TimerActions, duration?: number) => Promise<void>
   restart: (newExpiryTimestamp: Date, newAutoStart?: boolean) => void
   overtime: ReactHookTimerType
+  anchor: CountdownAnchor
+  startOvertime: (elapsedSeconds: number) => void
+  clearOvertime: () => void
+  applyAnchor: (anchor: CountdownAnchor) => void
 }
 
 export type FullScreenWindow = Window | WebviewWindow
@@ -64,7 +69,8 @@ export function SharedProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const storedMessage = window.localStorage.getItem(BROADCAST_MESSAGE_KEY) ?? ''
+    const storedMessage =
+      window.localStorage.getItem(BROADCAST_MESSAGE_KEY) ?? ''
     setBroadcastMessageState(storedMessage)
 
     const handleStorage = (event: StorageEvent) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Timer } from './interfaces/time'
+import { Timer, TimerEditInput } from './interfaces/time'
 import { TimerAnalyticsRangeSummary } from './interfaces/analytics'
 import { TimerActions } from './hooks/timer'
 import HomeMain from './components/HomeMain'
@@ -10,13 +10,55 @@ import { useShared } from './providers/timer'
 import { useSettings } from './providers/settings'
 import { toastError, toastSuccess } from '@/lib/toastUtils'
 import { useTimersApi } from './hooks/useTimerApi'
+import {
+  LIVE_TIMER_STORAGE_KEY,
+  LiveTimerSnapshot,
+  parseLiveTimerSnapshot,
+  planTimerEdit,
+} from '@/lib/timerLogic'
+import { formatSecondsToTime } from '@/lib/formatter'
+import { logTiming } from '@/lib/perfLog'
+
+// Screen windows open with ?showTime=true. Home only mounts in the browser
+// (settings load first), so reading the URL here is safe.
+const isScreenWindow = () =>
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).get('showTime') === 'true'
+
+const readLiveSnapshot = (): LiveTimerSnapshot | null => {
+  try {
+    return parseLiveTimerSnapshot(
+      window.localStorage.getItem(LIVE_TIMER_STORAGE_KEY)
+    )
+  } catch {
+    return null
+  }
+}
+
+const snapshotToTimer = (
+  timer: NonNullable<LiveTimerSnapshot['timer']>
+): Timer => ({
+  id: { uuid: timer.uuid, name: timer.name, index: 0 },
+  countdown: { duration: timer.duration },
+  allows_overrun: true,
+  state: 'running',
+  time: '',
+  remainingSeconds: timer.duration,
+})
 
 export default function Home() {
   const { isLoading, fluidTimers } = useSettings()
+  const [showTime] = useState(isScreenWindow)
+  // A screen window follows the main window when it has published its state
+  const [followsMainWindow] = useState(
+    () => isScreenWindow() && readLiveSnapshot() !== null
+  )
   const {
     timers,
     fetchTimers,
     refetch,
+    createTimer,
+    editTimer,
     deleteTimer,
     setTimerOperation,
     setAllTimersOperation,
@@ -24,20 +66,24 @@ export default function Home() {
     saveTimerOrder,
     setTimerUpdateOperation,
     getTimerAnalyticsByRange,
-  } = useTimersApi()
+  } = useTimersApi({ autoFetch: !showTime })
   const [searchableTimers, setSearchableTimers] = useState<Timer[]>([])
-  const [showTime, setShowTime] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
   const { currentTimer, setCurrentTimer, localTimer } = useShared()
 
   const operationInProgress = useRef(false)
 
+  // The countdown changes every second. Callbacks read it through a ref so
+  // they stay stable and the timer cards don't all re-render on each tick.
+  const localTimerRef = useRef(localTimer)
+  localTimerRef.current = localTimer
+
   const resetLocalTimerState = useCallback(async () => {
     setCurrentTimer(null)
-    await localTimer.handleLocalTimer('reset')
-    localTimer.overtime.reset(undefined, false)
-  }, [setCurrentTimer, localTimer])
+    await localTimerRef.current.handleLocalTimer('reset')
+    localTimerRef.current.clearOvertime()
+  }, [setCurrentTimer])
 
   // Helper to set and log API errors
   const setApiError = useCallback(
@@ -79,6 +125,12 @@ export default function Home() {
   useEffect(() => {
     if (isInitialized || isLoading) return
 
+    // Screen windows get their state from the main window instead
+    if (followsMainWindow) {
+      setIsInitialized(true)
+      return
+    }
+
     let mounted = true
 
     const initializeTimers = async () => {
@@ -112,15 +164,14 @@ export default function Home() {
             runningTimer.state === 'overrunning' ||
             runningTimer.remainingSeconds < 0
           ) {
-            const elapsed = runningTimer.remainingSeconds * -1
-
-            const timestamp = Date.now()
-            localTimer.overtime.reset(
-              new Date(timestamp + elapsed * 1000),
-              true
+            localTimerRef.current.startOvertime(
+              runningTimer.remainingSeconds * -1
             )
           } else if (runningTimer.state === 'running') {
-            localTimer.handleLocalTimer('start', runningTimer.remainingSeconds)
+            localTimerRef.current.handleLocalTimer(
+              'start',
+              runningTimer.remainingSeconds
+            )
           }
         }
       } catch (err) {
@@ -138,8 +189,8 @@ export default function Home() {
   }, [
     isInitialized,
     isLoading,
+    followsMainWindow,
     setCurrentTimer,
-    localTimer,
     setApiError,
     fetchTimers,
     setAllTimersOperation,
@@ -147,12 +198,57 @@ export default function Home() {
     refetch,
   ])
 
-  // URL param handling (client-only)
+  // Main window: publish the live timer so open screen windows follow it
+  const liveTimer = currentTimer
+    ? {
+        uuid: currentTimer.id.uuid,
+        name: currentTimer.id.name,
+        duration: currentTimer.countdown?.duration ?? 0,
+      }
+    : null
+  const liveTimerKey = JSON.stringify(liveTimer)
+  const anchor = localTimer.anchor
+
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const urlParams = new URLSearchParams(window.location.search)
-    setShowTime(urlParams.get('showTime') === 'true')
-  }, [])
+    if (showTime || !isInitialized) return
+
+    const snapshot: LiveTimerSnapshot = {
+      timer: JSON.parse(liveTimerKey),
+      anchor,
+      sentAt: Date.now(),
+    }
+
+    try {
+      window.localStorage.setItem(
+        LIVE_TIMER_STORAGE_KEY,
+        JSON.stringify(snapshot)
+      )
+    } catch (err) {
+      console.warn('Failed to publish live timer:', err)
+    }
+  }, [showTime, isInitialized, liveTimerKey, anchor])
+
+  // Screen window: follow the main window's live timer
+  useEffect(() => {
+    if (!showTime) return
+
+    const apply = (snapshot: LiveTimerSnapshot | null) => {
+      if (!snapshot) return
+      setCurrentTimer(snapshot.timer ? snapshotToTimer(snapshot.timer) : null)
+      localTimerRef.current.applyAnchor(snapshot.anchor)
+    }
+
+    apply(readLiveSnapshot())
+    logTiming('Screen window ready')
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== LIVE_TIMER_STORAGE_KEY) return
+      apply(parseLiveTimerSnapshot(event.newValue))
+    }
+
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [showTime, setCurrentTimer])
 
   // Reset all timers (start/stop/reset for all)
   const resetAllTimers = useCallback(
@@ -210,40 +306,18 @@ export default function Home() {
         return
       }
 
-      const isActiveTimer = currentTimer?.id.uuid === timer.id.uuid
-
+      // Functional updates so several calls in a row don't overwrite each other
       const updateTimersArray = (list: Timer[]) =>
         list.map((t) => (t.id.uuid === timer.id.uuid ? { ...t, ...timer } : t))
 
-      updateTimers(updateTimersArray(timers))
-      setSearchableTimers((prev) => updateTimersArray(prev))
+      updateTimers(updateTimersArray)
+      setSearchableTimers(updateTimersArray)
 
-      if (isActiveTimer) {
+      if (currentTimer?.id.uuid === timer.id.uuid) {
         setCurrentTimer((prev) => (prev ? { ...prev, ...timer } : prev))
-
-        // Update local timer based on timer state
-        if (timer.state === 'running' && timer.remainingSeconds !== undefined) {
-          localTimer.handleLocalTimer('start', timer.remainingSeconds)
-        } else if (
-          timer.state === 'overrunning' &&
-          timer.remainingSeconds !== undefined
-        ) {
-          const timestamp = Date.now()
-          localTimer.overtime.reset(
-            new Date(timestamp + timer.remainingSeconds * 1000),
-            true
-          )
-        }
       }
     },
-    [
-      timers,
-      currentTimer,
-      updateTimers,
-      setCurrentTimer,
-      localTimer,
-      saveTimerOrder,
-    ]
+    [timers, currentTimer, updateTimers, setCurrentTimer, saveTimerOrder]
   )
 
   const handleReorderTimer = useCallback(
@@ -340,19 +414,24 @@ export default function Home() {
         }
 
         if (action === 'start') {
-          setCurrentTimer(timer)
-          localTimer.overtime.reset(undefined, false)
-          await localTimer.handleLocalTimer('start', timer.remainingSeconds)
+          // Every timer was just reset, so count down from the saved duration
+          const duration = timer.countdown?.duration ?? 0
+          setCurrentTimer({
+            ...timer,
+            state: 'running',
+            remainingSeconds: duration,
+          })
+          localTimerRef.current.clearOvertime()
+          await localTimerRef.current.handleLocalTimer('start', duration)
           return
         }
 
-        localTimer.overtime.reset(undefined, false)
-        await localTimer.handleLocalTimer('stop')
+        localTimerRef.current.clearOvertime()
+        await localTimerRef.current.handleLocalTimer('stop')
       }, `Failed to ${action} timer`)
     },
     [
       runOperation,
-      localTimer,
       currentTimer,
       setCurrentTimer,
       setAllTimersOperation,
@@ -360,6 +439,107 @@ export default function Home() {
       applyFluidTimersOperation,
       refetch,
       resetLocalTimerState,
+    ]
+  )
+
+  // Save the edit form (create, rename, update or restart a timer)
+  const handleSaveTimer = useCallback(
+    async (timer: Timer, input: TimerEditInput): Promise<boolean> => {
+      const isNew = timer.time === 'new'
+      const isActive = !isNew && currentTimer?.id.uuid === timer.id.uuid
+      const name =
+        input.name.trim() || `Timer ${Math.floor(Math.random() * 1000)}`
+
+      const plan = planTimerEdit({
+        isNew,
+        isActive,
+        enteredSeconds: input.enteredSeconds,
+        prefillSeconds: input.prefillSeconds,
+      })
+
+      if (plan.kind === 'invalid') {
+        toastError(plan.message)
+        return false
+      }
+
+      const withDuration = (duration: number, state: Timer['state']) => ({
+        ...timer,
+        id: { ...timer.id, name },
+        countdown: { duration },
+        remainingSeconds: duration,
+        time: formatSecondsToTime(duration),
+        state,
+      })
+
+      let successMessage = 'Timer updated successfully'
+
+      const success = await runOperation(async () => {
+        switch (plan.kind) {
+          case 'create': {
+            const created = await createTimer(plan.duration, name)
+            updateTimerInList({
+              ...created,
+              remainingSeconds: plan.duration,
+              state: 'stopped',
+              time: formatSecondsToTime(plan.duration),
+            })
+            successMessage = 'Timer successfully created'
+            return
+          }
+
+          case 'rename': {
+            // Duration untouched: keep the clock running as it is
+            await editTimer(timer.countdown?.duration ?? 0, name, timer.id.uuid)
+            updateTimerInList({ ...timer, id: { ...timer.id, name } })
+            return
+          }
+
+          case 'update': {
+            await setTimerUpdateOperation(
+              plan.duration,
+              name,
+              'reset',
+              timer.id.uuid
+            )
+            updateTimerInList(withDuration(plan.duration, 'stopped'))
+            await refetch()
+            return
+          }
+
+          case 'restart': {
+            // Restart from the new duration; this also clears overtime
+            const restarted = withDuration(plan.duration, 'running')
+            await setTimerUpdateOperation(
+              plan.duration,
+              name,
+              'start',
+              timer.id.uuid
+            )
+            await applyFluidTimersOperation(restarted, 'start')
+
+            updateTimerInList(restarted)
+            setCurrentTimer(restarted)
+            localTimerRef.current.clearOvertime()
+            await localTimerRef.current.handleLocalTimer('start', plan.duration)
+            await refetch()
+            return
+          }
+        }
+      }, 'Failed to update timer')
+
+      if (success) toastSuccess(successMessage)
+      return success
+    },
+    [
+      currentTimer,
+      runOperation,
+      createTimer,
+      editTimer,
+      setTimerUpdateOperation,
+      applyFluidTimersOperation,
+      updateTimerInList,
+      setCurrentTimer,
+      refetch,
     ]
   )
 
@@ -429,7 +609,7 @@ export default function Home() {
           handleDelete={handleDelete}
           resetAllTimers={resetAllTimers}
           refreshTimers={refreshTimers}
-          updateTimerInList={updateTimerInList}
+          onSaveTimer={handleSaveTimer}
           onReorderTimer={handleReorderTimer}
           onSearch={onSearch}
           onLoadAnalytics={onLoadAnalyticsRange}

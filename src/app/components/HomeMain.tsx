@@ -7,7 +7,7 @@ import SettingsDialog from './modals/SettingsDialog'
 import About from './modals/About'
 import BroadcastDialog from './modals/BroadcastDialog'
 import AnalyticsDialog from './modals/AnalyticsDialog'
-import { Timer } from '../interfaces/time'
+import { Timer, TimerEditInput } from '../interfaces/time'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LocalTime, useShared } from '../providers/timer'
 import { toastError, toastInfo } from '@/lib/toastUtils'
@@ -18,6 +18,7 @@ import { TimerCardEdit } from './timer_card/TimerCardEdit'
 import { BiPlus } from 'react-icons/bi'
 import IconButton from './ui/IconButton'
 import { TimerAnalyticsRangeSummary } from '../interfaces/analytics'
+import { NEW_TIMER_DEFAULT_SECONDS } from '@/lib/timerLogic'
 
 interface HomeMainProps {
   searchableTimers: Timer[]
@@ -27,7 +28,7 @@ interface HomeMainProps {
   handleDelete: (uuid: string) => Promise<void>
   resetAllTimers: (action: TimerActions) => Promise<void>
   refreshTimers: () => Promise<void>
-  updateTimerInList: (timer: Timer) => void
+  onSaveTimer: (timer: Timer, input: TimerEditInput) => Promise<boolean>
   onReorderTimer: (timerId: string, direction: 'up' | 'down') => Promise<void>
   onSearch: (term: string) => void
   onLoadAnalytics: (
@@ -44,7 +45,7 @@ export default function HomeMain({
   handleDelete,
   resetAllTimers,
   refreshTimers,
-  updateTimerInList,
+  onSaveTimer,
   onReorderTimer,
   onSearch,
   onLoadAnalytics,
@@ -58,6 +59,8 @@ export default function HomeMain({
   const { openSettingsDialog, db, activeProfile } = useSettings()
 
   const createTimerRef = useRef(null as unknown as HTMLElement)
+  const isAnyTimerRunning =
+    localTimer.isRunning || localTimer.overtime.isRunning
 
   useEffect(() => {
     return () => {
@@ -76,13 +79,17 @@ export default function HomeMain({
     }
   }, [isCreatingTimer])
 
+  // openNewWindow is recreated every render; a ref keeps this callback stable
+  const openNewWindowRef = useRef(openNewWindow)
+  openNewWindowRef.current = openNewWindow
+
   const handleOpenFullScreen = useCallback(async () => {
-    await openNewWindow().catch((err) => {
+    await openNewWindowRef.current().catch((err) => {
       toastError(
         `Failed to open fullscreen window - ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`
       )
     })
-  }, [openNewWindow])
+  }, [])
 
   const handleExitFullscreen = useCallback(async () => {
     if (typeof window !== 'undefined' && window.isTauri) {
@@ -117,41 +124,43 @@ export default function HomeMain({
           <EmptyTimer openSettings={openSettingsDialog} />
         ) : (
           <div className='grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6'>
-            {searchableTimers.map((timer: Timer) => (
-              <TimerCardContainer
-                key={timer.id.uuid}
-                timer={timer}
-                canMoveUp={searchableTimers[0]?.id.uuid !== timer.id.uuid}
-                canMoveDown={
-                  searchableTimers[searchableTimers.length - 1]?.id.uuid !==
-                  timer.id.uuid
-                }
-                isActive={currentTimer?.id?.uuid === timer.id.uuid}
-                localTimer={localTimer}
-                onOperation={handleOperation}
-                onDelete={handleDelete}
-                onOpenFullScreen={handleOpenFullScreen}
-                onEdit={updateTimerInList}
-                onMoveUp={() => onReorderTimer(timer.id.uuid, 'up')}
-                onMoveDown={() => onReorderTimer(timer.id.uuid, 'down')}
-              />
-            ))}
+            {searchableTimers.map((timer: Timer, index) => {
+              const isActive = currentTimer?.id?.uuid === timer.id.uuid
+              return (
+                <TimerCardContainer
+                  key={timer.id.uuid}
+                  timer={timer}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < searchableTimers.length - 1}
+                  isActive={isActive}
+                  // Only the live card needs the ticking countdown
+                  localTimer={isActive ? localTimer : null}
+                  isAnyTimerRunning={isAnyTimerRunning}
+                  onOperation={handleOperation}
+                  onDelete={handleDelete}
+                  onOpenFullScreen={handleOpenFullScreen}
+                  onSave={onSaveTimer}
+                  onReorder={onReorderTimer}
+                />
+              )
+            })}
             {isCreatingTimer && (
               <span ref={createTimerRef}>
                 <TimerCardEdit
                   timer={{
                     id: { index: searchableTimers.length, uuid: '', name: '' },
-                    countdown: { duration: 300 },
+                    countdown: { duration: NEW_TIMER_DEFAULT_SECONDS },
                     allows_overrun: true,
                     state: 'stopped',
                     time: 'new',
-                    remainingSeconds: 300,
+                    remainingSeconds: NEW_TIMER_DEFAULT_SECONDS,
                   }}
                   isActive={false}
                   onCancel={() => setIsCreatingTimer(false)}
-                  onSave={(createdTimer) => {
-                    setIsCreatingTimer(false)
-                    updateTimerInList(createdTimer)
+                  onSubmit={async (newTimer, input) => {
+                    const saved = await onSaveTimer(newTimer, input)
+                    if (saved) setIsCreatingTimer(false)
+                    return saved
                   }}
                 />
               </span>

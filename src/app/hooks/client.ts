@@ -1,3 +1,13 @@
+export class HttpError extends Error {
+  constructor(
+    message: string,
+    public status: number
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 export const fetchJson = async <T>(
   url: string,
   options?: RequestInit,
@@ -28,7 +38,10 @@ export const fetchJson = async <T>(
   const data = await resp.json().catch((e) => console.log(e))
 
   if (!resp.ok) {
-    throw new Error(`${errorMessage} (${resp.status}): ${JSON.stringify(data)}`)
+    throw new HttpError(
+      `${errorMessage} (${resp.status}): ${JSON.stringify(data)}`,
+      resp.status
+    )
   }
 
   return data as T

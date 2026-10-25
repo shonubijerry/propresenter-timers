@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, SetStateAction } from 'react'
 import { Timer } from '../interfaces/time'
 import {
   TimerAnalyticsRangeSummary,
@@ -6,7 +6,13 @@ import {
 } from '../interfaces/analytics'
 import { convertTimeToSeconds } from '@/lib/formatter'
 import { useSettings } from '../providers/settings'
-import { fetchJson } from './client'
+import { fetchJson, HttpError } from './client'
+import {
+  applyPendingTimerChanges,
+  filterDeletedTimers,
+  PENDING_CHANGE_TTL_MS,
+  PendingTimerChange,
+} from '@/lib/timerLogic'
 import { TimerActions } from './timer'
 import {
   fetchTimersFromDb,
@@ -25,6 +31,7 @@ import {
 import {
   getTimerAnalyticsByRange as getTimerAnalyticsByRangeShared,
   getTimerAnalyticsByDate as getTimerAnalyticsByDateShared,
+  recordAllTimerRunEnds,
   recordTimerRunEnd,
   recordTimerRunStart,
 } from '@/lib/timerAnalyticsDb'
@@ -54,7 +61,7 @@ interface TimersApiHook {
     id?: string
   ) => Promise<Timer>
   setAllTimersOperation: (operation: TimerActions) => Promise<void>
-  updateTimers: (data: Timer[]) => void
+  updateTimers: (data: SetStateAction<Timer[]>) => void
   saveTimerOrder: (orderedTimers: Timer[]) => Promise<void>
   fetchTimers: () => Promise<Timer[]>
   getTimerAnalyticsByDate: (date: string) => Promise<TimerAnalyticsSummary>
@@ -69,7 +76,9 @@ interface TimersApiHook {
  * Supports both ProPresenter API and local SQLite database.
  * @returns TimersApiHook interface with all timer operations
  */
-export const useTimersApi = (): TimersApiHook => {
+export const useTimersApi = ({
+  autoFetch = true,
+}: { autoFetch?: boolean } = {}): TimersApiHook => {
   const {
     proPresenterUrl: baseUrl,
     settings,
@@ -82,6 +91,22 @@ export const useTimersApi = (): TimersApiHook => {
   const [error, setError] = useState<Error | null>(null)
 
   const isLocalDb = settings?.datastore === 'localDb'
+
+  // ProPresenter keeps listing deleted timers for a while; hide them until it stops
+  const deletedTimerIds = useRef<Set<string>>(new Set())
+  // It also returns the old config for a moment after an edit
+  const pendingTimerChanges = useRef<Map<string, PendingTimerChange>>(new Map())
+
+  const rememberTimerChange = useCallback(
+    (id: string, duration: number, name?: string) => {
+      pendingTimerChanges.current.set(id, {
+        duration,
+        name: name?.length ? name : undefined,
+        expiresAt: Date.now() + PENDING_CHANGE_TTL_MS,
+      })
+    },
+    []
+  )
 
   const timerOrderStorageKey = `agc:timer-order:${activeProfileId}`
 
@@ -207,7 +232,20 @@ export const useTimersApi = (): TimersApiHook => {
         }
       }
 
-      const timersWithMetadata = all.map((t) => ({
+      const { timers: visibleTimers, stillListed } = filterDeletedTimers(
+        all,
+        deletedTimerIds.current
+      )
+      deletedTimerIds.current = stillListed
+
+      const { timers: freshTimers, pending } = applyPendingTimerChanges(
+        visibleTimers,
+        pendingTimerChanges.current,
+        Date.now()
+      )
+      pendingTimerChanges.current = pending
+
+      const timersWithMetadata = freshTimers.map((t) => ({
         ...t,
         ...map.get(t.id.uuid),
         isFluid: fluidTimerIds.includes(t.id.uuid),
@@ -238,8 +276,9 @@ export const useTimersApi = (): TimersApiHook => {
   }, [baseUrl, isLocalDb, fetchTimers, db])
 
   useEffect(() => {
-    refetch()
-  }, [refetch])
+    // Screen windows don't show the timer list, so they skip this fetch
+    if (autoFetch) refetch()
+  }, [refetch, autoFetch])
 
   // --- API Mutation Functions ---
 
@@ -287,7 +326,7 @@ export const useTimersApi = (): TimersApiHook => {
 
       if (!baseUrl) throw new Error('Base URL not set')
 
-      return fetchJson<Timer>(
+      const updated = await fetchJson<Timer>(
         `${baseUrl}/v1/timer/${id}`,
         {
           method: 'PUT',
@@ -301,8 +340,10 @@ export const useTimersApi = (): TimersApiHook => {
         },
         'Failed to update timer'
       )
+      rememberTimerChange(id, duration, name)
+      return updated
     },
-    [baseUrl, isLocalDb, fluidTimers, db]
+    [baseUrl, isLocalDb, fluidTimers, db, rememberTimerChange]
   )
 
   const deleteTimer = useCallback(
@@ -319,11 +360,22 @@ export const useTimersApi = (): TimersApiHook => {
 
       if (!baseUrl) throw new Error('Base URL not set')
 
-      await fetchJson<void>(
-        `${baseUrl}/v1/timer/${id}`,
-        { method: 'DELETE' },
-        'Failed to delete timer'
-      )
+      try {
+        await fetchJson<void>(
+          `${baseUrl}/v1/timer/${id}`,
+          { method: 'DELETE' },
+          'Failed to delete timer'
+        )
+      } catch (err) {
+        // 404 means ProPresenter already removed it
+        if (!(err instanceof HttpError && err.status === 404)) throw err
+      }
+
+      deletedTimerIds.current.add(id)
+
+      if (db) {
+        await recordTimerRunEnd(id, 'reset', db)
+      }
     },
     [baseUrl, isLocalDb, fluidTimers, db]
   )
@@ -395,23 +447,8 @@ export const useTimersApi = (): TimersApiHook => {
 
       if (!baseUrl) throw new Error('Base URL not set')
 
-      if (name.length) {
-        await fetchJson<Timer>(
-          `${baseUrl}/v1/timer/${id}`,
-          {
-            method: 'PUT',
-            body: JSON.stringify({
-              allows_overrun: true,
-              countdown: { duration },
-              id: {
-                name,
-              },
-            }),
-          },
-          `Failed to update timer`
-        )
-      }
-
+      // One call saves the new config and runs the operation. On a running or
+      // overrunning timer, 'start' restarts it from the new duration.
       return fetchJson<Timer>(
         `${baseUrl}/v1/timer/${id}/${operation}`,
         {
@@ -426,6 +463,8 @@ export const useTimersApi = (): TimersApiHook => {
         },
         `Failed to update timer operation`
       ).then(async (response) => {
+        rememberTimerChange(id, duration, name)
+
         if (db && !fluidTimers.includes(id)) {
           if (operation === 'start') {
             await recordTimerRunStart(
@@ -446,7 +485,7 @@ export const useTimersApi = (): TimersApiHook => {
         return response
       })
     },
-    [baseUrl, isLocalDb, db, fluidTimers]
+    [baseUrl, isLocalDb, db, fluidTimers, rememberTimerChange]
   )
 
   const setAllTimersOperation = useCallback(
@@ -468,15 +507,8 @@ export const useTimersApi = (): TimersApiHook => {
       if (!db) return
 
       if (operation === 'reset' || operation === 'stop') {
-        const nonFluidTimerIds = timers
-          .filter((timer) => !timer.isFluid)
-          .map((timer) => timer.id.uuid)
-
-        await Promise.all(
-          nonFluidTimerIds.map((timerId) =>
-            recordTimerRunEnd(timerId, operation, db)
-          )
-        )
+        // One query closes every open run (only running timers have one)
+        await recordAllTimerRunEnds(operation, db)
         return
       }
 
@@ -500,7 +532,7 @@ export const useTimersApi = (): TimersApiHook => {
     [baseUrl, isLocalDb, db, timers]
   )
 
-  const updateTimers = useCallback((data: Timer[]) => {
+  const updateTimers = useCallback((data: SetStateAction<Timer[]>) => {
     setTimers(data)
   }, [])
 

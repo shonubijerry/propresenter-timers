@@ -1,20 +1,24 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { formatSecondsToTime } from '@/lib/formatter'
-import { Timer } from '../../interfaces/time'
+import { Timer, TimerEditInput } from '../../interfaces/time'
 import { MdCancel } from 'react-icons/md'
 import { BiSave } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
 import { useForm } from 'react-hook-form'
-import { toastError, toastSuccess } from '@/lib/toastUtils'
-import { useTimersApi } from '@/app/hooks/useTimerApi'
 import { useShared } from '@/app/providers/timer'
+import {
+  MIN_TIMER_SECONDS,
+  getEditPrefillSeconds,
+  parseDurationInput,
+} from '@/lib/timerLogic'
 
 interface TimerCardEditProps {
   timer: Timer
   isActive: boolean
   onCancel: () => void
-  onSave: (updatedTimer: Timer) => void
+  onSubmit: (timer: Timer, input: TimerEditInput) => Promise<boolean>
 }
 
 interface TimerFormData {
@@ -26,84 +30,48 @@ export function TimerCardEdit({
   timer,
   isActive,
   onCancel,
-  onSave,
+  onSubmit,
 }: TimerCardEditProps) {
-  const { createTimer, setTimerUpdateOperation } = useTimersApi()
-    const { localTimer } = useShared()
+  const { localTimer } = useShared()
+
+  // Captured once when the form opens, so "changed" is measured against it
+  const [prefillSeconds] = useState(() =>
+    getEditPrefillSeconds({
+      isActive,
+      isOvertime: localTimer.overtime.isRunning,
+      remainingSeconds: localTimer.totalSeconds,
+      savedDuration: timer.countdown?.duration ?? 0,
+    })
+  )
+  const prefillText = formatSecondsToTime(prefillSeconds)
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setFocus,
+    formState: { errors, isSubmitting },
   } = useForm<TimerFormData>({
     defaultValues: {
       name: timer?.id.name ?? 'New Event',
-      duration: formatSecondsToTime(
-        isActive ? localTimer.totalSeconds : (timer?.countdown?.duration ?? 5)
-      ),
+      duration: prefillText,
     },
   })
 
-  const onSubmit = async (data: TimerFormData) => {
+  // A new timer form is ready for typing the name straight away
+  const isNew = timer.time === 'new'
+  useEffect(() => {
+    if (isNew) setFocus('name')
+  }, [isNew, setFocus])
 
-    try {
-    if (!data.name.trim()) {
-      data.name = `Timer ${Math.floor(Math.random() * 1000)}`
-    }
-      const [hours = 0, minutes = 0, seconds = 0] = data.duration
-        .split(':')
-        .map(Number)
-
-      let totalSeconds = hours * 3600 + minutes * 60 + seconds
-
-      if (totalSeconds < 60) {
-        toastError('Duration must be at least 1 minute')
-        return
-      }
-
-      if (isActive) {
-        totalSeconds = localTimer.totalSeconds
-      }
-
-      if (timer.time === 'new') {
-        const resp = await createTimer(totalSeconds, data.name)
-        onSave({
-          ...resp,
-          remainingSeconds: totalSeconds,
-          state: (isActive ? 'running' : 'stopped') as Timer['state'],
-          time: formatSecondsToTime(totalSeconds),
-        })
-        toastSuccess('Timer successfully created')
-        return
-      }
-
-      await setTimerUpdateOperation(
-        totalSeconds,
-        data.name,
-        isActive ? 'start' : 'reset',
-        timer?.id.uuid
-      )
-
-      const updatedTimer = {
-        ...timer,
-        id: {
-          ...timer.id,
-          name: data.name,
-        },
-        countdown: {
-          ...timer.countdown,
-          duration: totalSeconds,
-        },
-        remainingSeconds: totalSeconds,
-        state: (isActive ? 'running' : 'stopped') as Timer['state'],
-      }
-
-      onSave(updatedTimer)
-      toastSuccess('Timer updated successfully')
-    } catch (e) {
-      console.error('Error updating timer:', e)
-      toastError('Failed to update timer')
-    }
+  const submit = async (data: TimerFormData) => {
+    await onSubmit(timer, {
+      name: data.name,
+      enteredSeconds:
+        data.duration.trim() === prefillText
+          ? prefillSeconds
+          : parseDurationInput(data.duration),
+      prefillSeconds,
+    })
   }
 
   return (
@@ -156,11 +124,13 @@ export function TimerCardEdit({
                   {...register('duration', {
                     required: 'Duration is required',
                     validate: (value) => {
-                      const [hours = 0, minutes = 0, seconds = 0] = value
-                        .split(':')
-                        .map(Number)
-                      const totalSeconds = hours * 3600 + minutes * 60 + seconds
-                      if (totalSeconds < 60) {
+                      // An untouched field is always fine (rename only)
+                      if (value.trim() === prefillText) return true
+                      const totalSeconds = parseDurationInput(value)
+                      if (totalSeconds === null) {
+                        return 'Enter a duration as HH:MM:SS'
+                      }
+                      if (totalSeconds < MIN_TIMER_SECONDS) {
                         return 'Duration must be at least 1 minute'
                       }
                       return true
@@ -194,7 +164,8 @@ export function TimerCardEdit({
               icon={<BiSave size={30} />}
               tooltip='Save Changes'
               tooltipPosition='top'
-              onClick={handleSubmit(onSubmit)}
+              disabled={isSubmitting}
+              onClick={handleSubmit(submit)}
             />
           </div>
         </div>

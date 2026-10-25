@@ -7,10 +7,11 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(
       tauri_plugin_log::Builder::default()
-        .level(log::LevelFilter::Debug)
+        .level(log::LevelFilter::Info)
+        // sqlx logs every query at debug/info; only keep its warnings
+        .level_for("sqlx", log::LevelFilter::Warn)
         .build(),
     )
-    .plugin(tauri_plugin_sql::Builder::new().build())
     .setup(|app| {
       // ----- Plugins -----
       #[cfg(desktop)]

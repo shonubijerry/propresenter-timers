@@ -7,7 +7,11 @@ import Watch from '../watch/Watch'
 import { IoPlayOutline } from 'react-icons/io5'
 import { LuTimerReset } from 'react-icons/lu'
 import { AiOutlineEdit } from 'react-icons/ai'
-import { MdOutlineDelete, MdOutlineKeyboardArrowUp, MdOutlineKeyboardArrowDown } from 'react-icons/md'
+import {
+  MdOutlineDelete,
+  MdOutlineKeyboardArrowUp,
+  MdOutlineKeyboardArrowDown,
+} from 'react-icons/md'
 import { LocalTime } from '../../providers/timer'
 import { BiFullscreen } from 'react-icons/bi'
 import IconButton from '../ui/IconButton'
@@ -24,7 +28,8 @@ interface TimerCardProps {
   canMoveUp: boolean
   canMoveDown: boolean
   isActive: boolean
-  localTimer: LocalTime
+  localTimer: LocalTime | null
+  isAnyTimerRunning: boolean
   onOperation: (timer: Timer, action: TimerActions) => void
   onDelete: (uuid: string) => void
   onOpenFullScreen: (timer: Timer) => void
@@ -39,6 +44,7 @@ export function TimerCard({
   canMoveDown,
   isActive,
   localTimer,
+  isAnyTimerRunning,
   onDelete,
   onOperation,
   onOpenFullScreen,
@@ -59,10 +65,9 @@ export function TimerCard({
   const [unlockPasswordInput, setUnlockPasswordInput] = useState('')
   const isFluidTimer = fluidTimers.includes(timer.id.uuid)
   const hasCountdown = Boolean(timer.countdown)
-  const isAnyTimerRunning =
-    localTimer.isRunning || localTimer.overtime.isRunning
-  const isInjuryTime =
-    localTimer.totalSeconds < (timer?.countdown?.duration ?? 0) * 0.2
+  const isInjuryTime = localTimer
+    ? localTimer.totalSeconds < (timer?.countdown?.duration ?? 0) * 0.2
+    : false
 
   const addFluidTime = useCallback(
     async (timer: Timer) => {
@@ -316,7 +321,7 @@ export function TimerCard({
 
       {hasCountdown ? (
         <div className='space-y-3 mt-3'>
-          {isActive && (
+          {isActive && localTimer && (
             <div
               className='rounded-xl border p-2.5'
               style={{

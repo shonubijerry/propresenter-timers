@@ -13,7 +13,8 @@
     "build:tauri": "tauri",
     "clean": "rimraf release out .next tauri/target",
     "lint": "eslint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "vitest run"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -51,6 +52,7 @@
     "rimraf": "^6.1.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vitest": "^3.2.4",
     "wait-on": "^9.0.1"
   }
 }
